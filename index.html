@@ -372,7 +372,7 @@ button{font:inherit;color:inherit}
     <div class="startmap" id="startmap" aria-hidden="true"></div>
     <div class="sc-in gx">
       <p class="eyebrow">MEDIEVAL: WORLD DOMINATION · 1096 AD</p>
-      <p class="muted small" id="verline">版本 v172 · 2026-11-01 · 存檔欄位標示有無存檔、開新遊戲覆蓋前會確認；難度說明標明只有簡單有新手教學</p>
+      <p class="muted small" id="verline">版本 v173 · 2026-11-01 · 手機操作：「下一」跳到下一個可行動地塊、一次徵滿；商船跨大洋要遠洋航行科技</p>
       <h1>中世紀：世界霸權</h1>
       <p class="lead">1095 年，教宗在克萊蒙發出號召，整個歐洲動了起來。選一個勢力（共 121 個），再從該文明歷史上的君主裡挑一位登基；在四千多個六角格地塊的世界裡，與基督教世界、伊斯蘭世界與即將到來的蒙古鐵騎周旋。可以結盟借道、派商隊與商船貿易、派密探、遠征遠方、研究科技升級時代、替自己的城市取名。沒有回合上限，直到有人稱霸，或你失去一切。</p>
       <div id="startopts"></div>
@@ -405,6 +405,7 @@ button{font:inherit;color:inherit}
           <button class="zb" data-act="zfit" aria-label="回到全圖"><svg class="ic"><use href="#i-fit"/></svg></button>
           <button class="zb" data-act="howto" id="howbtn" aria-label="玩法說明" style="font-size:22px;font-weight:700;line-height:1">?</button>
           <button class="zb" data-act="locate" aria-label="回到我的位置" style="font-size:15px">我</button>
+          <button class="zb" data-act="nextready" aria-label="跳到下一個還能行動的地塊" style="font-size:13px">下一</button>
           <button class="zb" data-act="bigmap" id="bigbtn" aria-label="放大地圖" style="font-size:15px">大</button>
           <button class="zb" data-act="music" id="musicbtn" aria-label="音樂開關" style="font-size:22px;line-height:1">♪</button>
         </div>
@@ -2443,12 +2444,20 @@ function msRoute(a, b) {
   }
   return out;
 }
+/* 商船跨大洋（美洲 ↔ 舊大陸）要有「遠洋航行」科技；北歐人走北大西洋除外 */
+function isAmer(h) { return LON[h] <= -34 && LAT[h] < 58; }
+function msOK(g, f, a, b) {
+  if (isAmer(a) === isAmer(b)) return true;
+  if (NORSE[f]) return true;
+  return techFx(g, f, 'ocean') > 0;
+}
 function msPartner(g, f, o) { if (!o || o === f) return false; var r = rel(g, f, o); return r.trade > 0 || r.state === 'ally'; }
 function routeCands(g, f, from) {
   var out = [];
   LANDIDS.forEach(function (x) {
     var p = g.p[x]; if (!CITY[x] || !CITY[x].port || !p.o || p.L < 1 || x === from) return;
     if (p.o !== f && atWar(g, f, p.o)) return;
+    if (!msOK(g, f, from, x)) return;
     out.push({ id: x, o: p.o, partner: p.o !== f && msPartner(g, f, p.o), d: Math.abs(hr(x) - hr(from)) + Math.abs(hc(x) - hc(from)) * 0.5 });
   });
   out.sort(function (a, b) { return (b.partner - a.partner) || (b.d - a.d); });
@@ -2459,6 +2468,7 @@ function actRoute(g, f, from, to) {
   if (!to) { delete p.rt; return good(placeName(from) + '的商船改回自動選航線。'); }
   var q = g.p[to]; if (!q || !CITY[to] || !CITY[to].port || !q.o || q.L < 1 || to === from) return fail('目的地不是可用的港口。');
   if (q.o !== f && atWar(g, f, q.o)) return fail('和對方交戰中，商船去不了。');
+  if (!msOK(g, f, from, to)) return fail('跨越大洋的航線需要「遠洋航行」科技。');
   p.rt = to;
   return good(placeName(from) + '的商船航線設為前往' + placeName(to) + (q.o !== f && msPartner(g, f, q.o) ? '（貿易夥伴，收益 +25%）' : '') + '。');
 }
@@ -2476,12 +2486,12 @@ function merchantTick(g) {
     var total = 0, sunk = 0, ok = 0, lastDest = null, killer = '', n = fs.ms;
     for (var k = 0; k < n; k++) {
       var h = home[rint(home.length)], best = null, bd = -1, rt = g.p[h].rt;
-      if (rt && rt !== h && cand.indexOf(rt) >= 0) { best = rt; bd = Math.abs(hr(rt) - hr(h)) + Math.abs(hc(rt) - hc(h)) * 0.5; }
+      if (rt && rt !== h && cand.indexOf(rt) >= 0 && msOK(g, f, h, rt)) { best = rt; bd = Math.abs(hr(rt) - hr(h)) + Math.abs(hc(rt) - hc(h)) * 0.5; }
       else {
         var pool = cand;
         if (Math.random() < 0.7) { var pp = cand.filter(function (x) { var o2 = g.p[x].o; return o2 !== f && msPartner(g, f, o2); }); if (pp.length) pool = pp; }
         for (var t = 0; t < 4 && pool.length; t++) {
-          var c = pool[rint(pool.length)]; if (c === h) continue;
+          var c = pool[rint(pool.length)]; if (c === h || !msOK(g, f, h, c)) continue;
           var d = Math.abs(hr(c) - hr(h)) + Math.abs(hc(c) - hc(h)) * 0.5;
           if (d > bd) { bd = d; best = c; }
         }
@@ -7361,7 +7371,7 @@ if (typeof module !== 'undefined') module.exports = G;
       var desert = G.TERR[id] === 'd' && p.L === 0;
       var canB = p.L < 3 && !desert && G.canPay(g, f, bc) && !noap;
       var canM = p.t >= 2 && !p.acted && !p.arr;
-      h += '<div class="cmds" style="margin-bottom:6px">' + ru + '</div><div class="cmds">' +
+      h += '<div class="cmds" style="margin-bottom:6px">' + ru + '</div>' + (p.L > 0 && G.recLeft(g, id) > 1 && G.canPay(g, f, G.unitCost(f, 0)) ? '<div class="cmds" style="margin-bottom:6px"><button class="cmd" data-act="recfill"><b>一次徵滿（步兵）</b><small>連續徵兵到本回合上限或錢糧用完</small></button></div>' : '') + '<div class="cmds">' +
         cmd('recmore', 'recruit', '更多兵種', '特色・攻城・僱傭', p.L < 1) +
         cmd('build', 'build', p.L >= 3 ? '最高級' : p.L === 0 ? '建城' : '升級', p.L >= 3 ? '—' : desert ? '沙漠不可' : costText(bc), !canB) +
         cmd('mode', 'march', ui.mode === 'mov' ? '回到進攻' : '調動部隊', p.acted ? (p.arr ? '剛到，可攻擊' : '已行動') : ui.mode === 'mov' ? '選己方地塊' : '己方領土內', !canM && ui.mode !== 'mov', ui.mode === 'mov') + '</div>';
@@ -7881,6 +7891,19 @@ if (typeof module !== 'undefined') module.exports = G;
       try { if (on && document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(function () {}); else if (!on && document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(function () {}); } catch (e) {}
       setTimeout(function () { window.dispatchEvent(new Event('resize')); applyView(); }, 80);
       return toast(on ? '地圖放大：點地圖上的格子會顯示面板，再按「大」還原' : '已還原');
+    }
+    if (a === 'nextready') {
+      var rd = G.owned(g, g.player).filter(function (id) { var q = g.p[id]; return !q.acted && q.t >= 2; }).sort(function (x, y) { return x - y; });
+      if (!rd.length) return toast('沒有還能行動的地塊了，可以結束回合');
+      var nx = rd.filter(function (id) { return ui.sel == null || id > ui.sel; })[0]; if (nx === undefined) nx = rd[0];
+      var prevSel = ui.sel; ui.sel = null; ui.target = null; ui.army = null; ui.mode = 'atk'; selectHex(nx);
+      focusOn(nx, Math.max(ui.view.s, 3.3)); applyView();
+      return toast('還有 ' + rd.length + ' 處可行動');
+    }
+    if (a === 'recfill') {
+      var cnt = 0, lastR = null, guard = 0;
+      while (guard++ < 40) { lastR = G.P.recruit(g, ui.sel, 0, false); if (!lastR.ok) break; cnt++; }
+      return afterAction(cnt ? { ok: true, msg: '一次徵了 ' + cnt + ' 批步兵，已達本回合上限或資源不足。' } : lastR);
     }
     if (a === 'locate') { autoFocus(); applyView(); return toast('已回到你的位置'); }
     if (a === 'fallnowok') { $('#modal').hidden = true; fallNow(); return; }
