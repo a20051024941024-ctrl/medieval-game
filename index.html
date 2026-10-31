@@ -372,7 +372,7 @@ button{font:inherit;color:inherit}
     <div class="startmap" id="startmap" aria-hidden="true"></div>
     <div class="sc-in gx">
       <p class="eyebrow">MEDIEVAL: WORLD DOMINATION · 1096 AD</p>
-      <p class="muted small" id="verline">版本 v173 · 2026-11-01 · 手機操作：「下一」跳到下一個可行動地塊、一次徵滿；商船跨大洋要遠洋航行科技</p>
+      <p class="muted small" id="verline">版本 v174 · 2026-11-01 · 聚落系統：自建改成村莊／山寨→市鎮／城堡→城市／堡壘，村莊只能徵少量步弓兵；規則頁同步更新</p>
       <h1>中世紀：世界霸權</h1>
       <p class="lead">1095 年，教宗在克萊蒙發出號召，整個歐洲動了起來。選一個勢力（共 121 個），再從該文明歷史上的君主裡挑一位登基；在四千多個六角格地塊的世界裡，與基督教世界、伊斯蘭世界與即將到來的蒙古鐵騎周旋。可以結盟借道、派商隊與商船貿易、派密探、遠征遠方、研究科技升級時代、替自己的城市取名。沒有回合上限，直到有人稱霸，或你失去一切。</p>
       <div id="startopts"></div>
@@ -1424,11 +1424,14 @@ function logMsg(g, text, kind) {
 function fail(msg) { return { ok: false, msg: msg }; }
 function good(msg, extra) { var o = extra || {}; o.ok = true; o.msg = msg; return o; }
 function cityName(id) { return CITY[id] ? CITY[id].name : null; }
-var _CN = {};
-function bindCN(g) { _CN = g.cn || (g.cn = {}); }
+var _CN = {}, _GP = null;
+function bindCN(g) { _CN = g.cn || (g.cn = {}); _GP = g.p; }
+function settleName(id, L) { var r = TERR[id] === 'f' || TERR[id] === 'h' || TERR[id] === 'm' || TERR[id] === 'w'; return [r ? '山寨' : '村莊', r ? '城堡' : '市鎮', r ? '堡壘' : '城市'][Math.max(1, Math.min(3, L)) - 1]; }
+function isVillage(id, p) { return !!p && p.L === 1 && !CITY[id]; }
 function placeName(id) {
   if (_CN[id]) return _CN[id];
   if (CITY[id]) return CITY[id].name;
+  if (_GP && _GP[id] && _GP[id].L > 0) return settleName(id, _GP[id].L);
   var T = { g: '平原', f: '森林', h: '丘陵', m: '山地', d: '沙漠', n: '河谷沃土', s: '草原', w: '雪原' };
   return T[TERR[id]] || '荒野';
 }
@@ -1524,7 +1527,8 @@ var NOMAD = { mongol: 99, jin: 6, liao: 6, seljuk: 6, kara: 6, hung: 6, ghaz: 5 
 function supRange(f) { return NOMAD[f] || 4; }
 function supplyDist(g, f) {
   var dist = {}, q = [], R = supRange(f);
-  owned(g, f).forEach(function (id) { if (g.p[id].L > 0) { dist[id] = 0; q.push(id); } });
+  owned(g, f).forEach(function (id) { if (g.p[id].L > 0 && !isVillage(id, g.p[id])) { dist[id] = 0; q.push(id); } });
+  owned(g, f).forEach(function (id) { if (isVillage(id, g.p[id]) && dist[id] === undefined) { dist[id] = Math.ceil(R / 2); q.push(id); } });
   for (var qi = 0; qi < q.length; qi++) {
     var x = q[qi];
     if (dist[x] >= R) continue;
@@ -1645,7 +1649,7 @@ var ERA_UN = [['民兵', '長矛兵', '重裝步兵', '長槍方陣'], ['獵弓�
 var RUNIT = {"fat:薩拉丁": "薩拉希亞近衛軍", "eng:理查一世（獅心王）": "獅心近衛騎士", "eng:亨利五世": "阿金庫爾長弓衛隊", "eng:愛德華三世": "黑太子騎士團", "fra:腓力二世·奧古斯都": "王家近衛軍士", "fra:路易九世（聖路易）": "聖王十字軍騎士", "byz:阿歷克塞一世·科穆寧": "瓦蘭吉衛隊", "seljuk:阿爾普·阿爾斯蘭": "突厥奴隸禁衛", "jpn:源賴朝": "鎌倉御家人", "jpn:北條時宗": "鎌倉御家人", "hre:腓特烈一世·巴巴羅薩": "帝國家臣騎士", "hre:腓特烈二世": "盧切拉薩拉森弓騎兵", "hung:馬加什一世（科爾維努斯）": "黑軍", "nov:亞歷山大·涅夫斯基": "公爵親兵", "val:熙德·羅德里戈·迪亞斯": "熙德親衛騎士", "liao:耶律大石": "皮室軍", "ghaz:馬哈茂德": "加茲尼象兵", "ghu:穆伊茲丁·穆罕默德": "古爾奴隸近衛", "sco:羅伯特·布魯斯": "蘇格蘭長槍方陣", "almor:優素福·伊本·塔什芬": "穆拉比特黑衛軍", "song:宋高宗": "背嵬軍", "geo:大衛四世（建設者）": "欽察僱傭騎兵"};
 var RUL_C = {};
 function rulSync(g) { FIDS.forEach(function (f) { var r = g.fac[f] ? rulerOf(g, f) : null; RUL_C[f] = r ? (RUNIT[f + ':' + r[0]] || null) : null; }); }
-function eraSync(g) { FIDS.forEach(function (f) { ERA_C[f] = g.fac[f] ? eraOf(g, f) : 1; }); rulSync(g); }
+function eraSync(g) { bindCN(g); FIDS.forEach(function (f) { ERA_C[f] = g.fac[f] ? eraOf(g, f) : 1; }); rulSync(g); }
 function eraNum(f) { return ERA_C[f] || 1; }
 var CAMEL = {}; ['almor', 'fat', 'abb', 'zir', 'ham', 'sul', 'gha', 'gao', 'kan', 'mak', 'adal', 'som', 'mos', 'dam', 'ale'].forEach(function (x) { CAMEL[x] = 1; });
 var CAMEL_UN = ['駱駝騎手', '駱駝騎兵', '重裝駱駝騎兵', '駱駝突擊騎兵'];
@@ -1789,20 +1793,23 @@ function pickUnitType(g, f, id) {
   return bi;
 }
 function softCap(p, id) { return capOf(p, id) * 2; }
-function recLimit(p) { return 6 + 6 * (p.L | 0); }
-function recLeft(g, id) { var p = g.p[id]; if (!p || p.L < 1) return 0; return Math.max(0, recLimit(p) - (p.rcT === g.turn ? (p.rcN | 0) : 0)); }
+function recLimit(p, id) { if (id !== undefined && isVillage(id, p)) return 6; return 6 + 6 * (p.L | 0); }
+function recLeft(g, id) { var p = g.p[id]; if (!p || p.L < 1) return 0; return Math.max(0, recLimit(p, id) - (p.rcT === g.turn ? (p.rcN | 0) : 0)); }
 var NOHORSE = NOHORSE_X; Object.assign(NOHORSE, { cah: 1, pue: 1, tol: 1, mix: 1, may: 1, tai: 1, chi: 1, col: 1, cus: 1 });
 function actRecruit(g, f, id, type, merc) {
   var p = g.p[id];
   if (!p || p.o !== f) return fail('這裡不是你的領地。');
   if (p.L < 1) return fail('只有城市能徵兵，先建設城市。');
-  if (type === undefined || type === null) type = pickUnitType(g, f, id);
+  var tUndef = (type === undefined || type === null);
+  if (tUndef) type = pickUnitType(g, f, id);
+  if (tUndef && !merc && isVillage(id, p) && type > 1) type = 0;
+  if (isVillage(id, p) && (merc || type > 1)) return fail(settleName(id, 1) + '只能徵步兵和弓兵；升級成' + settleName(id, 2) + '才能徵更多兵種。');
   if (type === 2 && NOHORSE[f]) return fail('美洲沒有馬，這個文明無法徵召騎兵。');
   if (!unitAllowed(p, type, merc)) return fail(type === 3 ? '特色兵要三級以上城市才能徵召（城市需達 2 級）。' : '只有城市能徵兵。');
   var c = merc ? mercCost(f, type) : unitCost(f, type);
   if (!canPay(g, f, c)) return fail('資源不足。');
   var hum = isHum(g, f);
-  if (hum ? recLeft(g, id) <= 0 : garrisonOf(g, id) >= capOf(p, id)) return fail(hum ? '這座城市本回合徵兵已達上限（' + recLimit(p) + ' 人），升級城市可提高，或改到別的城市徵召。' : '留守駐軍已達上限。');
+  if (hum ? recLeft(g, id) <= 0 : garrisonOf(g, id) >= capOf(p, id)) return fail(hum ? '這座城市本回合徵兵已達上限（' + recLimit(p, id) + ' 人），升級城市可提高，或改到別的城市徵召。' : '留守駐軍已達上限。');
   pay(g, f, c);
   var add = hum ? Math.min(c.troops, recLeft(g, id)) : Math.min(c.troops, capOf(p, id) - garrisonOf(g, id));
   if (hum) { if (p.rcT !== g.turn) { p.rcT = g.turn; p.rcN = 0; } p.rcN += add; }
@@ -1821,16 +1828,34 @@ function actRename(g, f, id, name) {
   g.cn[id] = name;
   return good('這座城市從此名為「' + name + '」。');
 }
+/* 蓋聚落：空地蓋村莊／山寨很便宜（只怕沙漠、不能緊鄰別的聚落）；村莊升成市鎮／城堡要先駐軍滿 6 人，且離其他 2 級以上聚落至少隔 2 格。原本地圖上的名城不受限制。 */
+function citySiteBlock(g, f, id) {
+  var p = g.p[id]; if (!p || CITY[id] || p.L >= 2) return '';
+  var seen = {}, fr = [id], d, k, rng = p.L === 0 ? 1 : 2; seen[id] = 1;
+  if (p.L === 0) {
+    if (TERR[id] === 'd') return '沙漠無法建設。';
+    if (BLOCKED[id]) return '這裡是不可通行的高峰。';
+  } else if (p.t < 6) return '要先在這裡駐軍滿 6 人才能升級。';
+  for (d = 0; d < rng; d++) { var nx = []; fr.forEach(function (h) { NB[h].forEach(function (n) { if (!seen[n]) { seen[n] = 1; nx.push(n); } }); }); fr = nx; }
+  for (k in seen) { if (+k === id) continue; var q = g.p[k]; if (p.L === 0 ? (CITY[k] || (q && q.L > 0)) : (CITY[k] || (q && q.L >= 2))) return p.L === 0 ? '太靠近其他聚落了（至少隔 1 格）。' : '離其他城鎮太近（至少隔 2 格）。'; }
+  return '';
+}
+function buildCostG(g, f, p, id) {
+  var c = buildCost(p);
+  if (p.L === 0 && !CITY[id]) { var n = owned(g, f).filter(function (x) { return g.p[x].L > 0; }).length; c.gold = Math.min(100, 40 + 5 * n); }
+  return c;
+}
 function actBuild(g, f, id) {
   var p = g.p[id];
   if (!p || p.o !== f) return fail('這裡不是你的領地。');
   if (p.L >= 3) return fail('已達最高等級。');
   if (p.L === 0 && TERR[id] === 'd') return fail('沙漠無法建城。');
-  var c = buildCost(p);
+  var blk0 = citySiteBlock(g, f, id); if (blk0) return fail(blk0);
+  var c = buildCostG(g, f, p, id);
   if (!canPay(g, f, c)) return fail('資源不足。');
   pay(g, f, c);
   p.L++;
-  return good(p.L === 1 ? placeName(id) + '建立了城市。' : placeName(id) + '提升至 ' + p.L + ' 級。');
+  return good(p.L === 1 ? (CITY[id] ? placeName(id) + '建立了城市。' : '建起了一座' + settleName(id, 1) + '。') : (CITY[id] ? placeName(id) + '提升至 ' + p.L + ' 級。' : '升級成' + settleName(id, p.L) + '。'));
 }
 function actTrade(g, f) {
   var gain = tradeGain(g, f);
@@ -3399,7 +3424,7 @@ function aiEconomy(g, f) {
       var up = null, uv = -1;
       owned(g, f).forEach(function (id) {
         var p = g.p[id];
-        if (p.L >= 3 || (p.L === 0 && (TERR[id] === 'd' || TERR[id] === 'm'))) return;
+        if (p.L >= 3 || (p.L === 0 && (TERR[id] === 'd' || TERR[id] === 'm')) || (p.L <= 1 && citySiteBlock(g, f, id))) return;
         var v = (p.L > 0 ? p.L * 2 : 0) + TERR_Y[TERR[id]][0] + TERR_Y[TERR[id]][1];
         if (fs.gold >= buildCost(p).gold + 40 && v > uv) { uv = v; up = id; }
       });
@@ -5424,7 +5449,7 @@ var G = {
   codex: codex, recruitCost: recruitCost, unitCost: unitCost, mercCost: mercCost, mixOf: mixOf, mercOf: mercOf, unitName: unitName, mercName: mercName, unitAllowed: unitAllowed, SPECIAL: SPECIAL, UNIT_NAMES: UNIT_NAMES, DEFMIX: DEFMIX, buildCost: buildCost, tradeGain: tradeGain, ritualCost: ritualCost, ritualGain: ritualGain,
   TAX_N: TAX_N, TAX_D: TAX_D, taxOf: taxOf, softCap: softCap, recLeft: recLeft, recLimit: recLimit, isMarried: isMarried, marryCost: marryCost, marryChance: marryChance, tributeCost: tributeCost, RESH: RESH, RES_N: RES_N, RES_D: RES_D, resCount: resCount, resFx: resFx, armySwap: armySwap, chainAdd: chainAdd, CHAIN: CHAIN, matchupHint: matchupHint, riverEdge: riverEdge, RIV_E: RIV_E, RIVERS: RIVERS, canPay: canPay, P: P, sendCount: sendCount, battleOdds: battleOdds, moveTargets: moveTargets, wallCost: wallCost, TECH: TECH, RUNIT: RUNIT, RSP: RSP, rulerGift: rulerGift, SPY: SPY, spyLeft: spyLeft, needRuler: needRuler, rulerChoices: rulerChoices, HIST_REL: HIST_REL, RULERS: RULERS, rulerOf: rulerOf, setRuler: setRuler, carOptions: carOptions, carActive: carActive, carMax: carMax, CAR_COST: CAR_COST, festLeft: festLeft, ROAD: ROAD, ROADSEG: ROADSEG, PASS: PASS, CAMEL: CAMEL, BLOCKED: BLOCKED, terrAtk: terrAtk, eraSync: eraSync, eraNum: eraNum, eraInfo: eraInfo, eraOf: eraOf, ERA_NAME: ERA_NAME, TECHS: TECHS, TBR: TBR, TECH_BY: TECH_BY, techLv: techLv, techState: techState, techHas: techHas, techFx: techFx, techCost: techCost, techWhy: techWhy, BLD: BLD, BLD_KEYS: BLD_KEYS, bldCount: bldCount, wallLv: wallLv, portOpen: portOpen, portsOpen: portsOpen, moveTroops: moveTroops,
   endTurn: endTurn, pickEvent: pickEvent, eventView: eventView, applyChoice: applyChoice, scoreOf: scoreOf,
-  lordsOf: lordsOf, FIEF_PER: FIEF_PER, fiefMax: fiefMax, fiefList: fiefList, cityN: cityN, FIEF_COST: FIEF_COST, FIEF_REWARD: FIEF_REWARD, isCapital: isCapital, msOf: msOf, NOHORSE: NOHORSE, deepOK: deepOK, msCap: msCap, MS_COST: MS_COST, nm: nm, aiTurn: aiTurn, portsOf: portsOf, genAt: genAt, RELICS: RELICS, REL_TXT: REL_TXT, relAt: relAt, gensOf: gensOf, genLv: genLv, genChoose: genChoose, genCandidates: genCandidates, LANDMARKS: LANDMARKS, LM_AT: LM_AT, lmInfo: lmInfo, lmBonus: lmBonus, callWarInfo: callWarInfo, culOf: culOf, culGain: culGain, CUL_WIN: CUL_WIN, msnTick: msnTick, surInfo: surInfo, moveCapCost: moveCapCost, syncCap: syncCap, xRate: xRate, xQuota: xQuota, genAvail: genAvail, genCost: genCost, GEN_MAX: GEN_MAX, GEN_TYPE: GEN_TYPE, GEN_TXT: GEN_TXT, GENS: GENS, shipsOf: shipsOf, fleets: fleets, fleetReach: seaReach, fleetStr: fleetStr, seaCapAt: seaCapAt, FLEET_MOVE: FLEET_MOVE, shipCap: shipCap, seaCapLeft: seaCapLeft, shipName: shipName, SHIP_COST: SHIP_COST, SHIP_CARRY: SHIP_CARRY, moraleMult: moraleMult, placeName: placeName, terrDef: terrDef,
+  lordsOf: lordsOf, FIEF_PER: FIEF_PER, fiefMax: fiefMax, fiefList: fiefList, cityN: cityN, FIEF_COST: FIEF_COST, FIEF_REWARD: FIEF_REWARD, isCapital: isCapital, msOf: msOf, NOHORSE: NOHORSE, deepOK: deepOK, msCap: msCap, MS_COST: MS_COST, nm: nm, aiTurn: aiTurn, portsOf: portsOf, genAt: genAt, citySiteBlock: citySiteBlock, buildCostG: buildCostG, settleName: settleName, isVillage: isVillage, RELICS: RELICS, REL_TXT: REL_TXT, relAt: relAt, gensOf: gensOf, genLv: genLv, genChoose: genChoose, genCandidates: genCandidates, LANDMARKS: LANDMARKS, LM_AT: LM_AT, lmInfo: lmInfo, lmBonus: lmBonus, callWarInfo: callWarInfo, culOf: culOf, culGain: culGain, CUL_WIN: CUL_WIN, msnTick: msnTick, surInfo: surInfo, moveCapCost: moveCapCost, syncCap: syncCap, xRate: xRate, xQuota: xQuota, genAvail: genAvail, genCost: genCost, GEN_MAX: GEN_MAX, GEN_TYPE: GEN_TYPE, GEN_TXT: GEN_TXT, GENS: GENS, shipsOf: shipsOf, fleets: fleets, fleetReach: seaReach, fleetStr: fleetStr, seaCapAt: seaCapAt, FLEET_MOVE: FLEET_MOVE, shipCap: shipCap, seaCapLeft: seaCapLeft, shipName: shipName, SHIP_COST: SHIP_COST, SHIP_CARRY: SHIP_CARRY, moraleMult: moraleMult, placeName: placeName, terrDef: terrDef,
   EVENTS: EVENTS, HIST: HIST, checkEnd: checkEnd, finish: finish, settle: settle, TERR_Y: TERR_Y,
   SAVE_VER: SAVE_VER, MAPSIG: MAPSIG, rel: rel, migrate: migrate, strength: strength, dipInfo: dipInfo, declareWar: declareWar, aiDiplomacy: aiDiplomacy,
   swapAmt: swapAmt, routeCands: routeCands, coastTarget: coastTarget, supplyDist: supplyDist, supRange: supRange, lordOf: lordOf, vassalsOf: vassalsOf, ownedTotal: ownedTotal, offerEvent: offerEvent, acceptChance: acceptChance,
@@ -6237,13 +6262,16 @@ if (typeof module !== 'undefined') module.exports = G;
     '<li><b>僱傭兵</b>：在「更多兵種」裡可用金幣一次僱到 6 人，不耗糧食，但每回合多付薪餉；沒錢時他們最先逃跑。</li>' +
     '<li><b>附庸</b>：實力比接壤的對手強 1.4 倍以上時，可在外交選單「要求臣服」。附庸每回合把約三成盈餘進貢給宗主、跟著宗主參戰，附庸的地塊也算進宗主的霸權地塊；附庸若覺得宗主太弱，可能宣布獨立。</li>' +
     '<li><b>補給線</b>：部隊離己方城市（沿己方領土）超過 4 格就會「遠離補給線」，多耗糧、每回合損耗兵力、攻擊力 −10%；占領城市可以延伸補給線。草原民族（蒙古等）不受此限。地圖上這類地塊的徽章會出現紅框。</li>' +
-    '<li><b>徵兵</b>只能在城市進行；非城市地塊可花費金幣與糧食建城。城市等級越高，每回合可徵兵數、產出與防禦都更高；駐軍沒有硬上限，但超過軟上限（城市規模的兩倍）每回合會損耗並多耗糧。</li>' +
+    '<li><b>聚落</b>：空地可以便宜地蓋「村莊」（山地、森林、丘陵叫「山寨」），不能蓋在沙漠、也不能緊鄰別的聚落；費用隨你的聚落數增加。村莊／山寨每回合只能徵 6 人、只能徵步兵和弓兵，補給範圍只有城市的一半。駐軍滿 6 人、離其他 2 級以上聚落至少隔 2 格，才能升成「市鎮／城堡」，再升成「城市／堡壘」。地圖上原本的名城不受這些限制。</li>' +
+    '<li><b>新手教學</b>：只有難度選「簡單」時，前 12 回合會有手指一步步帶你操作；普通與困難沒有。</li>' +
+    '<li><b>一次徵滿</b>：城市面板有「一次徵滿（步兵）」，連續徵兵到本回合上限或錢糧用完。</li>' +
+    '<li><b>徵兵</b>只能在聚落進行；城市等級越高，每回合可徵兵數、產出與防禦都更高；駐軍沒有硬上限，但超過軟上限（城市規模的兩倍）每回合會損耗並多耗糧。</li>' +
     '<li><b>特產</b>：山區有鐵礦、草原有戰馬、東方有絲綢、南洋有香料、西非有黃金；占有愈多，進攻力或金幣收入愈高（點地塊可看到特產）。</li>' +
     '<li><b>河流</b>：渡河進攻時守軍防禦 +8%，軍團渡河多耗 1 點移動力。</li>' +
     '<li><b>兵種專長</b>：草原與突厥勢力的騎兵是<b>弓騎兵</b>，對步兵與平原有利，但攻城吃虧、近戰防守較弱；宋、義大利、拜占庭、法蘭西等的弓兵是<b>弩兵</b>，專剋騎兵，攻守兩端都有效；印度與東南亞的騎兵是<b>戰象</b>，在平原衝鋒猛、在山林吃虧、怕弓兵；天主教勢力的特色兵是<b>修會騎士</b>，守城時很強、攻伊斯蘭城市有加成；進入城堡時代或帝王時代（宋、金、蒙古早一個時代）後弓兵升級為<b>火銃手</b>，攻城與防守都更強，帝王時代的攻城器械成為<b>火砲</b>。駐軍裡的遠程兵（弓、弩、火銃、投石機）也會射擊靠岸的敵船。</li>' +
     '<li><b>君主</b>：開局從你文明歷史上的君主（含傳說人物）中挑一位，各帶不同加成；金色★的名君還有專屬戰鬥能力或專屬兵種。君主在位約等於歷史年數，駕崩後從名單選繼任者。</li>' +
     '<li><b>間諜</b>：下方「間諜」按鈕，花金幣（不耗行動點、每回合一次）偵查、煽動叛亂或暗殺將領，失敗聲望 −4。</li>' +
-    '<li><b>地圖按鈕</b>：「大」把地圖放到最大（再按還原）；「我」回到你最後行動的位置；結束回合後地圖會自動移到那裡。</li>' +
+    '<li><b>地圖按鈕</b>：「大」把地圖放到最大（再按還原）；「我」回到你最後行動的位置；「下一」跳到下一個還能行動的地塊；結束回合後地圖會自動移到那裡。</li>' +
     '<li><b>同盟</b>：盟友的領地可以「借道」通過（只能路過，不能停留）；你進攻的目標旁若有盟友的部隊（4 人以上）、且盟友也在和同一個敵人交戰，你的攻擊 +8%（最多兩位盟友 +16%）。你被進攻時，旁邊的盟友同樣會幫你守，防禦 +8%。</li>' +
     '<li><b>海岸防禦</b>：敵人的艦隊停在你海岸領地旁時，每回合結算時你的遠程兵種（弓兵、投石機等）會射擊船隻，每約 14 點遠程戰力擊沉一艘；步兵與騎兵沒有作用，有港口的城市更準。沒有遠程兵種的海岸擋不住船。</li>' +
     '<li><b>地形</b>：山地防禦 ×1.4，丘陵 ×1.22，森林 ×1.12，雪原 ×1.06；平原與沙漠沒有加成。雪原（格陵蘭冰蓋、北極圈、冰島高地）幾乎沒有產出，行軍慢、騎兵吃虧，進攻方 ×0.94。尼羅河谷糧產最高，沙漠幾乎無產出。</li>' +
@@ -6266,7 +6294,7 @@ if (typeof module !== 'undefined') module.exports = G;
     '<li><b>國庫</b>：點上方的糧食或金幣，或從選單進入「國庫」：可買賣糧食、調整稅率、開關遠征補給，都不耗行動點。</li>' +
     '<li><b>遠征補給</b>：部隊離補給線太遠會斷糧、扣兵與民心。開啟遠征補給後，補給範圍外的部隊不再損耗，改由國庫每回合付糧金（每百人約各 12）；付不起就照常斷糧。占領敵方城市會把補給線往前推。</li>' +
     '<li><b>圍城、斷糧與疲勞</b>：被圍的城市每回合削弱守軍與民心；四周沒有一塊己方領地的城市會被「包圍斷糧」，守軍每回合餓死一部分。同一場戰爭打滿 10 回合後雙方民心緩慢下滑，越拖越重，議和可以止損。</li>' +
-    '<li><b>商隊與商船</b>：商隊走陸路；商船出海自動貿易，優先去貿易夥伴的港口（收益 +25%），也可在港口面板指定航線。商船可能被敵艦或海盜擊沉。</li>' +
+    '<li><b>商隊與商船</b>：商隊走陸路；商船出海自動貿易，優先去貿易夥伴的港口（收益 +25%），也可在港口面板指定航線；要橫渡大洋（美洲與舊大陸之間）得先研究「遠洋航行」，北歐人走北大西洋除外。商船可能被敵艦或海盜擊沉。</li>' +
     '<li><b>貿易互換與贈送</b>：外交選單可贈送金幣或糧食提高對方好感；簽了貿易協定後可糧食換金幣、金幣換糧食，雙方有港口又有商船時走海路，量更大但可能被擊沉。</li>' +
     '<li><b>索貢</b>：電腦要對你宣戰前，如果你付得起，會先索取貢金：付了八回合內不再被他宣戰；拒絕或付不起就開戰。</li>' +
     '<li><b>岸防</b>：除了回合結算時的自動射擊，你也可以點沿海領地，用本地的弓兵與攻城器械主動轟擊鄰近的敵艦，成功率看遠程兵力與敵艦數量，耗 1 行動點。</li>' +
@@ -7362,18 +7390,18 @@ if (typeof module !== 'undefined') module.exports = G;
     if (mine && G.supRange(f) < 90 && G.supplyDist(g, f)[id] === undefined) h += '<p class="warn" style="margin:0 0 6px">遠離補給線：多耗糧、每回合損耗約 6% 兵力、攻擊力 −10%。靠近己方城市或占領城市可恢復。</p>';
     if (mine && G.mercOf(g, id) > 0) h += '<p class="muted small" style="margin:0 0 6px">其中僱傭兵 ' + G.mercOf(g, id) + ' 名（額外薪餉）</p>';
     if (mine) {
-      var bc = G.buildCost(p), noap = g.ap <= 0;
+      var bc = G.buildCostG(g, f, p, id), noap = g.ap <= 0, sBlk = G.citySiteBlock(g, f, id), vil = G.isVillage(id, p);
       var ru = '';
       for (var ut = 0; ut < 3; ut++) {
-        var uc = G.unitCost(f, ut), okU = p.L > 0 && G.canPay(g, f, uc) && G.recLeft(g, id) > 0;
+        var uc = G.unitCost(f, ut), okU = p.L > 0 && G.canPay(g, f, uc) && G.recLeft(g, id) > 0 && !(vil && ut > 1);
         if (!(G.NOHORSE[f] && ut === 2)) ru += '<button class="cmd" data-act="recruit" data-u="' + ut + '"' + (okU ? '' : ' disabled') + '><b>徵' + G.unitName(f, ut) + ' +' + uc.troops + '</b><small>' + (p.L > 0 ? costText(uc) : '需先建城') + '</small></button>';
       }
       var desert = G.TERR[id] === 'd' && p.L === 0;
-      var canB = p.L < 3 && !desert && G.canPay(g, f, bc) && !noap;
+      var canB = p.L < 3 && !desert && !sBlk && G.canPay(g, f, bc) && !noap;
       var canM = p.t >= 2 && !p.acted && !p.arr;
       h += '<div class="cmds" style="margin-bottom:6px">' + ru + '</div>' + (p.L > 0 && G.recLeft(g, id) > 1 && G.canPay(g, f, G.unitCost(f, 0)) ? '<div class="cmds" style="margin-bottom:6px"><button class="cmd" data-act="recfill"><b>一次徵滿（步兵）</b><small>連續徵兵到本回合上限或錢糧用完</small></button></div>' : '') + '<div class="cmds">' +
-        cmd('recmore', 'recruit', '更多兵種', '特色・攻城・僱傭', p.L < 1) +
-        cmd('build', 'build', p.L >= 3 ? '最高級' : p.L === 0 ? '建城' : '升級', p.L >= 3 ? '—' : desert ? '沙漠不可' : costText(bc), !canB) +
+        cmd('recmore', 'recruit', '更多兵種', vil ? '升級後才能徵' : '特色・攻城・僱傭', p.L < 1 || vil) +
+        cmd('build', 'build', p.L >= 3 ? '最高級' : G.CITY[id] ? (p.L === 0 ? '建城' : '升級') : (p.L === 0 ? '建' + G.settleName(id, 1) : '升級為' + G.settleName(id, p.L + 1)), p.L >= 3 ? '—' : desert ? '沙漠不可' : sBlk ? sBlk.replace(/。$/, '') : costText(bc), !canB) +
         cmd('mode', 'march', ui.mode === 'mov' ? '回到進攻' : '調動部隊', p.acted ? (p.arr ? '剛到，可攻擊' : '已行動') : ui.mode === 'mov' ? '選己方地塊' : '己方領土內', !canM && ui.mode !== 'mov', ui.mode === 'mov') + '</div>';
       if (!(ui.adv || (function () { try { return !!localStorage.getItem('crusade-adv'); } catch (e) { return false; } })()) && !G.armies(g, id).length) h += '<div class="cmds" style="margin-top:8px"><button class="cmd" data-act="adv"><b>進階：軍團與將領</b><small>' + G.gensOf(g, f).length + '/' + G.GEN_MAX + ' 位將領 · 點開</small></button></div>';
       else { var ars = G.armies(g, id), gar = G.garrisonOf(g, id), gls = G.gensOf(g, f), c3 = Math.floor(gar / 3), c2 = Math.floor(gar / 2), c1 = gar - 1;
