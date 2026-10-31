@@ -372,7 +372,7 @@ button{font:inherit;color:inherit}
     <div class="startmap" id="startmap" aria-hidden="true"></div>
     <div class="sc-in gx">
       <p class="eyebrow">MEDIEVAL: WORLD DOMINATION · 1096 AD</p>
-      <p class="muted small" id="verline">版本 v167 · 2026-11-01 · 多人連線：邀請改成一個連結（點開自動進房、回覆碼一鍵傳回與貼上）；房主可設回合倒數，時間到自動結束；另有封建分封、AI 勸降、簡單模式新手引導</p>
+      <p class="muted small" id="verline">版本 v168 · 2026-11-01 · 開始畫面背景改成一次畫好的圖片，中階手機進入不再卡</p>
       <h1>中世紀：世界霸權</h1>
       <p class="lead">1095 年，教宗在克萊蒙發出號召，整個歐洲動了起來。選一個勢力（共 121 個），再從該文明歷史上的君主裡挑一位登基；在四千多個六角格地塊的世界裡，與基督教世界、伊斯蘭世界與即將到來的蒙古鐵騎周旋。可以結盟借道、派商隊與商船貿易、派密探、遠征遠方、研究科技升級時代、替自己的城市取名。沒有回合上限，直到有人稱霸，或你失去一切。</p>
       <div id="startopts"></div>
@@ -6692,6 +6692,37 @@ if (typeof module !== 'undefined') module.exports = G;
     }
     el.innerHTML = h + '</div>';
   }
+  /* 開始畫面的背景地圖：只畫一次的 canvas（原本是 1.3 萬個 SVG 元素，中階手機滑動時會很卡） */
+  var SMC = { demo: null, t: 0 };
+  function startMapCanvas(demo) {
+    SMC.demo = demo || SMC.demo;
+    var host = $('#startmap'); if (!host || !SMC.demo) return;
+    var dm = SMC.demo, cv = host.querySelector('canvas'), w = Math.max(1, window.innerWidth), h = Math.max(1, window.innerHeight);
+    var dpr = Math.min(1.25, window.devicePixelRatio || 1), cw = Math.round(w * dpr), ch = Math.round(h * dpr);
+    if (!cv) { host.innerHTML = ''; cv = document.createElement('canvas'); cv.style.cssText = 'width:100%;height:100%;display:block'; host.appendChild(cv); }
+    if (cv.width === cw && cv.height === ch && cv.getAttribute('data-ok')) return;
+    cv.width = cw; cv.height = ch;
+    var x = cv.getContext('2d'); if (!x) return;
+    var k = Math.max(cw / BW, ch / BH), ox = (cw - BW * k) / 2 - BX0 * k, oy = (ch - BH * k) / 2 - BY0 * k;
+    x.setTransform(k, 0, 0, k, ox, oy);
+    var TC = { g: '#8fb05a', f: '#3f6b34', h: '#a98d4a', m: '#7d746b', d: '#e0c887', n: '#5fae45', s: '#c9c06a', w: '#e8eff3' };
+    var P = {}, id, getP = function (i) { return P[i] || (P[i] = new Path2D('M' + HPTS[i].trim().replace(/\s+/g, 'L') + 'Z')); };
+    x.lineWidth = 1 / k;
+    for (id = 0; id < W * H; id++) {
+      if (G.LAND[id]) continue;
+      var sd = SEAD[id];
+      if (sd === 1) { x.fillStyle = 'rgba(43,127,154,.5)'; x.fill(getP(id)); }
+      else if (sd <= 3) { x.fillStyle = 'rgba(31,98,128,.42)'; x.fill(getP(id)); }
+    }
+    G.LANDIDS.forEach(function (id) {
+      var p = dm.p[id], pa = getP(id);
+      x.fillStyle = TC[G.TERR[id]] || '#8fb05a'; x.fill(pa);
+      x.fillStyle = p.o ? NC[p.o] : '#8a7f60'; x.globalAlpha = p.o ? 0.52 : 0.28; x.fill(pa); x.globalAlpha = 1;
+      x.strokeStyle = 'rgba(0,0,0,.28)'; x.stroke(pa);
+    });
+    cv.setAttribute('data-ok', '1');
+  }
+  window.addEventListener('resize', function () { clearTimeout(SMC.t); SMC.t = setTimeout(function () { try { var sc = $('#start'); if (sc && !sc.hidden) startMapCanvas(); } catch (e) {} }, 300); });
   function renderStart() {
     var h = '';
     var ORDER = ["byz", "hre", "fra", "nmd", "bri", "aqu", "tou", "eng", "ita", "pap", "norm", "cas", "arag", "zar", "val", "por", "hung", "pol", "boh", "srb", "duk", "scand", "nor", "swe", "ire", "sco", "kiev", "che", "plk", "nov", "vla", "hal", "lit", "cum", "bul", "geo", "arm", "jer", "almor", "zir", "ham", "fat", "sul", "seljuk", "abb", "rum", "dan", "ale", "dam", "mos", "niz", "ghaz", "ghu", "kara", "khw", "qoc", "tib", "kas", "gaha", "chan", "chau", "kak", "chal", "hoy", "pala", "guj", "par", "egan", "song", "liao", "xia", "dali", "gor", "jpn", "ker", "nai", "tat", "mer", "dai", "pagan", "mon", "khmer", "champa", "srivijaya", "hari", "lavo", "tamb", "lam", "sun", "bru", "but", "maii", "chola", "cey", "jav", "gha", "gao", "hau", "yor", "ben", "kan", "mak", "alo", "eth", "adal", "som", "bun", "kil", "zim", "kon", "mala", "cah", "pue", "tol", "mix", "may", "tai", "chi", "col", "cus", "ice", "grn"];
@@ -6708,7 +6739,7 @@ if (typeof module !== 'undefined') module.exports = G;
     $('#fcards').innerHTML = h;
     var demo = G.newGame('byz');
     ui.view = { s: 1, cx: BW / 2, cy: (BY0 + BY1) / 2 };
-    $('#startmap').innerHTML = mapSVG(demo, { demo: true, vb: BX0 + ' ' + BY0 + ' ' + BW.toFixed(0) + ' ' + BH.toFixed(0), par: 'xMidYMid slice' });
+    startMapCanvas(demo);
     var c = $('#cont');
     c.hidden = false;
     renderOpts();
