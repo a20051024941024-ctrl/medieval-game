@@ -369,7 +369,7 @@ button{font:inherit;color:inherit}
     <div class="startmap" id="startmap" aria-hidden="true"></div>
     <div class="sc-in gx">
       <p class="eyebrow">MEDIEVAL: WORLD DOMINATION · 1096 AD</p>
-      <p class="muted small" id="verline">版本 v122 · 2026-10-31 · 商船地圖圖示、航線遇敵才會被擊沉、新戰船圖示</p>
+      <p class="muted small" id="verline">版本 v123 · 2026-10-31 · 戰船可劫掠敵國商船</p>
       <h1>中世紀：世界霸權</h1>
       <p class="lead">1095 年，教宗在克萊蒙發出號召，整個歐洲動了起來。選一個勢力（共 110 個），再從該文明歷史上的君主裡挑一位登基；在兩千多個六角格地塊的世界裡，與基督教世界、伊斯蘭世界與即將到來的蒙古鐵騎周旋。可以結盟借道、派商隊與密探、研究科技升級時代。沒有回合上限，直到有人稱霸，或你失去一切。</p>
       <div id="startopts"></div>
@@ -1970,7 +1970,7 @@ function seaReach(g, fl) {
       var o = fm[nb];
       if (o && o.f !== fl.f) { if (atWar(g, fl.f, o.f)) R[nb] = { d: d[h] + 1, a: 1 }; return; }
       d[nb] = d[h] + 1; q.push(nb);
-      if (!o) R[nb] = { d: d[nb], a: 0 }; else R[nb] = { d: d[nb], a: 0, m: 1 };
+      if (!o) R[nb] = { d: d[nb], a: 0, mm: msFoeAt(g, fl.f, nb) ? 1 : 0 }; else R[nb] = { d: d[nb], a: 0, m: 1 };
     });
   }
   _fr[fl.i] = R; return R;
@@ -2010,7 +2010,8 @@ function fleetMove(g, f, i, to) {
     return good(res.win ? '海戰獲勝！' + (res.destroyed ? '敵艦被擊沉。' : '敵艦受創退守。') : '海戰失利，艦隊受創。', { fleetBattle: res });
   }
   fleetPlace(g, fl, to);
-  return good('艦隊駛向新的海域。', { fleet: true });
+  var rmsg = msRaid(g, f, to);
+  return good(rmsg || '艦隊駛向新的海域。', { fleet: true });
 }
 
 function fleetById(g, f, i) { var fl = null; fleets(g).forEach(function (x) { if (x.i === i) fl = x; }); return (fl && fl.f === f) ? fl : null; }
@@ -2180,6 +2181,22 @@ function actMerchant(g, f, id) {
   g.fac[f].ms = msOf(g, f) + 1;
   return good(placeName(id) + '的船塢造出了一艘商船。它會自動前往沿海城市貿易，不耗行動點。');
 }
+function msFoeAt(g, f, h) {
+  return (g.mtr || []).some(function (m) { return m.h === h && !m.x && m.f !== f && atWar(g, f, m.f); });
+}
+function msRaid(g, f, h) {
+  var hit = (g.mtr || []).filter(function (m) { return m.h === h && !m.x && m.f !== f && atWar(g, f, m.f); });
+  if (!hit.length) return '';
+  var gold = 0;
+  hit.forEach(function (m) {
+    g.mtr.splice(g.mtr.indexOf(m), 1);
+    var vs = g.fac[m.f]; vs.ms = Math.max(0, (vs.ms || 0) - 1); vs.gold = Math.max(0, vs.gold - 3);
+    gold += 6;
+    if (m.f === g.player) logMsg(g, nm(f) + '的艦隊劫掠了你的一艘商船。', 'bad');
+  });
+  g.fac[f].gold += gold;
+  return '劫掠商船！擊沉 ' + hit.length + ' 艘' + nm(hit[0].f) + '商船，繳獲 ' + gold + ' 金幣。';
+}
 var _LANDSET = null;
 function hexAtLL(lon, lat) {
   var r = Math.round((LAT0 - lat) / DLAT); if (r < 0 || r >= H) return -1;
@@ -2197,7 +2214,7 @@ function msRoute(a, b) {
   return out;
 }
 function merchantTick(g) {
-  g.mtr = [];
+  g.mtr = []; _fr = {};
   var ports = LANDIDS.filter(function (x) { return CITY[x] && CITY[x].port && g.p[x].o && g.p[x].L > 0; });
   var fl = fleets(g);
   FIDS.forEach(function (f) {
@@ -5887,7 +5904,7 @@ if (typeof module !== 'undefined') module.exports = G;
         if (fl0.f === g.player && fl0.c) G.SEAN[fl0.h].length && G.LANDIDS.forEach(function (lid) { if (G.SEAN[lid].indexOf(fl0.h) >= 0) s += '<polygon class="hl ' + (g.p[lid].o === g.player ? 'seamv' : 'land') + '" points="' + HPTS[lid] + '"/>'; });
         if (fl0.f === g.player && !fl0.mv) {
           var RR = G.fleetReach(g, fl0);
-          Object.keys(RR).forEach(function (k) { s += '<polygon class="hl ' + (RR[k].a ? 'land' : 'seamv') + '" data-sea="' + k + '" points="' + HPTS[k] + '"/>'; });
+          Object.keys(RR).forEach(function (k) { s += '<polygon class="hl ' + ((RR[k].a || RR[k].mm) ? 'land' : 'seamv') + '" data-sea="' + k + '" points="' + HPTS[k] + '"/>'; });
         }
       }
     }
