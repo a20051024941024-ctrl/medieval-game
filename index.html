@@ -369,7 +369,7 @@ button{font:inherit;color:inherit}
     <div class="startmap" id="startmap" aria-hidden="true"></div>
     <div class="sc-in gx">
       <p class="eyebrow">MEDIEVAL: WORLD DOMINATION · 1096 AD</p>
-      <p class="muted small" id="verline">版本 v124 · 2026-10-31 · 新增美洲、格陵蘭、冰島與北俄羅斯；11 個新勢力；遠洋航行科技</p>
+      <p class="muted small" id="verline">版本 v125 · 2026-10-31 · 存檔加入版本檢查；存檔失敗與舊版存檔會有提示</p>
       <h1>中世紀：世界霸權</h1>
       <p class="lead">1095 年，教宗在克萊蒙發出號召，整個歐洲動了起來。選一個勢力（共 121 個），再從該文明歷史上的君主裡挑一位登基；在四千多個六角格地塊的世界裡，與基督教世界、伊斯蘭世界與即將到來的蒙古鐵騎周旋。可以結盟借道、派商隊與密探、研究科技升級時代。沒有回合上限，直到有人稱霸，或你失去一切。</p>
       <div id="startopts"></div>
@@ -719,7 +719,6 @@ var CITY_RAW = [
   ['馬瓜納', -71.2, 18.8, 2],
   ['哈拉瓜', -73.5, 18.3, 1],
   ['伊圭', -68.7, 18.6, 1],
-  ['馬里恩', -72.2, 19.7, 1],
   ['昌昌', -79.07, -8.11, 2],
   ['巴坦格蘭德', -79.6, -6.4, 2],
   ['派汗', -79.9, -5.1, 1],
@@ -1419,7 +1418,7 @@ function applyHistRel(g) {
     var r = rel(g, e[0], e[1]); r.state = e[2]; r.truce = 0; r.warT = 0;
   });
 }
-function newGame(pid, diff) { var m = newGame0(pid, diff); PLAYABLE.forEach(function (f) { if (f !== pid && RULERS[f] && RULERS[f].length) setRuler(m, f, Math.floor(Math.random() * RULERS[f].length)); }); Object.keys(BLOCKED).forEach(function (k) { var q = m.p[k]; if (q) { q.o = null; q.t = 0; q.L = 0; q.b = []; q.ar = []; } }); _own = null; applyHistRel(m); eraSync(m); return m; }
+function newGame(pid, diff) { var m = newGame0(pid, diff); m.ver = SAVE_VER; m.sig = MAPSIG; PLAYABLE.forEach(function (f) { if (f !== pid && RULERS[f] && RULERS[f].length) setRuler(m, f, Math.floor(Math.random() * RULERS[f].length)); }); Object.keys(BLOCKED).forEach(function (k) { var q = m.p[k]; if (q) { q.o = null; q.t = 0; q.L = 0; q.b = []; q.ar = []; } }); _own = null; applyHistRel(m); eraSync(m); return m; }
 function newGame0(pid, diff) {
   syncCap(null);
   var g = { player: pid, turn: 1, ap: AP_MAX, p: [], fac: {}, dip: {}, rep: {}, offers: [], log: [], over: null, evResolved: false, lastEv: null, evData: null, holyCd: {}, diff: diff === undefined ? 1 : diff };
@@ -4988,7 +4987,8 @@ function mpMirror(m, me) {
   });
 })();
 
-function migrate(g) { syncCap(g); eraSync(g); return g; }
+var SAVE_VER = 2, MAPSIG = W + 'x' + H + 'x' + LANDIDS.length;
+function migrate(g) { if (!g.ver) g.ver = 1; if (!g.sig) g.sig = MAPSIG; syncCap(g); eraSync(g); return g; }
 var DIFF_TAG = {"but": ["標準", 0], "norm": ["標準", 0], "val": ["標準", 0], "sul": ["入門", 1], "boh": ["入門", 0], "song": ["入門", 0], "ben": ["標準", 0], "fat": ["入門", 0], "gha": ["入門", 1], "bru": ["標準", 0], "qoc": ["入門", 1], "kon": ["入門", 1], "hau": ["入門", 0], "duk": ["標準", 0], "niz": ["標準", 0], "sun": ["標準", 0], "zim": ["入門", 1], "gaha": ["入門", 0], "ker": ["入門", 0], "ita": ["標準", 0], "bun": ["入門", 1], "khmer": ["入門", 1], "ire": ["入門", 0], "mala": ["入門", 1], "cey": ["標準", 0], "lam": ["入門", 0], "maii": ["入門", 0], "tat": ["標準", 0], "cum": ["入門", 0], "kil": ["入門", 0], "chola": ["入門", 0], "pala": ["入門", 1], "yor": ["入門", 0], "gor": ["標準", 0], "swe": ["入門", 1], "alo": ["入門", 0], "som": ["入門", 0], "hre": ["標準", 0], "srivijaya": ["標準", 0], "lit": ["困難", 0], "kas": ["入門", 0], "jpn": ["標準", 0], "mer": ["困難", 0], "jav": ["標準", 0], "gao": ["標準", 0], "guj": ["標準", 0], "tib": ["困難", 0], "kara": ["標準", 0], "por": ["標準", 0], "bri": ["標準", 0], "plk": ["標準", 0], "khw": ["困難", 0], "pagan": ["標準", 0], "kan": ["標準", 0], "abb": ["困難", 0], "nai": ["標準", 0], "che": ["標準", 0], "tamb": ["標準", 0], "dai": ["標準", 0], "ghaz": ["標準", 0], "eng": ["標準", 0], "hung": ["標準", 0], "nov": ["標準", 0], "scand": ["標準", 0], "zir": ["標準", 0], "nor": ["標準", 0], "pap": ["困難", 0], "kak": ["入門", 0], "sco": ["標準", 0], "vla": ["標準", 0], "hal": ["標準", 0], "liao": ["標準", 0], "mak": ["標準", 0], "cas": ["標準", 0], "dan": ["標準", 0], "bul": ["標準", 0], "almor": ["標準", 0], "seljuk": ["入門", 0], "dali": ["入門", 0], "champa": ["困難", 0], "geo": ["標準", 0], "arm": ["困難", 0], "chau": ["困難", 0], "nmd": ["困難", 0], "lavo": ["困難", 0], "chal": ["困難", 0], "byz": ["困難", 0], "fra": ["困難", 0], "egan": ["標準", 0], "arag": ["困難", 0], "srb": ["困難", 0], "adal": ["困難", 0], "dam": ["困難", 0], "mos": ["困難", 0], "mon": ["標準", 0], "ham": ["標準", 0], "rum": ["困難", 0], "pol": ["困難", 0], "kiev": ["困難", 0], "xia": ["困難", 0], "ghu": ["困難", 0], "chan": ["困難", 0], "hoy": ["困難", 0], "eth": ["困難", 0], "aqu": ["困難", 0], "tou": ["困難", 0], "zar": ["困難", 0], "ale": ["困難", 0], "par": ["困難", 0], "hari": ["標準", 0]};
 FIDS.forEach(function (f) { var t = DIFF_TAG[f]; if (t) { FACTIONS[f].diff = t[0]; if (t[1]) FACTIONS[f].rec = 1; } });
 
@@ -5003,7 +5003,7 @@ var G = {
   endTurn: endTurn, pickEvent: pickEvent, eventView: eventView, applyChoice: applyChoice, scoreOf: scoreOf,
   isCapital: isCapital, msOf: msOf, NOHORSE: NOHORSE, deepOK: deepOK, msCap: msCap, MS_COST: MS_COST, nm: nm, aiTurn: aiTurn, portsOf: portsOf, genAt: genAt, gensOf: gensOf, genLv: genLv, genChoose: genChoose, genCandidates: genCandidates, LANDMARKS: LANDMARKS, LM_AT: LM_AT, lmInfo: lmInfo, lmBonus: lmBonus, callWarInfo: callWarInfo, culOf: culOf, culGain: culGain, CUL_WIN: CUL_WIN, msnTick: msnTick, surInfo: surInfo, moveCapCost: moveCapCost, syncCap: syncCap, xRate: xRate, xQuota: xQuota, genAvail: genAvail, genCost: genCost, GEN_MAX: GEN_MAX, GEN_TYPE: GEN_TYPE, GEN_TXT: GEN_TXT, GENS: GENS, shipsOf: shipsOf, fleets: fleets, fleetReach: seaReach, fleetStr: fleetStr, seaCapAt: seaCapAt, FLEET_MOVE: FLEET_MOVE, shipCap: shipCap, seaCapLeft: seaCapLeft, shipName: shipName, SHIP_COST: SHIP_COST, SHIP_CARRY: SHIP_CARRY, moraleMult: moraleMult, placeName: placeName, terrDef: terrDef,
   EVENTS: EVENTS, HIST: HIST, checkEnd: checkEnd, finish: finish, settle: settle, TERR_Y: TERR_Y,
-  rel: rel, migrate: migrate, strength: strength, dipInfo: dipInfo, declareWar: declareWar, aiDiplomacy: aiDiplomacy,
+  SAVE_VER: SAVE_VER, MAPSIG: MAPSIG, rel: rel, migrate: migrate, strength: strength, dipInfo: dipInfo, declareWar: declareWar, aiDiplomacy: aiDiplomacy,
   supplyDist: supplyDist, supRange: supRange, lordOf: lordOf, vassalsOf: vassalsOf, ownedTotal: ownedTotal, offerEvent: offerEvent, acceptChance: acceptChance,
   fleetCap: fleetCap, isHum: isHum, humansOf: humansOf, asPlayer: asPlayer, mpInit: mpInit, mpChoose: mpChoose, mpEnd: mpEnd, mpAllEnded: mpAllEnded, mpWaiting: mpWaiting, mpAdvance: mpAdvance, mpMirror: mpMirror, mpView: mpView, mpResume: mpResume,
   holyKind: holyKind, armies: armies, garrisonOf: garrisonOf, armyReach: armyReach, armyDijk: armyDijk, zocAt: zocAt, armyPlan: armyPlan, armyMP: armyMP, armyRem: armyRem, mvCost: mvCost, rulerLv: rulerLv, rulerInfo: rulerInfo, vetLv: vetLv, RX_T: RX_T, holyKind: holyKind, holyCost: holyCost, canHoly: canHoly, isChristian: isChristian, START_YEAR: START_YEAR, LON: LON, LAT: LAT, WORLD: WORLD
@@ -5655,8 +5655,9 @@ if (typeof module !== 'undefined') module.exports = G;
     if (P2P.pc) { try { P2P.pc.close(); } catch (e) {} P2P.pc = null; }
   }
 
-  function save() { if (MP.on) { if (MP.role === 'host') mpPublish(false); return; } try { if (g && g.evResolved && !g.over) { localStorage.setItem(SK(SLOT), JSON.stringify(g)); tsSet(SLOT, Date.now()); cloudPush(SLOT); } } catch (e) {} }
-  function loadSave(n) { try { var s = localStorage.getItem(SK(n || SLOT)); if (!s) return null; var o = JSON.parse(s); if (!o || !o.p || o.p.length !== W * H || !o.fac || !o.fac.jin) return null; for (var i = 0; i < G.LANDIDS.length; i++) if (!o.p[G.LANDIDS[i]]) return null; return o; } catch (e) { return null; } }
+  function save() { if (MP.on) { if (MP.role === 'host') mpPublish(false); return; } try { if (g && g.evResolved && !g.over) { localStorage.setItem(SK(SLOT), JSON.stringify(g)); tsSet(SLOT, Date.now()); cloudPush(SLOT); } } catch (e) { if (!save.warned) { save.warned = 1; toast('存檔失敗：手機儲存空間可能不足，請關掉一些存檔欄位或清理瀏覽器資料'); } } }
+  var LOADWHY = '';
+  function loadSave(n) { LOADWHY = ''; try { var s = localStorage.getItem(SK(n || SLOT)); if (!s) return null; var o = JSON.parse(s); if (!o || !o.p || o.p.length !== W * H || !o.fac || !o.fac.jin) { LOADWHY = o && o.p && o.p.length !== W * H ? 'map' : 'bad'; return null; } if ((o.sig && o.sig !== G.MAPSIG) || (o.ver && o.ver > G.SAVE_VER)) { LOADWHY = o.ver > G.SAVE_VER ? 'new' : 'map'; return null; } for (var i = 0; i < G.LANDIDS.length; i++) if (!o.p[G.LANDIDS[i]]) return null; return o; } catch (e) { return null; } }
   function clearSave() { try { localStorage.removeItem(SK(SLOT)); } catch (e) {} }
 
   /* ---------- 雲端存檔同步（只在 Netlify 網頁版啟用） ---------- */
@@ -6350,7 +6351,7 @@ if (typeof module !== 'undefined') module.exports = G;
     $('#mbody').innerHTML = h; $('#modal').hidden = false;
   }
   function continueGame() {
-    var sv = loadSave(); if (!sv) return;
+    var sv = loadSave(); if (!sv) { toast(LOADWHY === 'map' ? '這份存檔來自舊版地圖，無法繼續，請開新遊戲' : LOADWHY === 'new' ? '這份存檔來自更新的版本，請先更新網頁' : '存檔損毀，無法讀取'); return; }
     MUSIC.auto();
     g = G.migrate(sv); g.evResolved = true; g.hegPending = null;
     enterGame();
