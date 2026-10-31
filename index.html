@@ -372,7 +372,7 @@ button{font:inherit;color:inherit}
     <div class="startmap" id="startmap" aria-hidden="true"></div>
     <div class="sc-in gx">
       <p class="eyebrow">MEDIEVAL: WORLD DOMINATION · 1096 AD</p>
-      <p class="muted small" id="verline">版本 v171 · 2026-11-01 · 新增神器：名城藏有神器，將領走到那座城可裝備（攻/守加成），陣亡會掉在原地</p>
+      <p class="muted small" id="verline">版本 v172 · 2026-11-01 · 存檔欄位標示有無存檔、開新遊戲覆蓋前會確認；難度說明標明只有簡單有新手教學</p>
       <h1>中世紀：世界霸權</h1>
       <p class="lead">1095 年，教宗在克萊蒙發出號召，整個歐洲動了起來。選一個勢力（共 121 個），再從該文明歷史上的君主裡挑一位登基；在四千多個六角格地塊的世界裡，與基督教世界、伊斯蘭世界與即將到來的蒙古鐵騎周旋。可以結盟借道、派商隊與商船貿易、派密探、遠征遠方、研究科技升級時代、替自己的城市取名。沒有回合上限，直到有人稱霸，或你失去一切。</p>
       <div id="startopts"></div>
@@ -6760,15 +6760,16 @@ if (typeof module !== 'undefined') module.exports = G;
   }
 
   /* ---------- 開始畫面 ---------- */
-  var DIFF_NAME = ['簡單', '普通', '困難'], DIFF_TXT = ['你的收入 +20%，AI 收入 −8%，開局有手指帶你操作', '標準', '你的收入 −12%，AI 收入 +10%'];
+  var DIFF_NAME = ['簡單', '普通', '困難'], DIFF_TXT = ['你的收入 +20%，AI 收入 −8%。只有「簡單」有新手教學：開局有手指一步步帶你操作', '標準（沒有新手教學；想要教學請選「簡單」）', '你的收入 −12%，AI 收入 +10%（沒有新手教學）'];
+  function slotHas(n) { try { return localStorage.getItem(SK(n)) !== null; } catch (e) { return false; } }
   function slotSum(n) { var sv = loadSave(n); return sv && sv.player && !sv.over ? G.FACTIONS[sv.player].name + ' · ' + dateLong(G.year(sv)) + ' · ' + DIFF_NAME[sv.diff === undefined ? 1 : sv.diff] : null; }
   function renderOpts() {
     var el = $('#startopts'); if (!el) return;
     var h = '<div class="opts"><div class="row"><b>難度</b>';
     for (var d = 0; d < 3; d++) h += '<button class="chip' + (DIFF === d ? ' on' : '') + '" data-act="diff" data-v="' + d + '">' + DIFF_NAME[d] + '</button>';
     h += '<span class="muted small">' + DIFF_TXT[DIFF] + '</span></div><div class="row"><b>文化勝利</b><button class="chip' + (CULON ? ' on' : '') + '" data-act="culopt" data-v="1">開</button><button class="chip' + (!CULON ? ' on' : '') + '" data-act="culopt" data-v="0">關</button><span class="muted small">' + (CULON ? '文化累積到 3000 就提前結束遊戲' : '關閉後文化只當成就，不會結束遊戲（想玩很久選這個）') + '</span></div><div class="row"><b>存檔欄位</b>';
-    for (var n = 1; n <= 3; n++) h += '<button class="chip' + (SLOT === n ? ' on' : '') + '" data-act="slot" data-v="' + n + '">欄位 ' + n + '</button>';
-    h += '<span class="muted small">新遊戲會存進選取的欄位（覆蓋舊檔）</span></div>';
+    for (var n = 1; n <= 3; n++) h += '<button class="chip' + (SLOT === n ? ' on' : '') + '" data-act="slot" data-v="' + n + '">欄位 ' + n + (slotHas(n) ? ' ●' : ' ○') + '</button>';
+    h += '<span class="muted small">' + (slotHas(SLOT) ? '<b style="color:var(--bad,#e0675a)">⚠ 欄位 ' + SLOT + ' 已有存檔，開新遊戲會蓋掉它</b>（● 有存檔 ○ 空的，想保留請換一個空欄位）' : '欄位 ' + SLOT + ' 是空的，新遊戲會存在這裡（● 有存檔 ○ 空的）') + '</span></div>';
     for (var k = 1; k <= 3; k++) { var sm = slotSum(k); if (sm) h += '<div class="row"><button class="btn primary" data-act="continue" data-slot="' + k + '">繼續欄位 ' + k + '</button><span class="muted small">' + esc(sm) + '</span></div>'; else if (LOADWHY === 'map') h += '<div class="row"><span class="muted small">欄位 ' + k + '：舊版地圖的存檔，無法繼續（地圖已更新）</span></div>'; }
     if (CLOUD.avail) {
       h += '<div class="row"><b>雲端存檔</b>';
@@ -7883,7 +7884,14 @@ if (typeof module !== 'undefined') module.exports = G;
     }
     if (a === 'locate') { autoFocus(); applyView(); return toast('已回到你的位置'); }
     if (a === 'fallnowok') { $('#modal').hidden = true; fallNow(); return; }
-    if (a === 'start') return startGame(b.getAttribute('data-f'));
+    if (a === 'start') {
+      if (slotHas(SLOT)) {
+        var sm0 = slotSum(SLOT), ok0 = true;
+        try { ok0 = confirm('欄位 ' + SLOT + ' 已經有存檔' + (sm0 ? '（' + sm0 + '）' : '') + '。\n開新遊戲會把它蓋掉，確定要開始嗎？\n\n按「取消」可以回去換一個空的欄位。'); } catch (e) { ok0 = true; }
+        if (!ok0) return;
+      }
+      return startGame(b.getAttribute('data-f'));
+    }
     if (a === 'syncon') { var sc = (($('#synccode') || {}).value || '').trim(); if (!/^[A-Za-z0-9_\-\u4e00-\u9fff]{6,40}$/.test(sc)) return toast('代碼要 6 到 40 個字，只能用英數字、底線、連字號或中文。'); CLOUD.code = sc; try { localStorage.setItem('crusade-sync', sc); } catch (e) {} renderOpts(); return cloudSync(); }
     if (a === 'syncnow') { return cloudSync(); }
     if (a === 'syncoff') { CLOUD.code = ''; CLOUD.msg = ''; try { localStorage.removeItem('crusade-sync'); } catch (e) {} return renderOpts(); }
