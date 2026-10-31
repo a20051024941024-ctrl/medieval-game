@@ -369,7 +369,7 @@ button{font:inherit;color:inherit}
     <div class="startmap" id="startmap" aria-hidden="true"></div>
     <div class="sc-in gx">
       <p class="eyebrow">MEDIEVAL: WORLD DOMINATION · 1096 AD</p>
-      <p class="muted small" id="verline">版本 v121 · 2026-10-31 · 新增雲端存檔同步（Netlify 網頁版）</p>
+      <p class="muted small" id="verline">版本 v121 · 2026-10-31 · 雲端存檔、商船自動貿易</p>
       <h1>中世紀：世界霸權</h1>
       <p class="lead">1095 年，教宗在克萊蒙發出號召，整個歐洲動了起來。選一個勢力（共 110 個），再從該文明歷史上的君主裡挑一位登基；在兩千多個六角格地塊的世界裡，與基督教世界、伊斯蘭世界與即將到來的蒙古鐵騎周旋。可以結盟借道、派商隊與密探、研究科技升級時代。沒有回合上限，直到有人稱霸，或你失去一切。</p>
       <div id="startopts"></div>
@@ -2164,6 +2164,55 @@ function aiFleets(g, f) {
   });
 }
 var PORTL = null;
+
+/* ---------- 商船：自動跑沿海城市貿易 ---------- */
+var MS_COST = { gold: 35, food: 5 };
+function msOf(g, f) { return (g.fac[f] && g.fac[f].ms) || 0; }
+function msCap(g, f) { return 2 * portsOf(g, f); }
+function actMerchant(g, f, id) {
+  var p = g.p[id];
+  if (!p || p.o !== f) return fail('這裡不是你的領地。');
+  if (!CITY[id] || !CITY[id].port || p.L < 1) return fail('只有港口城市能造商船。');
+  if (g.blk && g.blk[id]) return fail('港口被封鎖，商船出不了港。');
+  if (msOf(g, f) >= msCap(g, f)) return fail('商船已達上限（每個港口 2 艘）。');
+  if (!canPay(g, f, MS_COST)) return fail('資源不足。');
+  pay(g, f, MS_COST);
+  g.fac[f].ms = msOf(g, f) + 1;
+  return good(placeName(id) + '的船塢造出了一艘商船。它會自動前往沿海城市貿易，不耗行動點。');
+}
+function merchantTick(g) {
+  var ports = LANDIDS.filter(function (x) { return CITY[x] && CITY[x].port && g.p[x].o && g.p[x].L > 0; });
+  var pirN = fleets(g).filter(function (x) { return x.f === 'pir'; }).length;
+  FIDS.forEach(function (f) {
+    var fs = g.fac[f]; if (!fs || !fs.alive || !(fs.ms > 0)) return;
+    var cap = msCap(g, f); if (fs.ms > cap) fs.ms = cap;
+    var home = ports.filter(function (x) { return g.p[x].o === f; });
+    if (!home.length) { fs.ms = 0; return; }
+    var cand = ports.filter(function (x) { var o = g.p[x].o; return o && (o === f || !atWar(g, f, o)) && !(g.blk && g.blk[x]); });
+    var enemyFleet = fleets(g).some(function (x) { return x.f !== 'pir' && x.f !== f && atWar(g, f, x.f); });
+    var total = 0, sunk = 0, ok = 0, lastDest = null, n = fs.ms;
+    for (var k = 0; k < n; k++) {
+      var h = home[rint(home.length)], best = null, bd = -1;
+      for (var t = 0; t < 4 && cand.length; t++) {
+        var c = cand[rint(cand.length)]; if (c === h) continue;
+        var d = Math.abs(hr(c) - hr(h)) + Math.abs(hc(c) - hc(h)) * 0.5;
+        if (d > bd) { bd = d; best = c; }
+      }
+      if (best === null) continue;
+      var risk = Math.min(0.2, 0.04 + 0.012 * Math.min(6, pirN) + (enemyFleet ? 0.05 : 0));
+      if (Math.random() < risk) { sunk++; continue; }
+      var gain = Math.round(1.5 + Math.min(4, bd / 12));
+      var ow = g.p[best].o; if (ow !== f) { gain += 1; g.fac[ow].gold += 1; }
+      total += gain; ok++; lastDest = best;
+    }
+    if (total) fs.gold += total;
+    if (sunk) fs.ms = Math.max(0, fs.ms - sunk);
+    if (f === g.player) {
+      if (ok) logMsg(g, '商船貿易：' + ok + ' 艘商船抵達沿海城市（如' + placeName(lastDest) + '），共賺 ' + total + ' 金幣。', 'good');
+      if (sunk) logMsg(g, '你有 ' + sunk + ' 艘商船在途中遇襲沉沒。', 'bad');
+    }
+  });
+}
 function pirateTick(g) {
   var fm0 = fmap(g), pir = fleets(g).filter(function (x) { return x.f === 'pir'; });
   pir.forEach(function (fl) {
@@ -2556,6 +2605,7 @@ var P = {
     return good(gn.n + '前往' + placeName(id) + '坐鎮。');
   },
   ship: function (g, id) { return spendAP(g, function () { return actShip(g, g.player, id); }); },
+  merchant: function (g, id) { return spendAP(g, function () { return actMerchant(g, g.player, id); }); },
   recruit: function (g, id, type, merc) { if (g.over) return fail('遊戲已結束。'); if (!g.evResolved) return fail('請先處理事件。'); return actRecruit(g, g.player, id, type, merc); },
   bld: function (g, id, k) { return spendAP(g, function () { return actBld(g, g.player, id, k); }); },
   fleetMove: function (g, i, to) { return fleetMove(g, g.player, i, to); },
@@ -2948,6 +2998,10 @@ function aiEconomy(g, f) {
   if (Math.random() < 0.3 && fs.gold >= 130 && fs.food >= 30) {
     var pcs = owned(g, f).filter(function (id) { return CITY[id] && CITY[id].port && g.p[id].L > 0; });
     if (pcs.length && shipsOf(g, f) < Math.min(shipCap(g, f), 4 + pcs.length)) actShip(g, f, pcs[rint(pcs.length)]);
+  }
+  if (Math.random() < 0.25 && fs.gold >= 120 && fs.food >= 25) {
+    var pcm = owned(g, f).filter(function (id) { return CITY[id] && CITY[id].port && g.p[id].L > 0; });
+    if (pcm.length && msOf(g, f) < msCap(g, f)) actMerchant(g, f, pcm[rint(pcm.length)]);
   }
   var cities = owned(g, f).filter(function (id) { return g.p[id].L > 0; });
   var apn = apMax(g, f);
@@ -4573,6 +4627,7 @@ function endTurn0(g) {
   fleets(g).forEach(function (x) { x.mv = false; });
   FIDS.forEach(function (f) { var fs = g.fac[f]; if (fs.ships !== undefined) { var cp = shipCap(g, f); if (fs.ships > cp) flose(g, f, 1); } });
   pirateTick(g);
+  merchantTick(g);
   FIDS.forEach(function (f) { if (g.fac[f].alive) { settle(g, f); addRx(g, f, 0.4 + techFx(g, f, 'rx')); } });
   FIDS.forEach(function (f) { if (!isHum(g, f) && g.fac[f].alive) aiTurn(g, f); });
   _bc = {};
@@ -4789,7 +4844,7 @@ var G = {
   codex: codex, recruitCost: recruitCost, unitCost: unitCost, mercCost: mercCost, mixOf: mixOf, mercOf: mercOf, unitName: unitName, mercName: mercName, unitAllowed: unitAllowed, SPECIAL: SPECIAL, UNIT_NAMES: UNIT_NAMES, DEFMIX: DEFMIX, buildCost: buildCost, tradeGain: tradeGain, ritualCost: ritualCost, ritualGain: ritualGain,
   TAX_N: TAX_N, TAX_D: TAX_D, taxOf: taxOf, softCap: softCap, recLeft: recLeft, recLimit: recLimit, isMarried: isMarried, marryCost: marryCost, marryChance: marryChance, tributeCost: tributeCost, RESH: RESH, RES_N: RES_N, RES_D: RES_D, resCount: resCount, resFx: resFx, armySwap: armySwap, chainAdd: chainAdd, CHAIN: CHAIN, matchupHint: matchupHint, riverEdge: riverEdge, RIV_E: RIV_E, RIVERS: RIVERS, canPay: canPay, P: P, sendCount: sendCount, battleOdds: battleOdds, moveTargets: moveTargets, wallCost: wallCost, TECH: TECH, RUNIT: RUNIT, RSP: RSP, rulerGift: rulerGift, SPY: SPY, spyLeft: spyLeft, needRuler: needRuler, rulerChoices: rulerChoices, HIST_REL: HIST_REL, RULERS: RULERS, rulerOf: rulerOf, setRuler: setRuler, carOptions: carOptions, carActive: carActive, carMax: carMax, CAR_COST: CAR_COST, festLeft: festLeft, ROAD: ROAD, ROADSEG: ROADSEG, PASS: PASS, CAMEL: CAMEL, BLOCKED: BLOCKED, terrAtk: terrAtk, eraSync: eraSync, eraNum: eraNum, eraInfo: eraInfo, eraOf: eraOf, ERA_NAME: ERA_NAME, TECHS: TECHS, TBR: TBR, TECH_BY: TECH_BY, techLv: techLv, techState: techState, techHas: techHas, techFx: techFx, techCost: techCost, techWhy: techWhy, BLD: BLD, BLD_KEYS: BLD_KEYS, bldCount: bldCount, wallLv: wallLv, portOpen: portOpen, portsOpen: portsOpen, moveTroops: moveTroops,
   endTurn: endTurn, pickEvent: pickEvent, eventView: eventView, applyChoice: applyChoice, scoreOf: scoreOf,
-  isCapital: isCapital, nm: nm, aiTurn: aiTurn, portsOf: portsOf, genAt: genAt, gensOf: gensOf, genLv: genLv, genChoose: genChoose, genCandidates: genCandidates, LANDMARKS: LANDMARKS, LM_AT: LM_AT, lmInfo: lmInfo, lmBonus: lmBonus, callWarInfo: callWarInfo, culOf: culOf, culGain: culGain, CUL_WIN: CUL_WIN, msnTick: msnTick, surInfo: surInfo, moveCapCost: moveCapCost, syncCap: syncCap, xRate: xRate, xQuota: xQuota, genAvail: genAvail, genCost: genCost, GEN_MAX: GEN_MAX, GEN_TYPE: GEN_TYPE, GEN_TXT: GEN_TXT, GENS: GENS, shipsOf: shipsOf, fleets: fleets, fleetReach: seaReach, fleetStr: fleetStr, seaCapAt: seaCapAt, FLEET_MOVE: FLEET_MOVE, shipCap: shipCap, seaCapLeft: seaCapLeft, shipName: shipName, SHIP_COST: SHIP_COST, SHIP_CARRY: SHIP_CARRY, moraleMult: moraleMult, placeName: placeName, terrDef: terrDef,
+  isCapital: isCapital, msOf: msOf, msCap: msCap, MS_COST: MS_COST, nm: nm, aiTurn: aiTurn, portsOf: portsOf, genAt: genAt, gensOf: gensOf, genLv: genLv, genChoose: genChoose, genCandidates: genCandidates, LANDMARKS: LANDMARKS, LM_AT: LM_AT, lmInfo: lmInfo, lmBonus: lmBonus, callWarInfo: callWarInfo, culOf: culOf, culGain: culGain, CUL_WIN: CUL_WIN, msnTick: msnTick, surInfo: surInfo, moveCapCost: moveCapCost, syncCap: syncCap, xRate: xRate, xQuota: xQuota, genAvail: genAvail, genCost: genCost, GEN_MAX: GEN_MAX, GEN_TYPE: GEN_TYPE, GEN_TXT: GEN_TXT, GENS: GENS, shipsOf: shipsOf, fleets: fleets, fleetReach: seaReach, fleetStr: fleetStr, seaCapAt: seaCapAt, FLEET_MOVE: FLEET_MOVE, shipCap: shipCap, seaCapLeft: seaCapLeft, shipName: shipName, SHIP_COST: SHIP_COST, SHIP_CARRY: SHIP_CARRY, moraleMult: moraleMult, placeName: placeName, terrDef: terrDef,
   EVENTS: EVENTS, HIST: HIST, checkEnd: checkEnd, finish: finish, settle: settle, TERR_Y: TERR_Y,
   rel: rel, migrate: migrate, strength: strength, dipInfo: dipInfo, declareWar: declareWar, aiDiplomacy: aiDiplomacy,
   supplyDist: supplyDist, supRange: supRange, lordOf: lordOf, vassalsOf: vassalsOf, ownedTotal: ownedTotal, offerEvent: offerEvent, acceptChance: acceptChance,
@@ -6447,7 +6502,7 @@ if (typeof module !== 'undefined') module.exports = G;
         h += '<p class="muted small">軍團是從駐軍編出來的獨立部隊：選取一支軍團後點地圖目標，只有它出動。</p>'; }
       if (cty && cty.port && p.L > 0) {
         var sh = G.shipsOf(g, f), sc = G.shipCap(g, f), canS = sh < sc && G.canPay(g, f, G.SHIP_COST) && !noap;
-        h += '<div class="cmds" style="margin-top:6px">' + cmd('ship', 'march', '造' + G.shipName(f) + ' +2', sh >= sc ? '已達上限' : costText(G.SHIP_COST), !canS) + '</div><p class="muted small" style="margin-top:4px">艦隊 <b class="num">' + sh + '/' + sc + '</b> · 每艘每回合運 ' + G.SHIP_CARRY + ' 人 · 造好的船停在港外海面，點選船隻就能移動；每支艦隊每回合可運兵一次。</p>';
+        h += '<div class="cmds" style="margin-top:6px">' + cmd('ship', 'march', '造' + G.shipName(f) + ' +2', sh >= sc ? '已達上限' : costText(G.SHIP_COST), !canS) + cmd('mship', 'march', '造商船 +1', G.msOf(g, f) >= G.msCap(g, f) ? '已達上限' : costText(G.MS_COST), !(G.msOf(g, f) < G.msCap(g, f) && G.canPay(g, f, G.MS_COST) && !noap)) + '</div><p class="muted small" style="margin-top:4px">商船 <b class="num">' + G.msOf(g, f) + '/' + G.msCap(g, f) + '</b> · 造好後每回合自動去沿海城市貿易賺金幣，不耗行動點；路上可能被海盜或敵艦擊沉。<br>戰船 <b class="num">' + sh + '/' + sc + '</b> · 每艘每回合運 ' + G.SHIP_CARRY + ' 人 · 造好的船停在港外海面，點選船隻就能移動；每支艦隊每回合可運兵一次。</p>';
       }
       if (p.L > 0) {
         var wl = G.wallLv(g, id), wc = G.wallCost(p), canW = wl < 3 && wl < p.L && G.canPay(g, f, wc) && !noap;
@@ -6950,6 +7005,7 @@ if (typeof module !== 'undefined') module.exports = G;
       return;
     }
     if (a === 'ship') return afterAction(G.P.ship(g, ui.sel));
+    if (a === 'mship') return afterAction(G.P.merchant(g, ui.sel));
     if (a === 'bld') return afterAction(G.P.bld(g, ui.sel, b.getAttribute('data-k')));
     if (a === 'unlmode') { ui.unlHalf = b.getAttribute('data-m') === 'half'; toast(ui.unlHalf ? '之後點岸邊：只登陸一半' : '之後點岸邊：全部登陸'); return renderPanel(); }
     if (a === 'fleetsel') { var fi = +b.getAttribute('data-i'); var ff = null; G.fleets(g).forEach(function (x) { if (x.i === fi) ff = x; }); if (ff) { focusOn(ff.h, Math.max(ui.view.s, 2.4)); applyView(); } return selectFleet(fi); }
