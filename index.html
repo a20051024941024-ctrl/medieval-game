@@ -372,7 +372,7 @@ button{font:inherit;color:inherit}
     <div class="startmap" id="startmap" aria-hidden="true"></div>
     <div class="sc-in gx">
       <p class="eyebrow">MEDIEVAL: WORLD DOMINATION · 1096 AD</p>
-      <p class="muted small" id="verline">版本 v169 · 2026-11-01 · 自動更新：打開或回到遊戲時會自己檢查新版，開始畫面直接更新、遊戲中跳出提示</p>
+      <p class="muted small" id="verline">版本 v170 · 2026-11-01 · 放大縮小不再卡：手勢中只移動地圖、停手才重畫；拉遠時簡化細節</p>
       <h1>中世紀：世界霸權</h1>
       <p class="lead">1095 年，教宗在克萊蒙發出號召，整個歐洲動了起來。選一個勢力（共 121 個），再從該文明歷史上的君主裡挑一位登基；在四千多個六角格地塊的世界裡，與基督教世界、伊斯蘭世界與即將到來的蒙古鐵騎周旋。可以結盟借道、派商隊與商船貿易、派密探、遠征遠方、研究科技升級時代、替自己的城市取名。沒有回合上限，直到有人稱霸，或你失去一切。</p>
       <div id="startopts"></div>
@@ -6256,12 +6256,30 @@ if (typeof module !== 'undefined') module.exports = G;
     if (!ui.lk || (ui.noKeep && Date.now() < ui.noKeep)) return;
     var nk = fitK(mvSize()); if (nk > 0) ui.view.s = Math.max(1, Math.min(14, ui.lk / nk));
   }
-  function applyView() {
+  /* 手指縮放/拖動：手勢進行中只用 CSS transform 移動整張圖（不重畫），停手 150ms 後才真正更新 viewBox 與重畫。
+     中階手機上 SVG 有幾萬個節點，每格都重畫會卡到動不了。 */
+  var AV = { tm: null, t: 0 };
+  function applyViewHeavy() {
+    AV.tm = null; AV.t = Date.now();
     var s = document.querySelector('#map svg');
     if (!s) return;
+    s.style.transform = ''; s.style.willChange = '';
     s.setAttribute('viewBox', viewBox());
     s.setAttribute('class', 'mapsvg ' + zcls()); s.style.setProperty('--zs', zsVar()); fnUpdate(s);
     checkCull();
+  }
+  function applyView() {
+    var s = document.querySelector('#map svg');
+    if (!s) return;
+    var cur = (s.getAttribute('viewBox') || '').split(' ').map(Number);
+    if (cur.length !== 4 || !(cur[2] > 0)) { applyViewHeavy(); return; }
+    var nv = viewBox().split(' ').map(Number), sz = mvSize();
+    var kn = sz.w / nv[2], r = cur[2] / nv[2];
+    if (!(r > 0.55 && r < 3.2) || !isFinite(r)) { if (AV.tm) { clearTimeout(AV.tm); AV.tm = null; } applyViewHeavy(); return; }
+    s.style.transformOrigin = '0 0'; s.style.willChange = 'transform';
+    s.style.transform = 'translate(' + (kn * (cur[0] - nv[0])).toFixed(1) + 'px,' + (kn * (cur[1] - nv[1])).toFixed(1) + 'px) scale(' + r.toFixed(4) + ')';
+    if (AV.tm) clearTimeout(AV.tm);
+    AV.tm = setTimeout(applyViewHeavy, 150);
   }
   /* 只畫看得到的格子（加上一圈緩衝），滑動或縮放超出時再重畫，讓手機不卡 */
   var rb = null, rbZ = '', cullT = null, cullLast = 0;
@@ -6547,14 +6565,18 @@ if (typeof module !== 'undefined') module.exports = G;
       s += '<polygon class="hx t-' + G.TERR[id] + '"' + (o.demo ? '' : ' data-hex="' + id + '" tabindex="-1" aria-label="' + esc(G.placeName(id)) + '，' + who + '，駐軍 ' + knownTroops(id) + '"') + ' points="' + HPTS[id] + '"/>';
     });
     s += '</g><g>';
+    var ovd = {};
     LIDS.forEach(function (id) {
-      p = g.p[id];
-      if (p.o) s += '<polygon class="ov" style="fill:' + NC[p.o] + (ui.terrain ? ';fill-opacity:.1' : '') + '" points="' + HPTS[id] + '"/>';
-      else s += '<polygon class="ov neu" points="' + HPTS[id] + '"/>';
+      var ok = g.p[id].o || '';
+      (ovd[ok] || (ovd[ok] = [])).push('M' + HPTS[id].trim().replace(/\s+/g, 'L') + 'Z');
+    });
+    Object.keys(ovd).forEach(function (ok) {
+      if (ok) s += '<path class="ov" style="fill:' + NC[ok] + (ui.terrain ? ';fill-opacity:.1' : '') + '" d="' + ovd[ok].join('') + '"/>';
+      else s += '<path class="ov neu" d="' + ovd[ok].join('') + '"/>';
     });
     s += '</g><g>';
     LIDS.forEach(function (id) {
-      if (!o.demo && !G.CITY[id]) s += '<g transform="translate(' + HX[id].toFixed(1) + ',' + HY[id].toFixed(1) + ') scale(1.12)">' + GLYPH[G.TERR[id]] + '</g>';
+      if (!o.demo && !z1 && !G.CITY[id]) s += '<g transform="translate(' + HX[id].toFixed(1) + ',' + HY[id].toFixed(1) + ') scale(1.12)">' + GLYPH[G.TERR[id]] + '</g>';
     });
     s += '</g>';
     /* 邊界與海岸 */
@@ -6596,6 +6618,7 @@ if (typeof module !== 'undefined') module.exports = G;
       p = g.p[id];
       if (!o.demo && G.BLOCKED[id]) { s += '<g transform="translate(' + HX[id].toFixed(1) + ',' + HY[id].toFixed(1) + ') scale(.9)" pointer-events="none"><path d="M-20,12 L-8,-14 L-1,-2 L6,-18 L20,12 Z" fill="#cfd6de" stroke="#2a2418" stroke-width="2" stroke-linejoin="round"/><path d="M-8,-14 L-12,-6 L-5,-8 L-1,-2 Z M6,-18 L1,-8 L7,-10 L11,-2 Z" fill="#fff"/><text y="25" font-size="10" font-weight="800" text-anchor="middle" fill="#f4ead0" stroke="#0d1114" stroke-width="2.4" paint-order="stroke">險峰</text></g>'; return; }
       if (o.demo || (z1 && !p.o)) return;
+      if (z1 && !p.L && !G.CITY[id] && p.o !== g.player && !(g.cn && g.cn[id])) return;
       var col2 = p.o ? NC[p.o] : '#847a5e', cty = G.CITY[id];
       var dim = !o.demo && p.o === g.player && p.acted;
       s += '<g class="bg' + (dim ? ' dim' : '') + (p.o ? '' : ' neu') + (sdist && p.o === g.player && sdist[id] === undefined ? ' ns' : '') + '" transform="translate(' + HX[id].toFixed(1) + ',' + HY[id].toFixed(1) + ') scale(.9)">';
