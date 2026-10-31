@@ -372,7 +372,7 @@ button{font:inherit;color:inherit}
     <div class="startmap" id="startmap" aria-hidden="true"></div>
     <div class="sc-in gx">
       <p class="eyebrow">MEDIEVAL: WORLD DOMINATION · 1096 AD</p>
-      <p class="muted small" id="verline">版本 v168 · 2026-11-01 · 開始畫面背景改成一次畫好的圖片，中階手機進入不再卡</p>
+      <p class="muted small" id="verline">版本 v169 · 2026-11-01 · 自動更新：打開或回到遊戲時會自己檢查新版，開始畫面直接更新、遊戲中跳出提示</p>
       <h1>中世紀：世界霸權</h1>
       <p class="lead">1095 年，教宗在克萊蒙發出號召，整個歐洲動了起來。選一個勢力（共 121 個），再從該文明歷史上的君主裡挑一位登基；在四千多個六角格地塊的世界裡，與基督教世界、伊斯蘭世界與即將到來的蒙古鐵騎周旋。可以結盟借道、派商隊與商船貿易、派密探、遠征遠方、研究科技升級時代、替自己的城市取名。沒有回合上限，直到有人稱霸，或你失去一切。</p>
       <div id="startopts"></div>
@@ -426,6 +426,22 @@ button{font:inherit;color:inherit}
 
 <div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="mtitle" hidden><div class="mcard" id="mbody"></div></div>
 <div id="errbox" hidden style="position:fixed;left:8px;right:8px;top:8px;z-index:99;background:#5a1410;color:#fff;border:2px solid #f4796b;border-radius:8px;padding:10px;font-size:13px"><b>程式發生錯誤</b>：請把這個畫面截圖傳給開發者。<pre id="errtxt" style="white-space:pre-wrap;margin:6px 0 0"></pre></div>
+<script>(function(){
+if(!/^https?:$/.test(location.protocol))return;
+var busy=0;
+function cur(){var m=/v(\d+)/.exec((document.getElementById('verline')||{}).textContent||'');return m?+m[1]:0}
+function banner(n){if(document.getElementById('updbar'))return;var d=document.createElement('div');d.id='updbar';
+d.style.cssText='position:fixed;left:8px;right:8px;top:8px;z-index:99999;background:#e0b04a;color:#1a1408;padding:10px 12px;border-radius:10px;font:14px system-ui;text-align:center;box-shadow:0 2px 10px #0008';
+d.textContent='有新版本 v'+n+'，點這裡更新（目前進度請先存好）';d.onclick=function(){go(n)};document.body.appendChild(d)}
+function go(n){location.replace(location.origin+location.pathname+'?v='+n+'&t='+Date.now())}
+function check(){if(busy)return;busy=1;
+fetch('VERSION.txt?t='+Date.now(),{cache:'no-store'}).then(function(r){return r.ok?r.text():''}).then(function(t){
+var m=/v(\d+)/.exec(t||'');busy=0;if(!m)return;var n=+m[1],c=cur();if(!c||n<=c)return;
+var st=document.getElementById('start');if(st&&!st.hidden&&!/[?&]t=\d/.test(location.search+'')){go(n)}else if(st&&!st.hidden){banner(n)}else banner(n)
+}).catch(function(){busy=0})}
+setTimeout(check,1500);setInterval(check,120000);
+document.addEventListener('visibilitychange',function(){if(!document.hidden)check()});
+})();</script>
 <script>window.addEventListener('error',function(e){var b=document.getElementById('errbox');if(!b)return;b.hidden=false;document.getElementById('errtxt').textContent=(e.message||'')+' (第 '+(e.lineno||'?')+' 行)';});</script>
 <div class="toast" id="toast" role="status" hidden></div>
 
