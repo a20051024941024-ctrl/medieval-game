@@ -369,7 +369,7 @@ button{font:inherit;color:inherit}
     <div class="startmap" id="startmap" aria-hidden="true"></div>
     <div class="sc-in gx">
       <p class="eyebrow">MEDIEVAL: WORLD DOMINATION · 1096 AD</p>
-      <p class="muted small" id="verline">版本 v119 · 2026-10-31 · 可加到主畫面全螢幕開啟；網頁版底部空間縮小且只在遊戲中</p>
+      <p class="muted small" id="verline">版本 v120 · 2026-10-31 · 「可行動部隊」縮短為「可動」，不再被結束回合按鈕蓋住</p>
       <h1>中世紀：世界霸權</h1>
       <p class="lead">1095 年，教宗在克萊蒙發出號召，整個歐洲動了起來。選一個勢力（共 110 個），再從該文明歷史上的君主裡挑一位登基；在兩千多個六角格地塊的世界裡，與基督教世界、伊斯蘭世界與即將到來的蒙古鐵騎周旋。可以結盟借道、派商隊與密探、研究科技升級時代。沒有回合上限，直到有人稱霸，或你失去一切。</p>
       <div id="startopts"></div>
@@ -6498,7 +6498,7 @@ if (typeof module !== 'undefined') module.exports = G;
     var apc = g.apCap || G.AP_MAX;
     dots = '<span class="apbar"><i style="width:' + Math.round(100 * Math.max(0, Math.min(g.ap, apc)) / Math.max(1, apc)) + '%"></i></span>';
     var idle = idleStacks();
-    $('#ap').innerHTML = '<span class="apdots" aria-hidden="true">' + dots + '</span><span>行動點 <span class="num">' + g.ap + '/' + (g.apCap || G.AP_MAX) + '</span></span><span class="muted">· 可行動部隊 <span class="num">' + idle + '</span></span>';
+    $('#ap').innerHTML = '<span class="apdots" aria-hidden="true">' + dots + '</span><span>行動點 <span class="num">' + g.ap + '/' + (g.apCap || G.AP_MAX) + '</span></span><span class="muted">· 可動 <span class="num">' + idle + '</span></span>';
     var noap = g.ap <= 0, tg = G.tradeGain(g, f), rc = G.ritualCost(), canRit = G.canPay(g, f, rc) && G.festLeft(g, f) === 0;
     var wars = G.FIDS.filter(function (x) { return x !== f && g.fac[x].alive && G.rel(g, f, x).state === 'war'; }).length;
     $('#acts').innerHTML =
