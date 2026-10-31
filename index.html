@@ -372,7 +372,7 @@ button{font:inherit;color:inherit}
     <div class="startmap" id="startmap" aria-hidden="true"></div>
     <div class="sc-in gx">
       <p class="eyebrow">MEDIEVAL: WORLD DOMINATION · 1096 AD</p>
-      <p class="muted small" id="verline">版本 v174 · 2026-11-01 · 聚落系統：自建改成村莊／山寨→市鎮／城堡→城市／堡壘，村莊只能徵少量步弓兵；規則頁同步更新</p>
+      <p class="muted small" id="verline">版本 v175 · 2026-11-01 · 火藥：新增火藥配方、火砲鑄造、火繩槍三項科技；火砲讓城牆失效、火器壓制騎兵</p>
       <h1>中世紀：世界霸權</h1>
       <p class="lead">1095 年，教宗在克萊蒙發出號召，整個歐洲動了起來。選一個勢力（共 121 個），再從該文明歷史上的君主裡挑一位登基；在四千多個六角格地塊的世界裡，與基督教世界、伊斯蘭世界與即將到來的蒙古鐵騎周旋。可以結盟借道、派商隊與商船貿易、派密探、遠征遠方、研究科技升級時代、替自己的城市取名。沒有回合上限，直到有人稱霸，或你失去一切。</p>
       <div id="startopts"></div>
@@ -1643,13 +1643,14 @@ var MERC_NAMES = {
 };
 var SP_POWER = 1.35;
 function mercGroup(f) { var r = FACTIONS[f].rel; return (r === 'cath' || r === 'orth') ? 'chr' : r === 'isl' ? 'isl' : 'east'; }
-var ERA_C = {};
+var ERA_C = {}, GUN_C = {}, g_cn = 0;
+function gunSet(g, f) { GUN_C[f] = g.fac[f] ? { g: techFx(g, f, 'gun') > 0, c: techFx(g, f, 'cannon') > 0, m: techFx(g, f, 'musket') > 0 } : {}; }
 var ERA_UN = [['民兵', '長矛兵', '重裝步兵', '長槍方陣'], ['獵弓手', '十字弩手', '長弓兵', '火槍手'], ['輕騎', '騎士', '重甲騎士', '板甲重騎']];
 
 var RUNIT = {"fat:薩拉丁": "薩拉希亞近衛軍", "eng:理查一世（獅心王）": "獅心近衛騎士", "eng:亨利五世": "阿金庫爾長弓衛隊", "eng:愛德華三世": "黑太子騎士團", "fra:腓力二世·奧古斯都": "王家近衛軍士", "fra:路易九世（聖路易）": "聖王十字軍騎士", "byz:阿歷克塞一世·科穆寧": "瓦蘭吉衛隊", "seljuk:阿爾普·阿爾斯蘭": "突厥奴隸禁衛", "jpn:源賴朝": "鎌倉御家人", "jpn:北條時宗": "鎌倉御家人", "hre:腓特烈一世·巴巴羅薩": "帝國家臣騎士", "hre:腓特烈二世": "盧切拉薩拉森弓騎兵", "hung:馬加什一世（科爾維努斯）": "黑軍", "nov:亞歷山大·涅夫斯基": "公爵親兵", "val:熙德·羅德里戈·迪亞斯": "熙德親衛騎士", "liao:耶律大石": "皮室軍", "ghaz:馬哈茂德": "加茲尼象兵", "ghu:穆伊茲丁·穆罕默德": "古爾奴隸近衛", "sco:羅伯特·布魯斯": "蘇格蘭長槍方陣", "almor:優素福·伊本·塔什芬": "穆拉比特黑衛軍", "song:宋高宗": "背嵬軍", "geo:大衛四世（建設者）": "欽察僱傭騎兵"};
 var RUL_C = {};
 function rulSync(g) { FIDS.forEach(function (f) { var r = g.fac[f] ? rulerOf(g, f) : null; RUL_C[f] = r ? (RUNIT[f + ':' + r[0]] || null) : null; }); }
-function eraSync(g) { bindCN(g); FIDS.forEach(function (f) { ERA_C[f] = g.fac[f] ? eraOf(g, f) : 1; }); rulSync(g); }
+function eraSync(g) { bindCN(g); FIDS.forEach(function (f) { ERA_C[f] = g.fac[f] ? eraOf(g, f) : 1; gunSet(g, f); }); rulSync(g); }
 function eraNum(f) { return ERA_C[f] || 1; }
 var CAMEL = {}; ['almor', 'fat', 'abb', 'zir', 'ham', 'sul', 'gha', 'gao', 'kan', 'mak', 'adal', 'som', 'mos', 'dam', 'ale'].forEach(function (x) { CAMEL[x] = 1; });
 var CAMEL_UN = ['駱駝騎手', '駱駝騎兵', '重裝駱駝騎兵', '駱駝突擊騎兵'];
@@ -1674,9 +1675,9 @@ function unitName(f, k) {
   if (k === 2 && CAMEL[f]) return CAMEL_UN[(ERA_C[f] || 1) - 1];
   if (k === 2 && STEPPE[f]) return ST_UN[(ERA_C[f] || 1) - 1];
   if (k === 2 && ELEPH[f]) return EL_UN[(ERA_C[f] || 1) - 1];
-  if (k === 1 && hasGun(f)) return (ERA_C[f] || 1) >= 4 ? '火繩槍手' : '火銃手';
+  if (k === 1 && hasGun(f)) return (GUN_C[f] && GUN_C[f].m) ? '火繩槍手' : '火銃手';
   if (k === 1 && XBOW[f]) return XB_UN[(ERA_C[f] || 1) - 1];
-  if (k === 4 && (ERA_C[f] || 1) >= 4) return '攻城火砲';
+  if (k === 4 && GUN_C[f] && GUN_C[f].c) return '攻城火砲';
   if (k <= 2) return ERA_UN[k][eraNum(f) - 1];
   if (k === 3) return SPECIAL[f] ? SPECIAL[f][0] : '精銳兵';
   if (k === 4) return SIEGE_NAME[f] || '投石機';
@@ -1731,16 +1732,16 @@ function codex(f) {
   if (ELEPH[f]) N[2].note = '戰象：平原衝鋒猛，山林吃虧，怕弓兵。' + N[2].note;
   if (XBOW[f]) N[1].note = '弩兵：攻守兩端都有效，連騎兵也能擋住，剋制步兵。';
   if (GUN_EARLY[f]) N[1].note += '（' + ERA_NAME[2] + '起換裝火銃）';
-  else N[1].note += '（' + ERA_NAME[3] + '起換裝火銃）';
+  else N[1].note += '（研究「火藥配方」後換裝火銃）';
   if (hasGun(f) || ERA_C[f] >= 3) {}
   N[1].note += '火銃手攻城與防守都更強。';
   if (isOrder(f)) N[3].note = '修會騎士：守城時很強，攻伊斯蘭城市有加成。';
-  N[4].note += '帝王時代起換成火砲。';
+  N[4].note += '研究「火砲鑄造」後換成火砲，城牆幾乎擋不住。';
   out.ruler = RUL_C[f] || null;
   return out;
 }
 function isOrder(f) { return !!FACTIONS[f] && FACTIONS[f].rel === 'cath' && !SPEC_ERA[f]; }
-function hasGun(f) { var e = ERA_C[f] || 1; return e >= 4 || (GUN_EARLY[f] && e >= 3); }
+function hasGun(f) { var e = ERA_C[f] || 1; return !!(GUN_C[f] && GUN_C[f].g) || (GUN_EARLY[f] && e >= 3); }
 function mixMult(am, dm, id, aF, dF) {
   var open = (TERR[id] === 'g' || TERR[id] === 'n' || TERR[id] === 's' || TERR[id] === 'd');
   var rough = (TERR[id] === 'f' || TERR[id] === 'h' || TERR[id] === 'm' || TERR[id] === 'w');
@@ -1753,18 +1754,18 @@ function mixMult(am, dm, id, aF, dF) {
     if (STEPPE[aF]) { a *= 1 + 0.10 * ca[2] * cd[0] + (open ? 0.05 * ca[2] : 0) - (g_cityLevel > 0 ? 0.10 * ca[2] : 0); }
     if (XBOW[aF]) a *= 1 + 0.12 * ca[1] * cd[2];
     if (ELEPH[aF]) a *= 1 + (open ? 0.15 : rough ? -0.10 : 0) * ca[2] - 0.12 * ca[2] * cd[1];
-    if (hasGun(aF)) a *= 1 + (0.10 + (g_cityLevel > 0 ? 0.10 : 0)) * ca[1];
+    if (hasGun(aF)) a *= 1 + (0.10 + (g_cityLevel > 0 ? 0.10 : 0)) * ca[1] + 0.08 * ca[1] * cd[2];
     if (isOrder(aF) && dF && FACTIONS[dF] && FACTIONS[dF].rel === 'isl') a *= 1 + 0.15 * am[3];
   }
   if (dF) {
     if (STEPPE[dF]) d *= 1 - 0.05 * cd[2];
     if (XBOW[dF]) d *= 1 + 0.12 * cd[1] * ca[2];
     if (ELEPH[dF]) d *= 1 + 0.05 * cd[2];
-    if (hasGun(dF)) d *= 1 + 0.10 * cd[1];
+    if (hasGun(dF)) d *= 1 + 0.10 * cd[1] + ((GUN_C[dF] && GUN_C[dF].m) ? 0.28 : 0.16) * cd[1] * ca[2];
     if (isOrder(dF) && g_cityLevel > 0) d *= 1 + 0.25 * dm[3];
   }
   a *= 1 + am[3] * (SP_POWER + 0.05 * ((ERA_C[aF] || 1) - 1) + (RUL_C[aF] ? 0.15 : 0) - 1); d *= 1 + dm[3] * (SP_POWER + 0.05 * ((ERA_C[dF] || 1) - 1) + (RUL_C[dF] ? 0.15 : 0) - 1);
-  a *= g_cityLevel > 0 ? 1 + 2.0 * am[4] : 1 - 0.35 * am[4];
+  a *= g_cityLevel > 0 ? 1 + (2.0 + ((aF && GUN_C[aF] && GUN_C[aF].c) ? 0.2 : 0)) * am[4] : 1 - 0.35 * am[4];
   d *= 1 - 0.15 * dm[4];
   return [a, d];
 }
@@ -1912,7 +1913,7 @@ var DEF_BONUS = { arag: ['mh', 1.1], srb: ['mh', 1.1], geo: ['mh', 1.1], arm: ['
     DEF_BONUS.eth = ['mh', 1.15]; DEF_BONUS.niz = ['mh', 1.2]; DEF_BONUS.duk = ['mh', 1.1]; DEF_BONUS.dan = ['mh', 1.1]; DEF_BONUS.bri = ['f', 1.05]; DEF_BONUS.mak = ['d', 1.1]; DEF_BONUS.yor = ['f', 1.1]; DEF_BONUS.ben = ['f', 1.1]; DEF_BONUS.kon = ['f', 1.1]; DEF_BONUS.hau = ['gh', 1.1]; DEF_BONUS.zim = ['hm', 1.1]; DEF_BONUS.adal = ['mh', 1.1]; DEF_BONUS.bun = ['g', 1.05];
     function terrDef(g, id, defF) {
   var p = g.p[id], m = TERR_DEF[TERR[id]] * (1 + 0.1 * p.L) * (isCapital(id) ? 1.15 : 1);
-  if (p.w) m *= 1 + 0.18 * p.w * (1 - 0.7 * Math.min(1, g_sg * 3)) * (1 - 0.15 * Math.min(5, p.sg | 0));
+  if (p.w) m *= 1 + 0.18 * p.w * (1 - (0.7 + 0.1 * g_cn) * Math.min(1, g_sg * 3)) * (1 - 0.15 * Math.min(5, p.sg | 0));
   if (p.sg) m *= 1 - 0.04 * Math.min(5, p.sg);
   if (p.b && p.b.indexOf('sm') >= 0) m *= 1.1;
   if (p.b && p.b.indexOf('ft') >= 0) m *= 1.2;
@@ -2035,9 +2036,9 @@ function btLog(g, f, prev, to, A, D, b) {
 }
 function resolveBattle(g, attF, defF, A, D, id, sea, rnd, aMix, dMix) {
   rnd = rnd || Math.random;
-  g_sg = aMix ? aMix[4] : 0;
+  g_sg = aMix ? aMix[4] : 0; g_cn = (attF && GUN_C[attF] && GUN_C[attF].c) ? 1 : 0;
   var am = g_supMod * g_gA, dm = 1.15 * terrDef(g, id, defF) * g_gD * (g_riv ? 1.08 : 1);
-  g_sg = 0;
+  g_sg = 0; g_cn = 0;
   if (aMix && dMix) { g_cityLevel = g.p[id].L; var mm = mixMult(aMix, dMix, id, attF, defF); am *= mm[0]; dm *= mm[1];
     if (attF && g.fac[attF]) { var ca2 = classVec(aMix, attF); am *= 1 + techFx(g, attF, 'ti') * ca2[0] + techFx(g, attF, 'ta') * ca2[1] + techFx(g, attF, 'tc') * ca2[2] + techFx(g, attF, 'ts') * (aMix[4] || 0); }
     if (defF && g.fac[defF]) { var cd2 = classVec(dMix, defF); dm *= 1 + techFx(g, defF, 'ti') * cd2[0] + techFx(g, defF, 'ta') * cd2[1] + techFx(g, defF, 'tc') * cd2[2]; } }
@@ -4488,6 +4489,9 @@ var TECHS = [
   { id: 'm1', b: 'mil', t: 1, n: '十字弩與鎖子甲', y: 1120, pre: [], fx: { atk: 0.04 }, d: '進攻力 +4%' },
   { id: 'm2', b: 'mil', t: 1, n: '石造城堡工法', y: 1170, pre: [], fx: { def: 0.05 }, d: '守軍防禦 +5%' },
   { id: 'm3', b: 'mil', t: 2, n: '火藥與投石機改良', y: 1250, pre: ['m1'], fx: { atk: 0.04 }, d: '進攻力再 +4%' },
+  { id: 'g1', b: 'mil', t: 3, n: '火藥配方', y: 1280, pre: ['m3'], fx: { gun: 1 }, d: '遠程兵換裝火銃手；火器攻守都更強，並壓制騎兵' },
+  { id: 'g2', b: 'mil', t: 4, n: '火砲鑄造', y: 1380, pre: ['g1', 'm2'], fx: { cannon: 1 }, d: '攻城器械換成火砲：攻城加成更高，城牆幾乎失效' },
+  { id: 'g3', b: 'mil', t: 4, n: '火繩槍', y: 1450, pre: ['g1', 'm5'], fx: { musket: 1 }, d: '火銃手升級為火繩槍手，剋制騎兵更強' },
   { id: 'm4', b: 'mil', t: 2, n: '重裝騎士訓練', y: 1150, pre: ['m1'], fx: { atk: 0.03 }, d: '進攻力再 +3%' },
   { id: 'm5', b: 'mil', t: 3, n: '長槍方陣', y: 1300, pre: ['m4'], fx: { def: 0.04, atk: 0.02 }, d: '防禦 +4%、進攻 +2%' },
   { id: 'm6', b: 'mil', t: 3, n: '常備傭兵制', y: 1230, pre: ['m2'], fx: { def: 0.03, atk: 0.03 }, d: '防禦 +3%、進攻 +3%' },
@@ -4642,7 +4646,7 @@ function actTech(g, f, id) {
   var c = techCost(g, f, id);
   if (!canPay(g, f, c)) return fail('資源不足（需金幣 ' + c.gold + '）。');
   pay(g, f, c);
-  var tk = techTk(g, f); tk[id] = 1; g.fac[f].tech = Object.keys(tk).length; addRx(g, f, 3 + x.t);
+  var tk = techTk(g, f); tk[id] = 1; g.fac[f].tech = Object.keys(tk).length; addRx(g, f, 3 + x.t); gunSet(g, f);
   var eg = g.eraN || (g.eraN = {}), e2 = eraOf(g, f), em = '';
   if (e2 > (eg[f] || 1)) { eg[f] = e2; var fs2 = g.fac[f]; fs2.gold += 60 * e2; fs2.morale = clamp(fs2.morale + 5, 0, 100); em = ' 　時代躍進！邁入「' + ERA_NAME[e2 - 1] + '」，獲得 ' + (60 * e2) + ' 金幣、民心 +5。兵種升級為：' + ERA_UN[0][e2 - 1] + '、' + ERA_UN[1][e2 - 1] + '、' + ERA_UN[2][e2 - 1] + '，戰力 +5%，徵兵費用 +10%。'; ERA_C[f] = e2; logMsg(g, nm(f) + '邁入了「' + ERA_NAME[e2 - 1] + '」。', f === g.player ? 'good' : 'war'); }
   return good('學者與工匠有了成果：「' + x.n + '」（' + x.d + '）。' + em);
@@ -5449,7 +5453,7 @@ var G = {
   codex: codex, recruitCost: recruitCost, unitCost: unitCost, mercCost: mercCost, mixOf: mixOf, mercOf: mercOf, unitName: unitName, mercName: mercName, unitAllowed: unitAllowed, SPECIAL: SPECIAL, UNIT_NAMES: UNIT_NAMES, DEFMIX: DEFMIX, buildCost: buildCost, tradeGain: tradeGain, ritualCost: ritualCost, ritualGain: ritualGain,
   TAX_N: TAX_N, TAX_D: TAX_D, taxOf: taxOf, softCap: softCap, recLeft: recLeft, recLimit: recLimit, isMarried: isMarried, marryCost: marryCost, marryChance: marryChance, tributeCost: tributeCost, RESH: RESH, RES_N: RES_N, RES_D: RES_D, resCount: resCount, resFx: resFx, armySwap: armySwap, chainAdd: chainAdd, CHAIN: CHAIN, matchupHint: matchupHint, riverEdge: riverEdge, RIV_E: RIV_E, RIVERS: RIVERS, canPay: canPay, P: P, sendCount: sendCount, battleOdds: battleOdds, moveTargets: moveTargets, wallCost: wallCost, TECH: TECH, RUNIT: RUNIT, RSP: RSP, rulerGift: rulerGift, SPY: SPY, spyLeft: spyLeft, needRuler: needRuler, rulerChoices: rulerChoices, HIST_REL: HIST_REL, RULERS: RULERS, rulerOf: rulerOf, setRuler: setRuler, carOptions: carOptions, carActive: carActive, carMax: carMax, CAR_COST: CAR_COST, festLeft: festLeft, ROAD: ROAD, ROADSEG: ROADSEG, PASS: PASS, CAMEL: CAMEL, BLOCKED: BLOCKED, terrAtk: terrAtk, eraSync: eraSync, eraNum: eraNum, eraInfo: eraInfo, eraOf: eraOf, ERA_NAME: ERA_NAME, TECHS: TECHS, TBR: TBR, TECH_BY: TECH_BY, techLv: techLv, techState: techState, techHas: techHas, techFx: techFx, techCost: techCost, techWhy: techWhy, BLD: BLD, BLD_KEYS: BLD_KEYS, bldCount: bldCount, wallLv: wallLv, portOpen: portOpen, portsOpen: portsOpen, moveTroops: moveTroops,
   endTurn: endTurn, pickEvent: pickEvent, eventView: eventView, applyChoice: applyChoice, scoreOf: scoreOf,
-  lordsOf: lordsOf, FIEF_PER: FIEF_PER, fiefMax: fiefMax, fiefList: fiefList, cityN: cityN, FIEF_COST: FIEF_COST, FIEF_REWARD: FIEF_REWARD, isCapital: isCapital, msOf: msOf, NOHORSE: NOHORSE, deepOK: deepOK, msCap: msCap, MS_COST: MS_COST, nm: nm, aiTurn: aiTurn, portsOf: portsOf, genAt: genAt, citySiteBlock: citySiteBlock, buildCostG: buildCostG, settleName: settleName, isVillage: isVillage, RELICS: RELICS, REL_TXT: REL_TXT, relAt: relAt, gensOf: gensOf, genLv: genLv, genChoose: genChoose, genCandidates: genCandidates, LANDMARKS: LANDMARKS, LM_AT: LM_AT, lmInfo: lmInfo, lmBonus: lmBonus, callWarInfo: callWarInfo, culOf: culOf, culGain: culGain, CUL_WIN: CUL_WIN, msnTick: msnTick, surInfo: surInfo, moveCapCost: moveCapCost, syncCap: syncCap, xRate: xRate, xQuota: xQuota, genAvail: genAvail, genCost: genCost, GEN_MAX: GEN_MAX, GEN_TYPE: GEN_TYPE, GEN_TXT: GEN_TXT, GENS: GENS, shipsOf: shipsOf, fleets: fleets, fleetReach: seaReach, fleetStr: fleetStr, seaCapAt: seaCapAt, FLEET_MOVE: FLEET_MOVE, shipCap: shipCap, seaCapLeft: seaCapLeft, shipName: shipName, SHIP_COST: SHIP_COST, SHIP_CARRY: SHIP_CARRY, moraleMult: moraleMult, placeName: placeName, terrDef: terrDef,
+  lordsOf: lordsOf, FIEF_PER: FIEF_PER, fiefMax: fiefMax, fiefList: fiefList, cityN: cityN, FIEF_COST: FIEF_COST, FIEF_REWARD: FIEF_REWARD, isCapital: isCapital, msOf: msOf, NOHORSE: NOHORSE, deepOK: deepOK, msCap: msCap, MS_COST: MS_COST, nm: nm, aiTurn: aiTurn, portsOf: portsOf, genAt: genAt, resolveBattle: resolveBattle, citySiteBlock: citySiteBlock, buildCostG: buildCostG, settleName: settleName, isVillage: isVillage, RELICS: RELICS, REL_TXT: REL_TXT, relAt: relAt, gensOf: gensOf, genLv: genLv, genChoose: genChoose, genCandidates: genCandidates, LANDMARKS: LANDMARKS, LM_AT: LM_AT, lmInfo: lmInfo, lmBonus: lmBonus, callWarInfo: callWarInfo, culOf: culOf, culGain: culGain, CUL_WIN: CUL_WIN, msnTick: msnTick, surInfo: surInfo, moveCapCost: moveCapCost, syncCap: syncCap, xRate: xRate, xQuota: xQuota, genAvail: genAvail, genCost: genCost, GEN_MAX: GEN_MAX, GEN_TYPE: GEN_TYPE, GEN_TXT: GEN_TXT, GENS: GENS, shipsOf: shipsOf, fleets: fleets, fleetReach: seaReach, fleetStr: fleetStr, seaCapAt: seaCapAt, FLEET_MOVE: FLEET_MOVE, shipCap: shipCap, seaCapLeft: seaCapLeft, shipName: shipName, SHIP_COST: SHIP_COST, SHIP_CARRY: SHIP_CARRY, moraleMult: moraleMult, placeName: placeName, terrDef: terrDef,
   EVENTS: EVENTS, HIST: HIST, checkEnd: checkEnd, finish: finish, settle: settle, TERR_Y: TERR_Y,
   SAVE_VER: SAVE_VER, MAPSIG: MAPSIG, rel: rel, migrate: migrate, strength: strength, dipInfo: dipInfo, declareWar: declareWar, aiDiplomacy: aiDiplomacy,
   swapAmt: swapAmt, routeCands: routeCands, coastTarget: coastTarget, supplyDist: supplyDist, supRange: supRange, lordOf: lordOf, vassalsOf: vassalsOf, ownedTotal: ownedTotal, offerEvent: offerEvent, acceptChance: acceptChance,
@@ -6254,7 +6258,7 @@ if (typeof module !== 'undefined') module.exports = G;
     '<li><b>時間</b>：一回合一年，從西元 1096 年開始。每回合有 5 個行動點（前 12 回合多 2 點；領地每多 15 個地塊再 +1，君主 Lv4、Lv8 各 +1，最多 11 點），徵兵以外的行動——移動、進攻、建設、貿易、慶典、外交、號召聖戰——各用 1 點。每個地塊的部隊每回合只能行動一次。徵兵與研究科技不耗行動點。</li>' +
     '<li><b>移動與軍團</b>：點己方地塊後，紅色虛線是可進攻的相鄰地塊；藍色虛線是己方領地內的調動。把駐軍「編組」成軍團後選取它：軍團有自己的移動力（一般 3 點，騎兵多 +1、攻城器械多 −1），平原 1、森林丘陵沙漠 2、山地 3，在己方領地內消耗減半，渡河多 1；走到敵軍旁邊必須停下。淡色格代表要走好幾回合，之後每回合會自動前進，抵達邊境就進攻。軍團有自己的兵種編成與老兵星級，可從駐軍「補員」。</li>' +
     '<li><b>海運</b>：先選己方海岸的部隊（或軍團），再點旁邊海上的己方艦隊就直接上船；選到載著部隊的艦隊後，點岸邊就登陸（面板可切換「全部／一半」）。</li>' +
-    '<li><b>科技樹</b>：底部「科技樹」按鈕開啟軍事、兵種、經濟、行政、海軍、學術六條線，共 51 項，每項研究只花金幣（不耗行動點），需先完成前置並等到對應年代。</li>' +
+    '<li><b>科技樹</b>：底部「科技樹」按鈕開啟軍事、兵種、經濟、行政、海軍、學術六條線，共 54 項，每項研究只花金幣（不耗行動點），需先完成前置並等到對應年代。</li>' +
     '<li><b>外交</b>：除了停戰、條約、同盟，還能「聯姻」（15 回合互不侵犯，背棄會重創信譽）與「納貢求和」。</li>' +
     '<li><b>十字軍與聖戰</b>：基督教勢力可對穆斯林的城市號召十字軍，穆斯林勢力可對基督教的城市號召聖戰。花 40 金幣、1 行動點，一支援軍會直接抵達目標城市發動攻擊，每 10 年可用一次。</li>' +
     '<li><b>蒙古</b>：西元 1206 年起，蒙古人從東方草原出現。他們不能被選擇，也不會因為佔領地塊而「獲勝」，但誰擋在路上，誰就會被碾過去。</li>' +
@@ -6268,7 +6272,7 @@ if (typeof module !== 'undefined') module.exports = G;
     '<li><b>徵兵</b>只能在聚落進行；城市等級越高，每回合可徵兵數、產出與防禦都更高；駐軍沒有硬上限，但超過軟上限（城市規模的兩倍）每回合會損耗並多耗糧。</li>' +
     '<li><b>特產</b>：山區有鐵礦、草原有戰馬、東方有絲綢、南洋有香料、西非有黃金；占有愈多，進攻力或金幣收入愈高（點地塊可看到特產）。</li>' +
     '<li><b>河流</b>：渡河進攻時守軍防禦 +8%，軍團渡河多耗 1 點移動力。</li>' +
-    '<li><b>兵種專長</b>：草原與突厥勢力的騎兵是<b>弓騎兵</b>，對步兵與平原有利，但攻城吃虧、近戰防守較弱；宋、義大利、拜占庭、法蘭西等的弓兵是<b>弩兵</b>，專剋騎兵，攻守兩端都有效；印度與東南亞的騎兵是<b>戰象</b>，在平原衝鋒猛、在山林吃虧、怕弓兵；天主教勢力的特色兵是<b>修會騎士</b>，守城時很強、攻伊斯蘭城市有加成；進入城堡時代或帝王時代（宋、金、蒙古早一個時代）後弓兵升級為<b>火銃手</b>，攻城與防守都更強，帝王時代的攻城器械成為<b>火砲</b>。駐軍裡的遠程兵（弓、弩、火銃、投石機）也會射擊靠岸的敵船。</li>' +
+    '<li><b>兵種專長</b>：草原與突厥勢力的騎兵是<b>弓騎兵</b>，對步兵與平原有利，但攻城吃虧、近戰防守較弱；宋、義大利、拜占庭、法蘭西等的弓兵是<b>弩兵</b>，專剋騎兵，攻守兩端都有效；印度與東南亞的騎兵是<b>戰象</b>，在平原衝鋒猛、在山林吃虧、怕弓兵；天主教勢力的特色兵是<b>修會騎士</b>，守城時很強、攻伊斯蘭城市有加成；研究軍事線的「火藥配方」後（宋、金、蒙古在城堡時代就有火器）弓兵升級為<b>火銃手</b>，攻守都更強，並明顯壓制騎兵（含重騎兵與騎士）；研究「火砲鑄造」後攻城器械成為<b>火砲</b>，攻城加成更高、城牆幾乎失效；研究「火繩槍」後火銃手升級為<b>火繩槍手</b>，更剋騎兵。駐軍裡的遠程兵（弓、弩、火銃、投石機）也會射擊靠岸的敵船。</li>' +
     '<li><b>君主</b>：開局從你文明歷史上的君主（含傳說人物）中挑一位，各帶不同加成；金色★的名君還有專屬戰鬥能力或專屬兵種。君主在位約等於歷史年數，駕崩後從名單選繼任者。</li>' +
     '<li><b>間諜</b>：下方「間諜」按鈕，花金幣（不耗行動點、每回合一次）偵查、煽動叛亂或暗殺將領，失敗聲望 −4。</li>' +
     '<li><b>地圖按鈕</b>：「大」把地圖放到最大（再按還原）；「我」回到你最後行動的位置；「下一」跳到下一個還能行動的地塊；結束回合後地圖會自動移到那裡。</li>' +
