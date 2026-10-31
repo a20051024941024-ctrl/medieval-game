@@ -372,7 +372,7 @@ button{font:inherit;color:inherit}
     <div class="startmap" id="startmap" aria-hidden="true"></div>
     <div class="sc-in gx">
       <p class="eyebrow">MEDIEVAL: WORLD DOMINATION · 1096 AD</p>
-      <p class="muted small" id="verline">版本 v170 · 2026-11-01 · 放大縮小不再卡：手勢中只移動地圖、停手才重畫；拉遠時簡化細節</p>
+      <p class="muted small" id="verline">版本 v171 · 2026-11-01 · 新增神器：名城藏有神器，將領走到那座城可裝備（攻/守加成），陣亡會掉在原地</p>
       <h1>中世紀：世界霸權</h1>
       <p class="lead">1095 年，教宗在克萊蒙發出號召，整個歐洲動了起來。選一個勢力（共 121 個），再從該文明歷史上的君主裡挑一位登基；在四千多個六角格地塊的世界裡，與基督教世界、伊斯蘭世界與即將到來的蒙古鐵騎周旋。可以結盟借道、派商隊與商船貿易、派密探、遠征遠方、研究科技升級時代、替自己的城市取名。沒有回合上限，直到有人稱霸，或你失去一切。</p>
       <div id="startopts"></div>
@@ -2647,6 +2647,7 @@ function genEff(g, f, id, role, to, mix) {
   else if (gn.t === 's') m = role === 'att' ? ((g.p[to] && g.p[to].L > 0) ? 1.14 + 0.03 * (lv - 1) : 1.03) : 1.02;
   else if (gn.t === 'n') m = 1.03;
   else if (gn.t === 'l') m = 1.04 + 0.01 * lv;
+  if (gn.rl !== undefined && RELICS[gn.rl]) { var rt = RELICS[gn.rl][2]; m *= rt === 'b' ? 1.05 : (rt === 'a' ? (role === 'att' ? 1.10 : 1) : (role === 'def' ? 1.10 : 1)); }
   return m;
 }
 function genTypeLv(g, f, t) {
@@ -2654,7 +2655,50 @@ function genTypeLv(g, f, t) {
   if (l) l.forEach(function (x) { if (x.t === t) b = Math.max(b, genLv(x)); });
   return b;
 }
+/* ---------- 神器：放在各地名城，誰佔領歸誰；將領走到那座城就能裝備（每人 1 件），陣亡時掉在原地 ---------- */
+var RELICS = [
+  ['真十字架碎片', '耶路撒冷', 'b', '基督徒最珍視的聖物，帶著它的軍隊士氣高昂'],
+  ['聖槍', '安條克', 'a', '傳說刺過基督的長槍，十字軍視為勝利的保證'],
+  ['聖母聖衣', '君士坦丁堡', 'd', '拜占庭人相信它曾多次保護城牆'],
+  ['聖彼得之鑰', '羅馬', 'b', '象徵教會權威的聖物'],
+  ['查理曼之劍', '巴黎', 'a', '法蘭克帝國的傳奇佩劍'],
+  ['征服者之劍', '倫敦', 'a', '諾曼征服者留下的戰劍'],
+  ['哈里發權杖', '巴格達', 'b', '阿拔斯哈里發的權力象徵'],
+  ['托勒密典籍', '亞歷山大', 'd', '古代學者的兵法與築城手稿'],
+  ['法老權杖', '開羅', 'd', '尼羅河畔流傳千年的王權象徵'],
+  ['大馬士革鋼劍', '大馬士革', 'a', '以花紋鋼鍛成，削鐵如泥'],
+  ['傳國玉璽', '長安', 'b', '中原正統的象徵'],
+  ['九鼎', '洛陽', 'd', '相傳天下之重器，得之者得民心'],
+  ['草薙劍', '平安京', 'a', '日本三種神器之一'],
+  ['吳哥聖劍', '吳哥', 'a', '高棉王權的聖劍']
+];
+RELICS.forEach(function (r) { r.id = null; Object.keys(CITY).forEach(function (k) { if (CITY[k].name === r[1]) r.id = +k; }); });
+var REL_TXT = { a: '主將進攻時攻擊 +10%', d: '主將防守時防禦 +10%', b: '主將攻守各 +5%' };
+function relInit(g) { if (g.rlx) return; g.rlx = {}; RELICS.forEach(function (r, i) { if (r.id !== null) (g.rlx[r.id] = g.rlx[r.id] || []).push(i); }); }
+function relAt(g, id) { relInit(g); return g.rlx[id] || []; }
+function relPut(g, id, ri) { relInit(g); (g.rlx[id] = g.rlx[id] || []).push(ri); }
+function actRelEquip(g, f, gi, ri) {
+  if (g.over) return fail('遊戲已結束。');
+  var gn = gensOf(g, f)[gi]; if (!gn) return fail('找不到這位將領。');
+  var id = gn.at, p = g.p[id]; if (!p || p.o !== f) return fail('將領必須在自己的領地。');
+  var lst = relAt(g, id), k = lst.indexOf(ri); if (k < 0) return fail('這件神器不在這裡。');
+  lst.splice(k, 1);
+  if (gn.rl !== undefined) lst.push(gn.rl);
+  gn.rl = ri;
+  return good(gn.n + '裝備了' + RELICS[ri][0] + '（' + REL_TXT[RELICS[ri][2]] + '）。');
+}
+function relTick(g) {
+  relInit(g);
+  Object.keys(g.fac).forEach(function (f) {
+    if (f === g.player || !g.fac[f].alive) return;
+    gensOf(g, f).forEach(function (gn) {
+      if (gn.rl !== undefined || !g.p[gn.at] || g.p[gn.at].o !== f) return;
+      var lst = relAt(g, gn.at); if (lst.length) { gn.rl = lst.shift(); }
+    });
+  });
+}
 function genKill(g, f, gn, id, why) {
+  if (gn.rl !== undefined) { relPut(g, g.p[gn.at] ? gn.at : id, gn.rl); delete gn.rl; }
   var l = gensOf(g, f), k = l.indexOf(gn); if (k >= 0) l.splice(k, 1);
   if (f === g.player || (g.fac[g.player] && g.p[id] && g.p[id].o === g.player)) logMsg(g, gn.n + why, f === g.player ? 'bad' : 'good');
 }
@@ -2718,6 +2762,7 @@ function conquer(g, f, id, left, prev, mix) {
   if (prev) (g.lastHit || (g.lastHit = {}))[prev] = f;
   addRx(g, f, CITY[id] ? 4 : 2);
   p.o = f; _own = null; p.t = left; p.acted = true; p.cq = g.turn; p.sg = 0; if (p.w) p.w--; if (p.b && p.b.length) p.b.pop();
+  if (f === g.player && relAt(g, id).length) logMsg(g, '你佔領了' + placeName(id) + '，這裡藏有神器：' + relAt(g, id).map(function (i) { return RELICS[i][0]; }).join('、') + '。派將領到此就能裝備。', 'good');
   setMix(p, mix || DEFMIX[f] || DEFMIX_ANY);
   if (p.L > 1) p.L--;
   if (prev) {
@@ -2930,6 +2975,7 @@ var P = {
   armyForm: function (g, id, cnt) { return guardP(g) || actArmyForm(g, g.player, id, cnt); },
   armyMerge: function (g, id, a, b) { return guardP(g) || actArmyMerge(g, g.player, id, a, b); },
   armyDisband: function (g, id, a) { return guardP(g) || actArmyDisband(g, g.player, id, a); },
+  relEquip: function (g, gi, ri) { return guardP(g) || actRelEquip(g, g.player, +gi, +ri); },
   genRecruit: function (g, i) { return guardP(g) || actGenRecruit(g, g.player, +i); },
   armyGen: function (g, id, a, gname) { return guardP(g) || actArmyGen(g, g.player, id, a, gname); },
   armyFill: function (g, id, a, n) { return guardP(g) || actArmyFill(g, g.player, id, a, n); },
@@ -5141,7 +5187,7 @@ function coastFire(g) {
   if (gone) g.fl = g.fl.filter(function (x) { return x.n >= 1; });
   fdirty();
 }
-function endTurn(g) { bindCN(g); capTick(g); fiefTick(g); lmCheck(g); eraSync(g); endTurn0(g); histDisaster(g); rulerTick(g); coastFire(g); carTick(g); lmCheck(g); eraSync(g); }
+function endTurn(g) { bindCN(g); capTick(g); fiefTick(g); relTick(g); lmCheck(g); eraSync(g); endTurn0(g); histDisaster(g); rulerTick(g); coastFire(g); carTick(g); lmCheck(g); eraSync(g); }
 function endTurn0(g) {
   _own = null;
   genTick(g);
@@ -5368,7 +5414,7 @@ var G = {
   codex: codex, recruitCost: recruitCost, unitCost: unitCost, mercCost: mercCost, mixOf: mixOf, mercOf: mercOf, unitName: unitName, mercName: mercName, unitAllowed: unitAllowed, SPECIAL: SPECIAL, UNIT_NAMES: UNIT_NAMES, DEFMIX: DEFMIX, buildCost: buildCost, tradeGain: tradeGain, ritualCost: ritualCost, ritualGain: ritualGain,
   TAX_N: TAX_N, TAX_D: TAX_D, taxOf: taxOf, softCap: softCap, recLeft: recLeft, recLimit: recLimit, isMarried: isMarried, marryCost: marryCost, marryChance: marryChance, tributeCost: tributeCost, RESH: RESH, RES_N: RES_N, RES_D: RES_D, resCount: resCount, resFx: resFx, armySwap: armySwap, chainAdd: chainAdd, CHAIN: CHAIN, matchupHint: matchupHint, riverEdge: riverEdge, RIV_E: RIV_E, RIVERS: RIVERS, canPay: canPay, P: P, sendCount: sendCount, battleOdds: battleOdds, moveTargets: moveTargets, wallCost: wallCost, TECH: TECH, RUNIT: RUNIT, RSP: RSP, rulerGift: rulerGift, SPY: SPY, spyLeft: spyLeft, needRuler: needRuler, rulerChoices: rulerChoices, HIST_REL: HIST_REL, RULERS: RULERS, rulerOf: rulerOf, setRuler: setRuler, carOptions: carOptions, carActive: carActive, carMax: carMax, CAR_COST: CAR_COST, festLeft: festLeft, ROAD: ROAD, ROADSEG: ROADSEG, PASS: PASS, CAMEL: CAMEL, BLOCKED: BLOCKED, terrAtk: terrAtk, eraSync: eraSync, eraNum: eraNum, eraInfo: eraInfo, eraOf: eraOf, ERA_NAME: ERA_NAME, TECHS: TECHS, TBR: TBR, TECH_BY: TECH_BY, techLv: techLv, techState: techState, techHas: techHas, techFx: techFx, techCost: techCost, techWhy: techWhy, BLD: BLD, BLD_KEYS: BLD_KEYS, bldCount: bldCount, wallLv: wallLv, portOpen: portOpen, portsOpen: portsOpen, moveTroops: moveTroops,
   endTurn: endTurn, pickEvent: pickEvent, eventView: eventView, applyChoice: applyChoice, scoreOf: scoreOf,
-  lordsOf: lordsOf, FIEF_PER: FIEF_PER, fiefMax: fiefMax, fiefList: fiefList, cityN: cityN, FIEF_COST: FIEF_COST, FIEF_REWARD: FIEF_REWARD, isCapital: isCapital, msOf: msOf, NOHORSE: NOHORSE, deepOK: deepOK, msCap: msCap, MS_COST: MS_COST, nm: nm, aiTurn: aiTurn, portsOf: portsOf, genAt: genAt, gensOf: gensOf, genLv: genLv, genChoose: genChoose, genCandidates: genCandidates, LANDMARKS: LANDMARKS, LM_AT: LM_AT, lmInfo: lmInfo, lmBonus: lmBonus, callWarInfo: callWarInfo, culOf: culOf, culGain: culGain, CUL_WIN: CUL_WIN, msnTick: msnTick, surInfo: surInfo, moveCapCost: moveCapCost, syncCap: syncCap, xRate: xRate, xQuota: xQuota, genAvail: genAvail, genCost: genCost, GEN_MAX: GEN_MAX, GEN_TYPE: GEN_TYPE, GEN_TXT: GEN_TXT, GENS: GENS, shipsOf: shipsOf, fleets: fleets, fleetReach: seaReach, fleetStr: fleetStr, seaCapAt: seaCapAt, FLEET_MOVE: FLEET_MOVE, shipCap: shipCap, seaCapLeft: seaCapLeft, shipName: shipName, SHIP_COST: SHIP_COST, SHIP_CARRY: SHIP_CARRY, moraleMult: moraleMult, placeName: placeName, terrDef: terrDef,
+  lordsOf: lordsOf, FIEF_PER: FIEF_PER, fiefMax: fiefMax, fiefList: fiefList, cityN: cityN, FIEF_COST: FIEF_COST, FIEF_REWARD: FIEF_REWARD, isCapital: isCapital, msOf: msOf, NOHORSE: NOHORSE, deepOK: deepOK, msCap: msCap, MS_COST: MS_COST, nm: nm, aiTurn: aiTurn, portsOf: portsOf, genAt: genAt, RELICS: RELICS, REL_TXT: REL_TXT, relAt: relAt, gensOf: gensOf, genLv: genLv, genChoose: genChoose, genCandidates: genCandidates, LANDMARKS: LANDMARKS, LM_AT: LM_AT, lmInfo: lmInfo, lmBonus: lmBonus, callWarInfo: callWarInfo, culOf: culOf, culGain: culGain, CUL_WIN: CUL_WIN, msnTick: msnTick, surInfo: surInfo, moveCapCost: moveCapCost, syncCap: syncCap, xRate: xRate, xQuota: xQuota, genAvail: genAvail, genCost: genCost, GEN_MAX: GEN_MAX, GEN_TYPE: GEN_TYPE, GEN_TXT: GEN_TXT, GENS: GENS, shipsOf: shipsOf, fleets: fleets, fleetReach: seaReach, fleetStr: fleetStr, seaCapAt: seaCapAt, FLEET_MOVE: FLEET_MOVE, shipCap: shipCap, seaCapLeft: seaCapLeft, shipName: shipName, SHIP_COST: SHIP_COST, SHIP_CARRY: SHIP_CARRY, moraleMult: moraleMult, placeName: placeName, terrDef: terrDef,
   EVENTS: EVENTS, HIST: HIST, checkEnd: checkEnd, finish: finish, settle: settle, TERR_Y: TERR_Y,
   SAVE_VER: SAVE_VER, MAPSIG: MAPSIG, rel: rel, migrate: migrate, strength: strength, dipInfo: dipInfo, declareWar: declareWar, aiDiplomacy: aiDiplomacy,
   swapAmt: swapAmt, routeCands: routeCands, coastTarget: coastTarget, supplyDist: supplyDist, supRange: supRange, lordOf: lordOf, vassalsOf: vassalsOf, ownedTotal: ownedTotal, offerEvent: offerEvent, acceptChance: acceptChance,
@@ -6219,6 +6265,7 @@ if (typeof module !== 'undefined') module.exports = G;
     '<li><b>地圖</b>：拖曳移動，滾輪或雙指縮放。只看得到相鄰地塊的確切守軍，遠處只有約數。</li>' +
     '<li><b>封建</b>：點自己的城（非首都、已建成城、你至少有 4 座城），花 30 金幣可「分封」給領主：守軍 +3、之後每兩回合多長 1 人，但這座城的金幣收入少四成。封地上限是城市數的一半（最多 8 座），同一領主最多 3 座，領地越多越容易不滿。領主忠誠度看民心與首都狀況，低於 30 會警告，太低就會叛離、整批封地一起脫離。「賞賜」花 40 金幣忠誠 +20；「收回封地」免費但民心 −2。電腦勢力也會分封，也會被封臣叛變。</li>' +
     '<li><b>勸降</b>：占領對方首都並處於交戰時，可以要求對方投降，成功就繼承他全部領地。電腦占領你的首都時也會寄勸降書給你，你可以拒絕或投降。成功率看實力差、士氣與剩餘領地數，同一對勢力每回合最多勸一次。</li>' +
+    '<li><b>神器</b>：各地名城（耶路撒冷、君士坦丁堡、羅馬……）藏有神器，城名旁有 ◆。誰佔領那座城就擁有它；把將領派駐到那座城，在城市面板按「裝備」，每位將領只能戴 1 件，效果加在他率領的軍隊上。將領陣亡時神器掉在原地，誰佔領那座城就能撿走。</li>' +
     '</ul>';
 
   /* ---------- 地圖視角 ---------- */
@@ -6657,7 +6704,7 @@ if (typeof module !== 'undefined') module.exports = G;
     });
     LIDS.forEach(function (id) {
       var cty = G.CITY[id];
-      if ((cty || (g.cn && g.cn[id])) && !o.demo) { var capH = !!(g.p[id].o && G.CAPITAL[g.p[id].o] === id); s += '<text class="nm l' + (cty ? cty.lv : 3) + (capH ? ' cp' : '') + '" x="' + HX[id].toFixed(1) + '" y="' + (HY[id] + (capH ? 44 : 40)).toFixed(1) + '" text-anchor="middle">' + (capH ? '★ ' : '') + esc(G.placeName(id)) + '</text>'; }
+      if ((cty || (g.cn && g.cn[id])) && !o.demo) { var capH = !!(g.p[id].o && G.CAPITAL[g.p[id].o] === id); s += '<text class="nm l' + (cty ? cty.lv : 3) + (capH ? ' cp' : '') + '" x="' + HX[id].toFixed(1) + '" y="' + (HY[id] + (capH ? 44 : 40)).toFixed(1) + '" text-anchor="middle">' + (capH ? '★ ' : '') + esc(G.placeName(id)) + (G.relAt(g, id).length ? ' ◆' : '') + '</text>'; }
     });
     if (!o.demo) {
       G.fleets(g).forEach(function (fl) {
@@ -7390,12 +7437,23 @@ if (typeof module !== 'undefined') module.exports = G;
       if (p.sg) h += '<p class="small" style="margin-top:6px;color:var(--bad,#e0675a)">⚔ 被圍困 <b class="num">' + p.sg + '</b> 回合：城牆效果與守軍防禦下降 ' + Math.round(100 - 100 * (1 - 0.04 * Math.min(5, p.sg))) + '% 以上，守軍會因缺糧逐步減少。派兵擊退圍城軍，或讓敵軍兵力低於駐軍 60% 才能解圍。</p>';
       if (g.blk && g.blk[id]) h += '<p class="small" style="margin-top:6px;color:var(--bad,#e0675a)">⚓ ' + (g.blk[id] === 'pir' ? '海盜艦隊' : esc(G.nm(g.blk[id])) + '的艦隊') + '停在這座港口外海，封鎖了港口：無貿易收入、每回合 −3 金幣。把你的艦隊開到港口旁的海面，兵力壓過對方即可解圍（點選船隻再點選海面格子）。</p>';
       if (p.cq && g.turn - p.cq <= 10 && p.t < 6) h += '<p class="small" style="margin-top:6px;color:var(--bad,#e0675a)">新佔領地人心不穩：駐軍不到 6 人時可能趁亂起事，留足兵力或等待安撫（剩 ' + (10 - (g.turn - p.cq)) + ' 回合）。</p>';
-      var gl = G.gensOf(g, f);
+      var gl = G.gensOf(g, f), rla = G.relAt(g, id);
+      if (rla.length) {
+        h += '<div class="gh" style="margin:10px 0 4px">神器</div>';
+        rla.forEach(function (ri) {
+          var R = G.RELICS[ri];
+          h += '<div style="margin-bottom:6px"><b>◆ ' + esc(R[0]) + '</b> <small class="muted">' + esc(G.REL_TXT[R[2]]) + '　' + esc(R[3]) + '</small>';
+          var any = false;
+          gl.forEach(function (gn, gi) { if (gn.at === id) { any = true; h += '<div><button class="btn" data-act="releq" data-gi="' + gi + '" data-ri="' + ri + '" style="padding:2px 10px;margin-top:3px"><span>' + esc(gn.n) + ' 裝備' + (gn.rl !== undefined ? '（換下' + esc(G.RELICS[gn.rl][0]) + '）' : '') + '</span></button></div>'; } });
+          if (!any) h += '<div class="muted small">要有將領坐鎮此地才能裝備（到「將領」欄按「派駐到此」）。</div>';
+          h += '</div>';
+        });
+      }
       if (gl.length) {
         h += '<div class="gh" style="margin:10px 0 4px">將領</div>';
         gl.forEach(function (gn, gi) {
           var here = gn.at === id;
-          h += '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:4px"><span><b>' + esc(gn.n) + '</b> <small class="muted">Lv' + G.genLv(gn) + (G.genLv(gn) < 3 ? '（' + gn.xp + '/' + (G.genLv(gn) === 1 ? 3 : 7) + '）' : '（滿級）') + ' · ' + G.GEN_TYPE[gn.t] + '：' + esc(G.GEN_TXT[gn.t]) + (here ? ' · 坐鎮此地' : ' · 在' + esc(G.placeName(gn.at))) + '</small></span>' + (here ? '' : '<button class="btn" data-act="genmove" data-gi="' + gi + '" style="padding:2px 10px;flex:none"><span>派駐到此</span></button>') + '</div>';
+          h += '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:4px"><span><b>' + esc(gn.n) + '</b> <small class="muted">Lv' + G.genLv(gn) + (G.genLv(gn) < 3 ? '（' + gn.xp + '/' + (G.genLv(gn) === 1 ? 3 : 7) + '）' : '（滿級）') + ' · ' + G.GEN_TYPE[gn.t] + '：' + esc(G.GEN_TXT[gn.t]) + (here ? ' · 坐鎮此地' : ' · 在' + esc(G.placeName(gn.at))) + (gn.rl !== undefined ? ' · 神器：' + esc(G.RELICS[gn.rl][0]) + '（' + esc(G.REL_TXT[G.RELICS[gn.rl][2]]) + '）' : '') + '</small></span>' + (here ? '' : '<button class="btn" data-act="genmove" data-gi="' + gi + '" style="padding:2px 10px;flex:none"><span>派駐到此</span></button>') + '</div>';
         });
         h += '<p class="muted small">將領派任為軍團統帥後，隨該軍團行動（同一地塊的守軍防守時也享有加成）；打勝仗會成長，戰敗有機會陣亡。調派不耗行動點，每位每回合一次。</p>';
       }
@@ -7848,6 +7906,7 @@ if (typeof module !== 'undefined') module.exports = G;
     if (a === 'fallok') { ui.ev = null; return nextEvent(); }
     if (a === 'rulerpick') { var rr = G.P.ruler(g, +b.getAttribute('data-i')); if (rr && rr.pending) { $('#mbody').innerHTML = '<p class="mtext">已送出，等待房主確認…</p>'; return; } $('#modal').hidden = true; if (MP.on && MP.role === 'host') MP.dirty = true; beginTurn(); return; }
     if (a === 'genskip') { $('#modal').hidden = true; beginTurn(); return; }
+    if (a === 'releq') return afterAction(G.P.relEquip(g, +b.getAttribute('data-gi'), +b.getAttribute('data-ri')));
     if (a === 'genrec') return afterAction(G.P.genRecruit(g, +b.getAttribute('data-i')));
     if (a === 'genpick') { G.genChoose(g, b.getAttribute('data-f'), +b.getAttribute('data-i')); $('#modal').hidden = true; beginTurn(); return; }
     if (a === 'genmove') return afterAction(G.P.genAssign(g, +b.getAttribute('data-gi'), ui.sel));
