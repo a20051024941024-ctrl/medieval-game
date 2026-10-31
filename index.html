@@ -369,7 +369,7 @@ button{font:inherit;color:inherit}
     <div class="startmap" id="startmap" aria-hidden="true"></div>
     <div class="sc-in gx">
       <p class="eyebrow">MEDIEVAL: WORLD DOMINATION · 1096 AD</p>
-      <p class="muted small" id="verline">版本 v120 · 2026-10-31 · 「可行動部隊」縮短為「可動」，不再被結束回合按鈕蓋住</p>
+      <p class="muted small" id="verline">版本 v121 · 2026-10-31 · 新增雲端存檔同步（Netlify 網頁版）</p>
       <h1>中世紀：世界霸權</h1>
       <p class="lead">1095 年，教宗在克萊蒙發出號召，整個歐洲動了起來。選一個勢力（共 110 個），再從該文明歷史上的君主裡挑一位登基；在兩千多個六角格地塊的世界裡，與基督教世界、伊斯蘭世界與即將到來的蒙古鐵騎周旋。可以結盟借道、派商隊與密探、研究科技升級時代。沒有回合上限，直到有人稱霸，或你失去一切。</p>
       <div id="startopts"></div>
@@ -5443,9 +5443,62 @@ if (typeof module !== 'undefined') module.exports = G;
     if (P2P.pc) { try { P2P.pc.close(); } catch (e) {} P2P.pc = null; }
   }
 
-  function save() { if (MP.on) { if (MP.role === 'host') mpPublish(false); return; } try { if (g && g.evResolved && !g.over) localStorage.setItem(SK(SLOT), JSON.stringify(g)); } catch (e) {} }
+  function save() { if (MP.on) { if (MP.role === 'host') mpPublish(false); return; } try { if (g && g.evResolved && !g.over) { localStorage.setItem(SK(SLOT), JSON.stringify(g)); tsSet(SLOT, Date.now()); cloudPush(SLOT); } } catch (e) {} }
   function loadSave(n) { try { var s = localStorage.getItem(SK(n || SLOT)); if (!s) return null; var o = JSON.parse(s); if (!o || !o.p || o.p.length !== W * H || !o.fac || !o.fac.jin) return null; for (var i = 0; i < G.LANDIDS.length; i++) if (!o.p[G.LANDIDS[i]]) return null; return o; } catch (e) { return null; } }
   function clearSave() { try { localStorage.removeItem(SK(SLOT)); } catch (e) {} }
+
+  /* ---------- 雲端存檔同步（只在 Netlify 網頁版啟用） ---------- */
+  var CLOUD = { code: '', avail: false, busy: false, msg: '' };
+  try { CLOUD.code = localStorage.getItem('crusade-sync') || ''; } catch (e) {}
+  CLOUD.avail = /netlify\.app$/.test(location.hostname) || !!window.__CLOUD_FORCE;
+  function tsGet(n) { try { return +localStorage.getItem(SK(n) + '-ts') || 0; } catch (e) { return 0; } }
+  function tsSet(n, t) { try { localStorage.setItem(SK(n) + '-ts', String(t)); } catch (e) {} }
+  function cloudUrl(n) { return '/.netlify/functions/save?code=' + encodeURIComponent(CLOUD.code) + '&slot=' + n; }
+  function cloudMsg(m) { CLOUD.msg = m; var el = $('#syncmsg'); if (el) el.textContent = m; }
+  var _cpT = null;
+  function cloudPush(n) {
+    if (!CLOUD.avail || !CLOUD.code || MP.on) return;
+    clearTimeout(_cpT);
+    _cpT = setTimeout(function () { cloudPutSlot(n).then(function (ok) { cloudMsg(ok ? '已同步到雲端（' + new Date().toLocaleTimeString() + '）' : '雲端同步失敗，稍後會再試'); }); }, 3000);
+  }
+  function cloudPutSlot(n) {
+    var raw = null; try { raw = localStorage.getItem(SK(n)); } catch (e) {}
+    if (!raw) return Promise.resolve(true);
+    var ts = tsGet(n); if (!ts) { ts = Date.now(); tsSet(n, ts); }
+    return fetch(cloudUrl(n), { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ts: ts, data: raw }) })
+      .then(function (r) { return r.ok; }).catch(function () { return false; });
+  }
+  function cloudSync(silent) {
+    if (!CLOUD.avail || !CLOUD.code || CLOUD.busy) return Promise.resolve();
+    if (g && $('#start') && $('#start').hidden) return Promise.resolve();
+    CLOUD.busy = true; cloudMsg('同步中…');
+    var changed = false, fail = false;
+    var jobs = [1, 2, 3].map(function (n) {
+      return fetch(cloudUrl(n)).then(function (r) {
+        if (r.status === 404) return cloudPutSlot(n).then(function (ok) { if (!ok) fail = true; });
+        if (!r.ok) { fail = true; return; }
+        return r.json().then(function (o) {
+          var lt = tsGet(n), hasLocal = false; try { hasLocal = !!localStorage.getItem(SK(n)); } catch (e) {}
+          if (!o || !o.data) return;
+          if (o.ts > lt) {
+            if (hasLocal && !lt && !confirm('雲端和這台裝置的「欄位 ' + n + '」都有存檔，要用雲端的覆蓋這台嗎？\n（按取消則保留這台的，並上傳到雲端）')) {
+              return cloudPutSlot(n).then(function (ok) { if (!ok) fail = true; });
+            }
+            try { localStorage.setItem(SK(n), o.data); tsSet(n, o.ts); changed = true; } catch (e) { fail = true; }
+          } else if (lt > o.ts) {
+            return cloudPutSlot(n).then(function (ok) { if (!ok) fail = true; });
+          }
+        });
+      }).catch(function () { fail = true; });
+    });
+    return Promise.all(jobs).then(function () {
+      CLOUD.busy = false;
+      cloudMsg(fail ? '無法連線雲端（可能是網路或網站設定問題）' : '已同步（' + new Date().toLocaleTimeString() + '）');
+      if (changed && $('#start') && !$('#start').hidden) renderOpts();
+    });
+  }
+  setTimeout(function () { cloudSync(true); }, 800);
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) cloudSync(true); });
 
   function rnd(n) { return Math.round(n); }
   function sgn(n) { var v = Math.round(n); return v > 0 ? '+' + v : v < 0 ? '−' + Math.abs(v) : '±0'; }
@@ -5994,6 +6047,12 @@ if (typeof module !== 'undefined') module.exports = G;
     for (var n = 1; n <= 3; n++) h += '<button class="chip' + (SLOT === n ? ' on' : '') + '" data-act="slot" data-v="' + n + '">欄位 ' + n + '</button>';
     h += '<span class="muted small">新遊戲會存進選取的欄位（覆蓋舊檔）</span></div>';
     for (var k = 1; k <= 3; k++) { var sm = slotSum(k); if (sm) h += '<div class="row"><button class="btn primary" data-act="continue" data-slot="' + k + '">繼續欄位 ' + k + '</button><span class="muted small">' + esc(sm) + '</span></div>'; }
+    if (CLOUD.avail) {
+      h += '<div class="row"><b>雲端存檔</b>';
+      if (CLOUD.code) h += '<span class="muted small">代碼 ' + esc(CLOUD.code) + '</span><button class="chip" data-act="syncnow">立即同步</button><button class="chip" data-act="syncoff">關閉</button>';
+      else h += '<input id="synccode" maxlength="40" placeholder="自訂同步代碼（至少 6 字）" style="min-width:0;flex:1 1 150px;padding:6px 10px;border-radius:10px;border:1px solid var(--line);background:#0006;color:inherit"><button class="chip" data-act="syncon">開啟</button>';
+      h += '</div><div class="row"><span class="muted small" id="syncmsg">' + esc(CLOUD.msg || (CLOUD.code ? '' : '兩台裝置輸入同一組代碼，存檔就會自動同步。請把代碼當密碼，別告訴不相干的人。')) + '</span></div>';
+    }
     el.innerHTML = h + '</div>';
   }
   function renderStart() {
@@ -6826,6 +6885,9 @@ if (typeof module !== 'undefined') module.exports = G;
     }
     if (a === 'locate') { autoFocus(); applyView(); return toast('已回到你的位置'); }
     if (a === 'start') return startGame(b.getAttribute('data-f'));
+    if (a === 'syncon') { var sc = (($('#synccode') || {}).value || '').trim(); if (!/^[A-Za-z0-9_\-\u4e00-\u9fff]{6,40}$/.test(sc)) return toast('代碼要 6 到 40 個字，只能用英數字、底線、連字號或中文。'); CLOUD.code = sc; try { localStorage.setItem('crusade-sync', sc); } catch (e) {} renderOpts(); return cloudSync(); }
+    if (a === 'syncnow') { return cloudSync(); }
+    if (a === 'syncoff') { CLOUD.code = ''; CLOUD.msg = ''; try { localStorage.removeItem('crusade-sync'); } catch (e) {} return renderOpts(); }
     if (a === 'culopt') { CULON = b.getAttribute('data-v') === '1'; try { localStorage.setItem('crusade-cul', CULON ? '1' : '0'); } catch (e) {} return renderOpts(); }
     if (a === 'diff') { DIFF = +b.getAttribute('data-v'); try { localStorage.setItem('crusade-diff', DIFF); } catch (e) {} return renderOpts(); }
     if (a === 'slot') { SLOT = +b.getAttribute('data-v'); try { localStorage.setItem('crusade-slot', SLOT); } catch (e) {} return renderOpts(); }
