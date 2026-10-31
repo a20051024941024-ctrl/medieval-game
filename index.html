@@ -369,7 +369,7 @@ button{font:inherit;color:inherit}
     <div class="startmap" id="startmap" aria-hidden="true"></div>
     <div class="sc-in gx">
       <p class="eyebrow">MEDIEVAL: WORLD DOMINATION · 1096 AD</p>
-      <p class="muted small" id="verline">版本 v121 · 2026-10-31 · 雲端存檔、商船自動貿易</p>
+      <p class="muted small" id="verline">版本 v122 · 2026-10-31 · 商船地圖圖示、航線遇敵才會被擊沉、新戰船圖示</p>
       <h1>中世紀：世界霸權</h1>
       <p class="lead">1095 年，教宗在克萊蒙發出號召，整個歐洲動了起來。選一個勢力（共 110 個），再從該文明歷史上的君主裡挑一位登基；在兩千多個六角格地塊的世界裡，與基督教世界、伊斯蘭世界與即將到來的蒙古鐵騎周旋。可以結盟借道、派商隊與密探、研究科技升級時代。沒有回合上限，直到有人稱霸，或你失去一切。</p>
       <div id="startopts"></div>
@@ -2180,17 +2180,34 @@ function actMerchant(g, f, id) {
   g.fac[f].ms = msOf(g, f) + 1;
   return good(placeName(id) + '的船塢造出了一艘商船。它會自動前往沿海城市貿易，不耗行動點。');
 }
+var _LANDSET = null;
+function hexAtLL(lon, lat) {
+  var r = Math.round((LAT0 - lat) / DLAT); if (r < 0 || r >= H) return -1;
+  var c = Math.round((lon - LON0) / DLON - 0.5 - 0.5 * (r & 1)); if (c < 0 || c >= W) return -1;
+  return hid(r, c);
+}
+function msRoute(a, b) {
+  if (!_LANDSET) { _LANDSET = {}; LANDIDS.forEach(function (x) { _LANDSET[x] = 1; }); }
+  var la = lonOf(hr(a), hc(a)), lb = lonOf(hr(b), hc(b)), ta = latOf(hr(a)), tb = latOf(hr(b)), out = [], seen = {};
+  var n = Math.max(6, Math.round(Math.max(Math.abs(la - lb) / DLON, Math.abs(ta - tb) / DLAT) * 1.2));
+  for (var k = 0; k <= n; k++) {
+    var h = hexAtLL(la + (lb - la) * k / n, ta + (tb - ta) * k / n);
+    if (h >= 0 && !_LANDSET[h] && !seen[h]) { seen[h] = 1; out.push(h); }
+  }
+  return out;
+}
 function merchantTick(g) {
+  g.mtr = [];
   var ports = LANDIDS.filter(function (x) { return CITY[x] && CITY[x].port && g.p[x].o && g.p[x].L > 0; });
-  var pirN = fleets(g).filter(function (x) { return x.f === 'pir'; }).length;
+  var fl = fleets(g);
   FIDS.forEach(function (f) {
     var fs = g.fac[f]; if (!fs || !fs.alive || !(fs.ms > 0)) return;
     var cap = msCap(g, f); if (fs.ms > cap) fs.ms = cap;
     var home = ports.filter(function (x) { return g.p[x].o === f; });
     if (!home.length) { fs.ms = 0; return; }
     var cand = ports.filter(function (x) { var o = g.p[x].o; return o && (o === f || !atWar(g, f, o)) && !(g.blk && g.blk[x]); });
-    var enemyFleet = fleets(g).some(function (x) { return x.f !== 'pir' && x.f !== f && atWar(g, f, x.f); });
-    var total = 0, sunk = 0, ok = 0, lastDest = null, n = fs.ms;
+    var hostile = fl.filter(function (x) { return x.f === 'pir' || (x.f !== f && atWar(g, f, x.f)); });
+    var total = 0, sunk = 0, ok = 0, lastDest = null, killer = '', n = fs.ms;
     for (var k = 0; k < n; k++) {
       var h = home[rint(home.length)], best = null, bd = -1;
       for (var t = 0; t < 4 && cand.length; t++) {
@@ -2199,17 +2216,23 @@ function merchantTick(g) {
         if (d > bd) { bd = d; best = c; }
       }
       if (best === null) continue;
-      var risk = Math.min(0.2, 0.04 + 0.012 * Math.min(6, pirN) + (enemyFleet ? 0.05 : 0));
-      if (Math.random() < risk) { sunk++; continue; }
+      var path = msRoute(h, best), mid = path.length ? path[Math.floor(path.length / 2)] : -1;
+      var foe = null;
+      for (var q = 0; q < path.length && !foe; q++) {
+        var near = [path[q]].concat(NB[path[q]]);
+        for (var w = 0; w < hostile.length; w++) if (near.indexOf(hostile[w].h) >= 0) { foe = hostile[w]; break; }
+      }
+      if (foe && Math.random() < (foe.f === 'pir' ? 0.35 : 0.5)) { sunk++; killer = foe.f === 'pir' ? '海盜' : nm(foe.f); if (mid >= 0) g.mtr.push({ f: f, h: mid, x: 1 }); continue; }
       var gain = Math.round(1.5 + Math.min(4, bd / 12));
       var ow = g.p[best].o; if (ow !== f) { gain += 1; g.fac[ow].gold += 1; }
       total += gain; ok++; lastDest = best;
+      if (mid >= 0) g.mtr.push({ f: f, h: mid });
     }
     if (total) fs.gold += total;
     if (sunk) fs.ms = Math.max(0, fs.ms - sunk);
     if (f === g.player) {
       if (ok) logMsg(g, '商船貿易：' + ok + ' 艘商船抵達沿海城市（如' + placeName(lastDest) + '），共賺 ' + total + ' 金幣。', 'good');
-      if (sunk) logMsg(g, '你有 ' + sunk + ' 艘商船在途中遇襲沉沒。', 'bad');
+      if (sunk) logMsg(g, '你有 ' + sunk + ' 艘商船在航線上被' + killer + '擊沉。', 'bad');
     }
   });
 }
@@ -6056,9 +6079,19 @@ if (typeof module !== 'undefined') module.exports = G;
         s += '<g class="shipm' + (fl.mv && fl.f === g.player ? ' dim' : '') + '" data-fleet="' + fl.i + '" transform="translate(' + HX[fl.h].toFixed(1) + ',' + HY[fl.h].toFixed(1) + ') scale(' + (z1 ? 1.7 : 1.4) + ')">' +
           '<circle r="17" fill="transparent" style="pointer-events:all"/>' +
           (sel ? '<circle r="15" fill="none" stroke="#f1d48c" stroke-width="2.4"/>' : '') +
-          '<path d="M-10,3 H10 L7,9 H-7 Z" fill="' + col + '" stroke="' + (pir ? '#c0392b' : '#f4ead0') + '" stroke-width="1.3"/>' +
-          '<path d="M0,-10 V3 M0,-10 L8,0 H0" fill="' + (pir ? '#1a1a1a' : '#f4ead0') + '" stroke="' + (pir ? '#c0392b' : '#2a2418') + '" stroke-width="1"/>' +
+          '<path d="M-13,2 H10 L15,-1 L10,9 H-9 Z" fill="' + col + '" stroke="' + (pir ? '#c0392b' : '#f4ead0') + '" stroke-width="1.3"/>' +
+          '<path d="M-8,9 L-10,13 M-3,9 L-5,13 M2,9 L0,13 M7,9 L5,13" stroke="' + (pir ? '#c0392b' : '#f4ead0') + '" stroke-width="1.2" stroke-linecap="round"/>' +
+          '<path d="M-1,-9 V2" stroke="' + (pir ? '#c0392b' : '#f4ead0') + '" stroke-width="1.3"/><path d="M-1,-9 L8,-6 L-1,-3 Z" fill="' + (pir ? '#1a1a1a' : '#c0392b') + '" stroke="' + (pir ? '#c0392b' : '#2a2418') + '" stroke-width=".9"/>' +
           '<text y="-11" x="9" font-size="12" font-weight="700" fill="' + (pir ? '#ff6b5a' : '#fff') + '" stroke="rgba(0,0,0,.75)" stroke-width="2.4" paint-order="stroke">' + (pir ? '☠' : '') + fl.n + '</text>' + (fl.c ? '<g transform="translate(-13,-12)"><rect x="-2" y="-9" width="' + (10 + String(fl.c).length * 7) + '" height="13" rx="6" fill="#8a2a1d" stroke="#f4ead0" stroke-width="1"/><text x="' + (3 + String(fl.c).length * 3.5) + '" y="1" font-size="10" font-weight="700" fill="#fff" text-anchor="middle">兵' + fl.c + '</text></g>' : '') + '</g>';
+      });
+    }
+    if (!o.demo && g.mtr) {
+      g.mtr.forEach(function (m) {
+        if (!vis(m.h)) return;
+        var col = NC[m.f] || '#888';
+        s += '<g pointer-events="none" transform="translate(' + HX[m.h].toFixed(1) + ',' + HY[m.h].toFixed(1) + ') scale(' + (z1 ? 1.3 : 1.05) + ')">' + (m.x ?
+          '<text y="6" text-anchor="middle" font-size="20" font-weight="900" fill="#ff6b5a" stroke="rgba(0,0,0,.8)" stroke-width="2.4" paint-order="stroke">\u2716</text>' :
+          '<path d="M-8,2 H8 L5,7 H-5 Z" fill="' + col + '" stroke="#f4ead0" stroke-width="1.2"/><path d="M0,-7 V2" stroke="#f4ead0" stroke-width="1.3"/><path d="M0,-7 L6,-1 H0Z" fill="#f4ead0" stroke="#2a2418" stroke-width=".8"/><circle cx="8" cy="-8" r="4.6" fill="#f1d48c" stroke="#7a5a1a" stroke-width="1"/><text x="8" y="-5.6" text-anchor="middle" font-size="7" font-weight="900" fill="#5a3d0a">$</text>') + '</g>';
       });
     }
     if (!o.demo) {
