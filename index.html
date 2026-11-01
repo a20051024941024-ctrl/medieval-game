@@ -7968,6 +7968,17 @@ if (typeof module !== 'undefined') module.exports = G;
     }, function () { xpModal('<p class="warn">這個瀏覽器不支援打包存檔，請更新瀏覽器。</p>'); });
   }
   function xpDownload() {
+    /* 在 Claude 網頁版裡要透過它的下載功能；GitHub 網頁版直接下載 */
+    if (window.claude && typeof window.claude.use === 'function' && window.self !== window.top) {
+      window.claude.use('downloads').then(function (dl) {
+        if (!dl) return xpDl0();
+        dl.save({ filename: XP.name, data: XP.code }).then(function () { toast('已存成檔案：' + XP.name); }, function (e) { if (!e || e.code !== 'declined') toast('這裡不能下載檔案，請改用「複製文字」。'); });
+      }, xpDl0);
+      return;
+    }
+    xpDl0();
+  }
+  function xpDl0() {
     try { var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([XP.code], { type: 'text/plain' })); a.download = XP.name; document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 3000); toast('已存成檔案：' + XP.name); }
     catch (e) { toast('這裡不能下載檔案，請改用「複製文字」。'); }
   }
