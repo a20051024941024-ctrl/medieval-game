@@ -141,6 +141,15 @@ button{font:inherit;color:inherit}
 .panel::after{content:'';position:sticky;bottom:0;display:block;height:0;pointer-events:none}
 .panel.more::after{content:'▼ 往下滑，還有更多';height:44px;margin:-44px 0 -24px;padding-top:20px;box-sizing:border-box;text-align:center;font-weight:900;font-size:calc(14px * var(--fs,1));color:#f1d48c;text-shadow:0 1px 3px #000;background:linear-gradient(rgba(18,32,39,0),rgba(18,32,39,.96) 55%);animation:mhint 1.4s ease-in-out infinite}
 @keyframes mhint{0%,100%{opacity:.75}50%{opacity:1}}
+.panel::after{content:'';position:sticky;bottom:0;display:block;height:0;pointer-events:none}
+.panel.more::after{content:'▼ 往下滑，還有更多';height:44px;margin:-44px 0 -24px;padding-top:20px;box-sizing:border-box;text-align:center;font-weight:900;font-size:calc(14px * var(--fs,1));color:#f1d48c;text-shadow:0 1px 3px #000;background:linear-gradient(rgba(18,32,39,0),rgba(18,32,39,.96) 55%);animation:mhint 1.4s ease-in-out infinite}
+@keyframes mhint{0%,100%{opacity:.75}50%{opacity:1}}
+.panel::after{content:'';position:sticky;bottom:0;display:block;height:0;pointer-events:none}
+.panel.more::after{content:'▼ 往下滑，還有更多';height:44px;margin:-44px 0 -24px;padding-top:20px;box-sizing:border-box;text-align:center;font-weight:900;font-size:calc(14px * var(--fs,1));color:#f1d48c;text-shadow:0 1px 3px #000;background:linear-gradient(rgba(18,32,39,0),rgba(18,32,39,.96) 55%);animation:mhint 1.4s ease-in-out infinite}
+@keyframes mhint{0%,100%{opacity:.75}50%{opacity:1}}
+.panel::after{content:'';position:sticky;bottom:0;display:block;height:0;pointer-events:none}
+.panel.more::after{content:'▼ 往下滑，還有更多';height:44px;margin:-44px 0 -24px;padding-top:20px;box-sizing:border-box;text-align:center;font-weight:900;font-size:calc(14px * var(--fs,1));color:#f1d48c;text-shadow:0 1px 3px #000;background:linear-gradient(rgba(18,32,39,0),rgba(18,32,39,.96) 55%);animation:mhint 1.4s ease-in-out infinite}
+@keyframes mhint{0%,100%{opacity:.75}50%{opacity:1}}
 .panel{contain:paint;flex:none;max-height:40vh;max-height:44dvh;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;touch-action:pan-y;padding-block:10px 24px;background:linear-gradient(#1a2e35,#122027);border-top:2px solid var(--gold)}
 @media (min-width:900px){.panel{width:340px;max-height:none;border-top:0;border-left:2px solid var(--gold);padding-block:14px}}
 .ph{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
@@ -395,7 +404,7 @@ button{font:inherit;color:inherit}
     <div class="startmap" id="startmap" aria-hidden="true"></div>
     <div class="sc-in gx">
       <p class="eyebrow">MEDIEVAL: WORLD DOMINATION · 1096 AD</p>
-      <p class="muted small" id="verline">版本 v182 · 2026-11-01 · 地圖城名、兵力數字放大；開局再拉近；面板可下滑時顯示提示；最下排按鈕可左右滑動，常用的放最前面</p>
+      <p class="muted small" id="verline">版本 v183 · 2026-11-01 · 國名要拉得更遠才出現，字也小一點，不再蓋住地圖</p>
       <h1>中世紀：世界霸權</h1>
       <p class="lead">1095 年，教宗在克萊蒙發出號召，整個歐洲動了起來。選一個勢力（共 121 個），再從該文明歷史上的君主裡挑一位登基；在四千多個六角格地塊的世界裡，與基督教世界、伊斯蘭世界與即將到來的蒙古鐵騎周旋。可以結盟借道、派商隊與商船貿易、派密探、遠征遠方、研究科技升級時代、替自己的城市取名。沒有回合上限，直到有人稱霸，或你失去一切。</p>
       <div id="startopts"></div>
@@ -5662,7 +5671,7 @@ if (typeof module !== 'undefined') module.exports = G;
   try { CULON = localStorage.getItem('crusade-cul') === '1'; } catch (e) {}
   try { SLOT = +localStorage.getItem('crusade-slot') || 1; var dv = localStorage.getItem('crusade-diff'); DIFF = dv === null ? 1 : +dv; if (!(DIFF >= 0 && DIFF <= 2)) DIFF = 1; } catch (e) {}
   function SK(n) { return n === 1 ? SAVE0 : SAVE0 + '-s' + n; }
-  var NC = { maori: '#3aa6a0', abor: '#c06a2b', tehu: '#7d9a4a', kam: '#6f8fb5', byz: '#7b3fa0', hre: '#8a8d93', fra: '#2f6fd0', eng: '#8c2f3c', ita: '#2fa79a', norm: '#c98a2a', cas: '#d9b83c', almor: '#4a7a2e', fat: '#2d9a58', seljuk: '#d4651f', rum: '#e08a6a', kiev: '#b24f8a', hung: '#9aa83a', pol: '#c9c1a1', scand: '#4f86b8', ghaz: '#1c5f66', kara: '#7c5a3a', mongol: '#111418', song: '#ee5a4f', liao: '#3d4a8f', xia: '#c89b5c', dali: '#58b368', gor: '#7fd0e0', jpn: '#f2f2f2', dai: '#e0b0d0', gaha: '#ffb347', chal: '#a0522d', pala: '#6fa8dc', jin: '#6b4e1f', khmer: '#e0673a', pagan: '#d9a441', champa: '#2aa6c9', srivijaya: '#9b6fd1', chola: '#c4344f', pap: '#b52a2a', arag: '#30ce5e', por: '#9a49d4', ire: '#b5a42a', sco: '#30b4ce', nor: '#d44994', swe: '#4db52a', boh: '#3730ce', srb: '#d47749', geo: '#2ab581', arm: '#c130ce', jer: '#b7d449', che: '#2a6fb5', nov: '#ce3051', vla: '#49d455', hal: '#5f2ab5', lit: '#ce9a30', cum: '#49d4ce', bul: '#b52a92', zir: '#78ce30', ham: '#4960d4', abb: '#b53c2a', sul: '#30ce72', khw: '#ac49d4', qoc: '#b5b52a', tib: '#309fce', kas: '#d44982', ghu: '#3bb52a', chan: '#4b30ce', chau: '#d48949', kak: '#2ab593', hoy: '#ce30c7', mon: '#a5d449', ker: '#2a5eb5', nai: '#ce303c', tat: '#49d466', mer: '#702ab5', gha: '#ceae30', gao: '#49c8d4', hau: '#b52a80', yor: '#64ce30', ben: '#494ed4', kan: '#b54e2a', mak: '#30ce86', alo: '#bd49d4', eth: '#a3b52a', adal: '#308bce', som: '#d44970', bun: '#2ab52b', kil: '#5f30ce', zim: '#d49b49', kon: '#2ab5a5', mala: '#ce30b3', jav: '#93d449', nmd: '#2a4cb5', bri: '#ce3830', aqu: '#49d478', tou: '#822ab5', zar: '#cec230', val: '#49b6d4', duk: '#b52a6f', plk: '#50ce30', dan: '#5549d4', ale: '#b55f2a', dam: '#30ce9b', mos: '#cf49d4', niz: '#91b52a', cey: '#3077ce', guj: '#d4495f', par: '#2ab53d', egan: '#7330ce', hari: '#d4ad49', lavo: '#2ab4b5', tamb: '#ce309e', sun: '#81d449', bru: '#2a3ab5', lam: '#ce4c30', but: '#49d48a', maii: '#942ab5', cah: '#c6ce30', pue: '#49a4d4', tol: '#b52a5d', mix: '#3bce30', may: '#6749d4', tai: '#b5712a', chi: '#30ceaf', col: '#d449c7', cus: '#80b52a', ice: '#3063ce', grn: '#d4494d' };
+  var NC = { maori: '#3aa6a0', abor: '#c06a2b', tehu: '#7d9a4a', kam: '#6f8fb5', byz: '#7b3fa0', hre: '#8a8d93', fra: '#2f6fd0', eng: '#8c2f3c', ita: '#2fa79a', norm: '#c98a2a', cas: '#d9b83c', almor: '#4a7a2e', fat: '#2d9a58', seljuk: '#d4651f', rum: '#e08a6a', kiev: '#b24f8a', hung: '#9aa83a', pol: '#c9c1a1', scand: '#4f86b8', ghaz: '#1c5f66', kara: '#7c5a3a', mongol: '#111418', song: '#ee5a4f', liao: '#3d4a8f', xia: '#c89b5c', dali: '#58b368', gor: '#7fd0e0', jpn: '#f2f2f2', dai: '#e0b0d0', gaha: '#ffb347', chal: '#a0522d', pala: '#6fa8dc', jin: '#6b4e1f', khmer: '#e0673a', pagan: '#d9a441', champa: '#2aa6c9', srivijaya: '#9b6fd1', chola: '#c4344f' };
   /* 柔和配色：降低飽和度，保留各勢力的辨識度 */
   (function () {
     function h2(h) { var r = parseInt(h.substr(1, 2), 16) / 255, g = parseInt(h.substr(3, 2), 16) / 255, b = parseInt(h.substr(5, 2), 16) / 255, mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, s = 0, hh = 0, d = mx - mn;
@@ -6574,7 +6583,7 @@ if (typeof module !== 'undefined') module.exports = G;
   function fnUpdate(svg) {
     if (!svg) return;
     try { svg.style.setProperty('--zs', zsVar()); } catch (e) {}
-    var zs = +svg.style.getPropertyValue('--zs') || 1, z1 = !!ui.view && ui.view.s < 8.5;
+    var zs = +svg.style.getPropertyValue('--zs') || 1, z1 = !!ui.view && ui.view.s < 4.6;
     var els = [].slice.call(svg.querySelectorAll('.fn'));
     els.forEach(function (e) { svg.appendChild(e); e.style.display = z1 ? 'inline' : 'none'; });
     if (!z1) return;
@@ -6956,7 +6965,7 @@ if (typeof module !== 'undefined') module.exports = G;
         var mx = 0, my = 0; cp.forEach(function (h) { mx += HX[h]; my += HY[h]; }); mx /= cp.length; my /= cp.length;
         var bh = cp[0], bd2 = 1e18; cp.forEach(function (h) { var d = (HX[h] - mx) * (HX[h] - mx) + (HY[h] - my) * (HY[h] - my); if (d < bd2) { bd2 = d; bh = h; } });
         var nmx = G.nm(ff), tw = Math.sqrt(cp.length) * 52 * 0.95 / Math.max(2, nmx.length);
-        s += '<text class="fn' + (ff === g.player ? ' me' : '') + '" x="' + HX[bh].toFixed(1) + '" y="' + (HY[bh] + 4).toFixed(1) + '" dominant-baseline="middle" data-tw="' + (ff === g.player ? 999 : tw.toFixed(1)) + '" data-n="' + cp.length + '" text-anchor="middle" style="fill:' + NC[ff] + ';font-size:' + (ff === g.player ? 'max(calc(11px * var(--zs)), ' : '') + 'max(calc(16px * var(--zs)), min(calc(' + (28 * Math.min(2.6, 0.7 + 0.12 * Math.sqrt(cp.length))).toFixed(1) + 'px * var(--zs)), ' + (tw * 2).toFixed(1) + 'px))' + (ff === g.player ? ')' : '') + '">' + esc(nmx) + '</text>';
+        s += '<text class="fn' + (ff === g.player ? ' me' : '') + '" x="' + HX[bh].toFixed(1) + '" y="' + (HY[bh] + 4).toFixed(1) + '" dominant-baseline="middle" data-tw="' + (ff === g.player ? 999 : tw.toFixed(1)) + '" data-n="' + cp.length + '" text-anchor="middle" style="fill:' + NC[ff] + ';font-size:' + (ff === g.player ? 'max(calc(11px * var(--zs)), ' : '') + 'max(calc(13px * var(--zs)), min(calc(' + (21 * Math.min(2.6, 0.7 + 0.12 * Math.sqrt(cp.length))).toFixed(1) + 'px * var(--zs)), ' + (tw * 2).toFixed(1) + 'px))' + (ff === g.player ? ')' : '') + '">' + esc(nmx) + '</text>';
       });
     }
     /* 徽章 */
@@ -7111,10 +7120,9 @@ if (typeof module !== 'undefined') module.exports = G;
   window.addEventListener('resize', function () { clearTimeout(SMC.t); SMC.t = setTimeout(function () { try { var sc = $('#start'); if (sc && !sc.hidden) startMapCanvas(); } catch (e) {} }, 300); });
   function renderStart() {
     var h = '';
-    var ORDER = ["byz", "hre", "fra", "nmd", "bri", "aqu", "tou", "eng", "ita", "pap", "norm", "cas", "arag", "zar", "val", "por", "hung", "pol", "boh", "srb", "duk", "scand", "nor", "swe", "ire", "sco", "kiev", "che", "plk", "nov", "vla", "hal", "lit", "cum", "bul", "geo", "arm", "jer", "almor", "zir", "ham", "fat", "sul", "seljuk", "abb", "rum", "dan", "ale", "dam", "mos", "niz", "ghaz", "ghu", "kara", "khw", "qoc", "tib", "kas", "gaha", "chan", "chau", "kak", "chal", "hoy", "pala", "guj", "par", "egan", "song", "liao", "xia", "dali", "gor", "jpn", "ker", "nai", "tat", "mer", "dai", "pagan", "mon", "khmer", "champa", "srivijaya", "hari", "lavo", "tamb", "lam", "sun", "bru", "but", "maii", "chola", "cey", "jav", "gha", "gao", "hau", "yor", "ben", "kan", "mak", "alo", "eth", "adal", "som", "bun", "kil", "zim", "kon", "mala", "cah", "pue", "tol", "mix", "may", "tai", "chi", "col", "cus", "ice", "grn"];
-    var HEAD = {"byz": "歐洲與地中海", "kiev": "羅斯與歐亞草原", "geo": "高加索與近東", "almor": "北非與阿拉伯", "ghaz": "中亞與高原", "gaha": "印度次大陸", "song": "東亞與蒙古草原", "dai": "東南亞與南印度", "gha": "撒哈拉以南非洲", "cah": "美洲與北大西洋"};
+    var ORDER = ['byz', 'hre', 'fra', 'eng', 'ita', 'norm', 'cas', 'hung', 'pol', 'scand', 'kiev', 'almor', 'fat', 'seljuk', 'rum', 'ghaz', 'kara', 'gaha', 'chal', 'pala', 'song', 'liao', 'xia', 'dali', 'gor', 'jpn', 'dai', 'pagan', 'khmer', 'champa', 'srivijaya', 'chola'];
+    var HEAD = { byz: '歐洲與地中海', almor: '北非與中東', ghaz: '中亞與南亞', song: '東亞', pagan: '東南亞與南印度' };
     ORDER.forEach(function (f) {
-      if (G.PLAYABLE.indexOf(f) < 0) return;
       var F = G.FACTIONS[f];
       if (HEAD[f]) h += '<h2 class="gh">' + HEAD[f] + '</h2>';
       h += '<button class="fcard" data-act="start" data-f="' + f + '" style="--fc:' + NC[f] + '">' +
