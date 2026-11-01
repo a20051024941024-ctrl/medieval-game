@@ -372,7 +372,7 @@ button{font:inherit;color:inherit}
     <div class="startmap" id="startmap" aria-hidden="true"></div>
     <div class="sc-in gx">
       <p class="eyebrow">MEDIEVAL: WORLD DOMINATION · 1096 AD</p>
-      <p class="muted small" id="verline">版本 v176 · 2026-11-01 · 多人連線：斷線重連（房主按＋邀請重新給連結）、觀戰連結、離線偵測</p>
+      <p class="muted small" id="verline">版本 v177 · 2026-11-01 · 新增 7 座無主島嶼（亞速爾、馬德拉、加那利、台灣島、海南島、波多黎各、巴哈馬）；新增條件式歷史事件（條件不符不觸發）</p>
       <h1>中世紀：世界霸權</h1>
       <p class="lead">1095 年，教宗在克萊蒙發出號召，整個歐洲動了起來。選一個勢力（共 121 個），再從該文明歷史上的君主裡挑一位登基；在四千多個六角格地塊的世界裡，與基督教世界、伊斯蘭世界與即將到來的蒙古鐵騎周旋。可以結盟借道、派商隊與商船貿易、派密探、遠征遠方、研究科技升級時代、替自己的城市取名。沒有回合上限，直到有人稱霸，或你失去一切。</p>
       <div id="startopts"></div>
@@ -515,7 +515,7 @@ var SEAP = {
 };
 /* 強制為海／陸的點（解析度不足時微調） */
 var FORCE_SEA = [[-5.0,35.0],[-4.0,36.5],[27.0,40.8],[14,42.3],[18,42.3],[44.0,13.3],[103,0.2],[16,39.4],[105,-5.6],[132,33.5],[134,33.5],[2.0,50.95],[-1.0,49.5],[36.6,26],[37.3,23],[38.8,19.6],[50.5,27.2],[51.8,25.4],[49.6,29.6],[12,57],[18,57],[20,57],[19,58],[20,60],[23,58]];
-var FORCE_LAND = [[121,16.5],[121.5,18],[121.2,14.2],[122,13],[121,12.8],[125.5,8],[124,8],[126,7],[125.3,9.6],[123.5,10.5],[124.8,11.6],[122.5,10.8],[118.8,9.8],[121,0.5],[120,-3],[122,-4],[125,1.5],[99,8],[98.2,10.4],[103.2,1.6],[98,3],[101,0.5],[80.7,7.8],[113,2],[116,5],[104,-1.2],[130.5,33.2],[132.5,34.4],[135.5,35],[137.8,36.2],[139.8,38.6],[141,40.3],[134,33.5],[140.5,36],[24.9,35.2],[25.9,35.1],[33.4,35.1],[13.8,37.7],[12.9,38.0],[9,40.2],[9,39.2],[2.9,39.6],[14,36.6],[27.9,36.2],[9.5,44.6],[11.2,43.7],[12.6,42.1],[14.2,41],[18,40.4],[17.3,41.1],[13,45.4],[22.3,37.4],[22,39],[21,38.8],[23.5,38.4],[-8,53.3],[9.5,55.8],[10.4,56.9],[20.5,40.5],[19,42.3],[16,43.5],[14.5,45.2],[10.4,62.5],[5.3,60.4]];
+var FORCE_LAND = [[121,16.5],[121.5,18],[121.2,14.2],[122,13],[121,12.8],[125.5,8],[124,8],[126,7],[125.3,9.6],[123.5,10.5],[124.8,11.6],[122.5,10.8],[118.8,9.8],[121,0.5],[120,-3],[122,-4],[125,1.5],[99,8],[98.2,10.4],[103.2,1.6],[98,3],[101,0.5],[80.7,7.8],[113,2],[116,5],[104,-1.2],[130.5,33.2],[132.5,34.4],[135.5,35],[137.8,36.2],[139.8,38.6],[141,40.3],[134,33.5],[140.5,36],[24.9,35.2],[25.9,35.1],[33.4,35.1],[13.8,37.7],[12.9,38.0],[9,40.2],[9,39.2],[2.9,39.6],[14,36.6],[27.9,36.2],[9.5,44.6],[11.2,43.7],[12.6,42.1],[14.2,41],[18,40.4],[17.3,41.1],[13,45.4],[22.3,37.4],[22,39],[21,38.8],[23.5,38.4],[-8,53.3],[9.5,55.8],[10.4,56.9],[20.5,40.5],[19,42.3],[16,43.5],[14.5,45.2],[10.4,62.5],[5.3,60.4],[-28,38.6],[-16.9,32.7],[-15.5,28.3],[121,23.7],[109.8,19.2],[-66.5,18.3],[-76.5,24.5]];
 
 FORCE_LAND = FORCE_LAND.map(function (p) { return (p[0] >= 129.5 && p[0] <= 143 && p[1] >= 31 && p[1] <= 42) ? warpJ(p) : p; });
 var LAND = [], NB = [], SEAN = [], MAINSEA = [], LANDIDS = [], LON = [], LAT = [];
@@ -958,6 +958,10 @@ var CITY = {}, SEALINK = {}, NB = [], SEAN = [], START_HEX = {}, CAPITAL_AT = {}
   /* 蒙古草原 */
   START_HEX.__mongol = LANDIDS.filter(function (id) { return LON[id] >= 88 && LON[id] <= 124 && LAT[id] >= 43 && LAT[id] <= 53 || id === CAPITAL_AT.mongol; });
   START_HEX.__jin = LANDIDS.filter(function (id) { return LON[id] >= 124 && LON[id] <= 140 && LAT[id] >= 43 && LAT[id] <= 54 && !START_HEX.__owner[id] || id === CAPITAL_AT.jin; });
+  /* 新增的無主島嶼：不歸任何勢力，地形固定 */
+  [[-28,38.6,'h'],[-16.9,32.7,'h'],[-15.5,28.3,'h'],[121,23.7,'h'],[109.8,19.2,'f'],[-66.5,18.3,'f'],[-76.5,24.5,'g']].forEach(function (q) {
+    var h = nearest(q[0], q[1]); delete START_HEX.__owner[h]; TERR[h] = q[2]; NEUTRAL_EXTRA[h] = 0;
+  });
   START_HEX.__jer = LANDIDS.filter(function (id) { return (LON[id] >= 34.2 && LON[id] <= 37.8 && LAT[id] >= 30.9 && LAT[id] <= 36.9) || (LON[id] >= 38 && LON[id] <= 40 && LAT[id] >= 36.4 && LAT[id] <= 38.2) || id === CAPITAL_AT.jer; });
   /* 各勢力起始地塊清單 */
   Object.keys(START_HEX.__owner).forEach(function (id) { var f = START_HEX.__owner[id]; (START_HEX[f] = START_HEX[f] || []).push(+id); });
@@ -1428,8 +1432,11 @@ var _CN = {}, _GP = null;
 function bindCN(g) { _CN = g.cn || (g.cn = {}); _GP = g.p; }
 function settleName(id, L) { var r = TERR[id] === 'f' || TERR[id] === 'h' || TERR[id] === 'm' || TERR[id] === 'w'; return [r ? '山寨' : '村莊', r ? '城堡' : '市鎮', r ? '堡壘' : '城市'][Math.max(1, Math.min(3, L)) - 1]; }
 function isVillage(id, p) { return !!p && p.L === 1 && !CITY[id]; }
+var ISL_NM = {};
+[[-28,38.6,'亞速爾群島'],[-16.9,32.7,'馬德拉群島'],[-15.5,28.3,'加那利群島'],[121,23.7,'台灣島'],[109.8,19.2,'海南島'],[-66.5,18.3,'波多黎各島'],[-76.5,24.5,'巴哈馬群島']].forEach(function (q) { ISL_NM[nearest(q[0], q[1])] = q[2]; });
 function placeName(id) {
   if (_CN[id]) return _CN[id];
+  if (ISL_NM[id] && !(_GP && _GP[id] && _GP[id].L > 0)) return ISL_NM[id];
   if (CITY[id]) return CITY[id].name;
   if (_GP && _GP[id] && _GP[id].L > 0) return settleName(id, _GP[id].L);
   var T = { g: '平原', f: '森林', h: '丘陵', m: '山地', d: '沙漠', n: '河谷沃土', s: '草原', w: '雪原' };
@@ -4411,9 +4418,83 @@ var CHAIN = {
     ] }
 };
 
+
+/* ---------- 條件式歷史事件：條件不符就不會觸發 ---------- */
+function hasPort(g, f) { return owned(g, f).some(function (id) { return CITY[id] && CITY[id].port; }); }
+function freeIsles(g) { return Object.keys(ISL_NM).map(Number).filter(function (id) { return g.p[id] && !g.p[id].o; }); }
+function claimIsle(g, f) {
+  var l = freeIsles(g); if (!l.length) return null;
+  var id = l[rint(l.length)]; g.p[id].o = f; g.p[id].t = 3; _own = null; return id;
+}
+function bigCity(g, f) { return owned(g, f).some(function (id) { return g.p[id].L >= 2; }); }
+function oceanReady(g, f) { return techFx(g, f, 'ocean') > 0 && hasPort(g, f); }
+function _hmk(id, title, fors, cond, text, A, B) { var e = _mk(id, title, fors, text, A, B); e.cond = cond; return e; }
+var COND_OK = function (g, f) { return ownedN(g, f) >= 3; };
+_add(286, _hmk('wat_tyler', '1381 年農民起義', ['eng', 'fra', 'hre', 'ita'], function (g, f) { return g.fac[f].morale < 60 && ownedN(g, f) >= 3; },
+  '黑死病之後勞力短缺，領主卻想壓低工資、加徵人頭稅。農民與工匠拿起鐮刀與棍棒，湧向首都，要求國王當面答覆。',
+  ['減稅並讓步', -30, 5, 0, '領主們很不情願，但騷動平息了，民心回升。'], ['派兵鎮壓', 0, -4, -3, '起義被血腥撲滅，也留下了深深的怨恨。']));
+_add(307, _hmk('ankara', '安卡拉之戰', ['rum', 'kara', 'byz', 'hung', 'khw', 'mongol'], function (g, f) { return ownedN(g, f) >= 3; },
+  '1402 年，帖木兒的大軍在安卡拉擊潰奧斯曼蘇丹巴耶濟德。一個正在崛起的強權一夕崩塌，周邊所有勢力都得重新盤算。',
+  ['加強邊境防務', -30, 0, 4, '各城增派守軍，等待局勢明朗。'], ['趁亂外交斡旋', -15, 2, 0, '你的使者穿梭於各方之間，爭取到喘息空間。']));
+_add(320, _hmk('agincourt', '阿金庫爾之戰', ['eng', 'fra'], COND_OK,
+  '1415 年，英格蘭長弓手在泥濘的阿金庫爾，擊潰人數數倍的法蘭西重騎兵。重甲騎士在雨後的爛泥與箭雨前，失去了最大的優勢。',
+  ['改良弓兵訓練', -25, 2, 3, '弓手受到重視，軍中士氣高昂。'], ['堅守舊制', 0, -2, 0, '貴族們拒絕改變，騎士的榮耀停在過去。']));
+_add(334, _hmk('joan', '聖女貞德', ['fra', 'eng'], COND_OK,
+  '1429 年，一位農家少女自稱受上天啟示，來到奧爾良前線。她的出現讓疲憊的軍隊重新燃起信念，戰局開始逆轉。',
+  ['激勵民心', -20, 6, 2, '消息傳遍各地，人民的信心重新凝聚。'], ['保持觀望', 0, 0, 0, '你沒有表態，謠言與傳說自行傳播。']));
+_add(358, _hmk('cpl1453', '君士坦丁堡陷落', ['byz', 'rum', 'ita', 'hung', 'pol', 'hre', 'fra'], function (g, f) { return f !== 'byz' || (g.p[CAPITAL.byz] && g.p[CAPITAL.byz].o === 'byz'); },
+  '1453 年，巨砲轟開了狄奧多西城牆，千年古都落入蘇丹穆罕默德二世手中。火藥時代正式來臨，所有城牆都不再安全。',
+  ['加固城防', -35, 0, 4, '工匠趕工修築新式城牆。'], ['重新評估戰略', -15, 2, 0, '你調整了防務與外交方針。']));
+var HE_COL = { id: 'columbus', title: '遠洋探險的請求', tag: '史實', for: ['cas', 'arag', 'por', 'ita', 'eng', 'fra'], cond: oceanReady,
+  text: '一位航海家帶著地圖與計畫來求見，說向西航行就能到達新的土地。有人說他瘋了，有人說這是改變世界的機會。',
+  choices: [
+    { label: '資助航行', hint: '金幣 −60，有機會找到新島或財富', need: { gold: 60 }, run: function (g, f) {
+      if (Math.random() < 0.6) { var id = claimIsle(g, f); if (id !== null) return '船隊帶回了新土地的消息，' + placeName(id) + '成為你的領地。'; addRes(g, f, { gold: 130 }); return '船隊載著香料與黃金返航，金幣 +130。'; }
+      addRes(g, f, { morale: -2 }); return '船隊沒能找到陸地，只好空手而歸。'; } },
+    { label: '婉拒', hint: '無', run: function () { return '航海家轉往他國求助。'; } }
+  ] };
+_add(397, HE_COL);
+_add(403, _hmk('gama', '繞過好望角的航路', ['por', 'cas', 'ita', 'arag'], oceanReady,
+  '葡萄牙船隊繞過非洲南端，抵達印度的海岸。香料不必再經過中東中間商，歐洲的貿易版圖即將改寫。',
+  ['組建香料船隊', -50, 0, 0, '船隊滿載而歸，利潤遠超成本。'], ['維持舊有商路', 0, 1, 0, '你沿用熟悉的商路，收益平穩。']));
+/* 補丁：香料船隊給收益 */
+HIST[403][HIST[403].length - 1].choices[0].hint = '金幣 −50，航運收益豐厚';
+HIST[403][HIST[403].length - 1].choices[0].run = function (g, f) { addRes(g, f, { gold: 50 + 120 }); return '船隊滿載香料而歸，金幣淨賺 120。'; };
+EVENTS.push(
+  { id: 'isle_found', title: '水手發現無人島', tag: '事件', w: 1.2, cond: function (g, f) { return g.turn > 60 && oceanReady(g, f) && freeIsles(g).length > 0; },
+    text: '一艘遠航歸來的商船報告，在遙遠的海上發現了一座無人居住的島嶼，島上有淡水與可耕之地。',
+    choices: [
+      { label: '派人殖民', hint: '金幣 −30，獲得一座島嶼', need: { gold: 30 }, run: function (g, f) { var id = claimIsle(g, f); return id === null ? '那座島已被別人佔去了。' : '殖民者登島，' + placeName(id) + '成為你的領地。'; } },
+      { label: '只記錄航線', hint: '金幣 +10', run: function (g, f) { addRes(g, f, { gold: 10 }); return '你把航線畫進海圖，賣給了商人。'; } }
+    ] },
+  { id: 'marco', title: '威尼斯旅行家的見聞', tag: '事件', w: 1.5, cond: function (g, f) { return g.turn >= 170 && g.turn <= 215 && ['ita', 'byz', 'song', 'mongol', 'liao', 'jin', 'fat'].indexOf(f) >= 0 && hasPort(g, f); },
+    text: '一位走遍東方的旅行家回到港口，講述絲路盡頭的城市與大汗的宮廷。商人們聽得入神，爭相打聽路線。',
+    choices: [
+      { label: '資助商隊', hint: '金幣 −30，金幣 +70，文化 +40', need: { gold: 30 }, run: function (g, f) { addRes(g, f, { gold: 70 }); g.cul = g.cul || {}; g.cul[f] = (g.cul[f] || 0) + 40; return '新商路帶來可觀的利潤與見聞。'; } },
+      { label: '當作故事聽聽', hint: '民心 +1', run: function (g, f) { addRes(g, f, { morale: 1 }); return '人們把這些見聞當成酒館裡的傳奇。'; } }
+    ] },
+  { id: 'battuta', title: '遠方學者來訪', tag: '事件', w: 1.3, cond: function (g, f) { return g.turn >= 225 && g.turn <= 265 && MUS.concat(['mali', 'gao', 'sul', 'ghaz', 'kara', 'khw', 'chal', 'chola']).indexOf(f) >= 0 && bigCity(g, f); },
+    text: '一位從遙遠西方而來的法官兼旅行家，造訪你的城市。他走過許多國度，願意記下見聞，也願意為你指點各地的風土。',
+    choices: [
+      { label: '以禮相待', hint: '金幣 −25，文化 +70，民心 +2', need: { gold: 25 }, run: function (g, f) { addRes(g, f, { morale: 2 }); g.cul = g.cul || {}; g.cul[f] = (g.cul[f] || 0) + 70; return '學者留下了讚譽，你的名聲傳遍各地。'; } },
+      { label: '婉謝', hint: '無', run: function () { return '學者繼續他的旅程。'; } }
+    ] },
+  { id: 'hanse', title: '漢薩商人的請求', tag: '事件', w: 1.3, cond: function (g, f) { return g.turn >= 130 && g.turn <= 330 && ['scand', 'nor', 'swe', 'pol', 'hre', 'nov', 'lit', 'eng'].indexOf(f) >= 0 && hasPort(g, f); },
+    text: '波羅的海沿岸的商城結成同盟，請求在你的港口取得免稅與自治的特許，作為回報，他們願意提供貸款與船隻。',
+    choices: [
+      { label: '授予特許', hint: '金幣 +60，但民心 −1', run: function (g, f) { addRes(g, f, { gold: 60, morale: -1 }); return '商人們獻上豐厚的謝禮，本地商人卻頗有怨言。'; } },
+      { label: '拒絕', hint: '民心 +1', run: function (g, f) { addRes(g, f, { morale: 1 }); return '你保住了本地商人的利益。'; } }
+    ] },
+  { id: 'university', title: '創辦大學的請願', tag: '事件', w: 1.2, cond: function (g, f) { return g.turn >= 80 && g.turn <= 380 && LATIN.concat(['byz']).indexOf(f) >= 0 && bigCity(g, f); },
+    text: '學者與學生行會請求特許，在你的大城裡成立大學。他們承諾教授法學、神學與醫學，也要求免除部分賦稅與審判權。',
+    choices: [
+      { label: '頒發特許狀', hint: '金幣 −40，文化 +90，民心 +2', need: { gold: 40 }, run: function (g, f) { addRes(g, f, { morale: 2 }); g.cul = g.cul || {}; g.cul[f] = (g.cul[f] || 0) + 90; return '大學開課，學生從各地湧來。'; } },
+      { label: '暫緩', hint: '無', run: function () { return '學者們轉往別的城市。'; } }
+    ] }
+);
 function pickEvent(g) {
   var ev = null, hl = HIST[g.turn];
-  if (hl) for (var hi = 0; hi < hl.length && !ev; hi++) if (!hl[hi].for || hl[hi].for.indexOf(g.player) >= 0) ev = hl[hi];
+  if (hl) for (var hi = 0; hi < hl.length && !ev; hi++) if ((!hl[hi].for || hl[hi].for.indexOf(g.player) >= 0) && (!hl[hi].cond || hl[hi].cond(g, g.player))) ev = hl[hi];
   if (!ev && g.chain) {
     for (var ci = 0; ci < g.chain.length; ci++) if (g.chain[ci].t <= g.turn) { var ce = g.chain.splice(ci, 1)[0]; if (CHAIN[ce.id]) { ev = CHAIN[ce.id]; if (ce.d) g.evData = ce.d; } break; }
   }
@@ -6325,6 +6406,8 @@ if (typeof module !== 'undefined') module.exports = G;
     '<li><b>駱駝騎兵</b>：沙漠與阿拉伯、北非、薩赫勒一帶的勢力（例如穆拉比特、法蒂瑪、阿拔斯、迦納、加奧、加涅姆、索馬里城邦等）的騎兵是駱駝騎兵：在沙漠不缺水損耗、行軍不減速，沙漠中進攻與防守戰力 +10%。</li>' +
     '<li><b>地形與行軍</b>：森林、丘陵、山地行軍本來就慢；騎兵越多的部隊在這些地形損失越大（森林最多多花 1 點、山地 1.5 點移動力）。進攻山地、丘陵、森林時，進攻方戰力也會打折。</li>' +
     '<li><b>城牆</b>：城市可花金幣修城牆（不超過城市等級，最高 3 級），守軍防禦每級 +18%，攻城器械可以削弱城牆效果；城破會損毀一級。</li>' +
+    '<li><b>無主島嶼</b>：亞速爾、馬德拉、加那利、台灣島、海南島、波多黎各、巴哈馬是一開始沒人佔的小島，各有少量守軍。要有「遠洋航行」科技的艦隊才到得了外海的島，近岸的島用普通艦隊即可；佔下之後可以建村莊慢慢開拓。</li>' +
+    '<li><b>歷史事件</b>：史實事件（農民起義、安卡拉之戰、阿金庫爾、貞德、君士坦丁堡陷落、遠洋探險、繞過好望角）與旅行家、漢薩商人、大學請願等隨機事件，都要符合條件才會出現，例如要有遠洋航行科技和港口、民心夠低、還握有首都；條件不符就跳過，不會硬湊。</li>' +
     '<li><b>天災與民變</b>：瘟疫（1347 年起有黑死病）、饑荒、君主駕崩的繼承危機、民怨沸騰都會觸發事件。剛佔領的城市十回合內若駐軍太少，居民可能趁亂起事。</li>' +
     '<li><b>國庫</b>：點上方的糧食或金幣，或從選單進入「國庫」：可買賣糧食、調整稅率、開關遠征補給，都不耗行動點。</li>' +
     '<li><b>遠征補給</b>：部隊離補給線太遠會斷糧、扣兵與民心。開啟遠征補給後，補給範圍外的部隊不再損耗，改由國庫每回合付糧金（每百人約各 12）；付不起就照常斷糧。占領敵方城市會把補給線往前推。</li>' +
