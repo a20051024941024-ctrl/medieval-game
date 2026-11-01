@@ -405,7 +405,7 @@ button{font:inherit;color:inherit}
     <div class="startmap" id="startmap" aria-hidden="true"></div>
     <div class="sc-in gx">
       <p class="eyebrow">MEDIEVAL: WORLD DOMINATION · 1096 AD</p>
-      <p class="muted small" id="verline">版本 v202 · 2026-11-01 · 蓋村莊、升市鎮只看自己的聚落，別國的城在旁邊不再擋</p>
+      <p class="muted small" id="verline">版本 v203 · 2026-11-01 · 5 碼代碼連線卡在「正在連到房間」的問題、多人選勢力按地區分、多人存檔最多 5 局</p>
       <h1>中世紀：世界霸權</h1>
       <p class="lead">1095 年，教宗在克萊蒙發出號召，整個歐洲動了起來。選一個勢力（共 121 個），再從該文明歷史上的君主裡挑一位登基；在四千多個六角格地塊的世界裡，與基督教世界、伊斯蘭世界與即將到來的蒙古鐵騎周旋。可以結盟借道、派商隊與商船貿易、派密探、遠征遠方、研究科技升級時代、替自己的城市取名。沒有回合上限，直到有人稱霸，或你失去一切。</p>
       <div id="startopts"></div>
@@ -6395,7 +6395,7 @@ if (typeof module !== 'undefined') module.exports = G;
       (msg ? '<p class="warn">' + esc(msg) + '</p>' : '') +
       '<div class="flist"><b>你的暱稱</b><input id="mpnick" maxlength="12" value="' + esc(mpNick()) + '" placeholder="暱稱" style="flex:1;min-width:0;padding:10px;border-radius:8px;border:1px solid var(--line);background:rgba(0,0,0,.25);color:inherit;font:inherit"></div>' +
       (p2pOk() ? '<div class="gh" style="margin:8px 0 4px">免登入連線（推薦，朋友不需要 Claude 帳號）</div>' : '<p class="warn">免登入直連在 Claude 的頁面裡被瀏覽器擋住了（缺少 WebRTC），目前做不到。只能用下面「登入房間」，朋友需要被你邀請並登入 Claude。</p>') +
-      (p2pOk() ? '<div class="choices">' + (mpSaved() ? '<button class="choice" data-act="p2presume"><span class="cl">繼續上次的多人遊戲</span><span class="ch">' + esc(mpSavedLine()) + '。載入後再把連結傳給朋友，他們會回到原本的國家。</span></button>' : '') + '<button class="choice" data-act="p2phost"><span class="cl">我是房主</span><span class="ch">產生邀請碼，用 LINE 傳給朋友</span></button>' +
+      (p2pOk() ? '<div class="choices">' + '</div>' + mpSavedList() + '<div class="choices">' + '<button class="choice" data-act="p2phost"><span class="cl">我是房主</span><span class="ch">產生邀請碼，用 LINE 傳給朋友</span></button>' +
       '<button class="choice" data-act="p2pguest"><span class="cl">我是朋友</span><span class="ch">貼上房主給的邀請碼</span></button></div>' : '') +
       '<details' + (p2pOk() ? '' : ' open') + ' style="margin-top:12px"><summary class="muted small">用 Claude 登入的房間代碼（進階，朋友要被邀請並登入）</summary><div class="choices" style="margin-top:8px"><button class="choice" data-act="mpcreate"><span class="cl">建立登入房間</span><span class="ch">朋友需要登入 Claude 並有 Contributor 權限</span></button>' +
       '<div class="flist"><input id="mpcode" maxlength="8" autocapitalize="off" autocomplete="off" placeholder="房間代碼" style="flex:1;min-width:0;padding:10px;border-radius:8px;border:1px solid var(--line);background:rgba(0,0,0,.25);color:inherit;font:inherit"><button class="btn primary" data-act="mpjoin">加入</button></div></div></details>' +
@@ -6462,6 +6462,39 @@ if (typeof module !== 'undefined') module.exports = G;
       mpRenderLobby();
     }).catch(function () { mpMenu('連線失敗，請稍後再試。'); });
   }
+  function mpRgGroups() {
+    var out = [], cur = null, seen = {};
+    if (!START_RG) return out;
+    START_RG.order.forEach(function (f) {
+      if (START_RG.head[f]) { cur = { t: START_RG.head[f], fs: [] }; out.push(cur); }
+      if (!cur || G.PLAYABLE.indexOf(f) < 0 || seen[f]) return; seen[f] = 1; cur.fs.push(f);
+    });
+    var rest = G.PLAYABLE.filter(function (f) { return !seen[f]; }); if (rest.length) out.push({ t: '其他', fs: rest });
+    return out.filter(function (x) { return x.fs.length; });
+  }
+  function mpRgInit() {
+    var sel = $('#mpfac'); if (!sel) return;
+    var grs = mpRgGroups(); if (!grs.length) return;
+    MP.rgAll = sel.innerHTML;
+    var box = document.createElement('div'); box.id = 'mprg'; box.className = 'rgtabs';
+    box.innerHTML = '<span class="muted small" style="width:100%">先選地區，再從下面選國家：</span>' + grs.map(function (x, i) { return '<button class="chip" data-act="mprg" data-r="' + i + '">' + esc(x.t) + ' <small>' + x.fs.length + '</small></button>'; }).join('');
+    sel.closest('.flist').insertAdjacentElement('beforebegin', box);
+    box.addEventListener('click', function (e) { var b = e.target.closest('[data-act=mprg]'); if (!b) return; e.stopPropagation(); mpRgSet(+b.getAttribute('data-r')); });
+    var mine = MP.players[MP.uid] ? MP.players[MP.uid].f : null, r0 = 0;
+    grs.forEach(function (x, i) { if (mine && x.fs.indexOf(mine) >= 0) r0 = i; });
+    mpRgSet(MP.rg != null && grs[MP.rg] && !mine ? MP.rg : r0, true);
+  }
+  function mpRgSet(r, quiet) {
+    var sel = $('#mpfac'), grs = mpRgGroups(); if (!sel || !grs[r]) return;
+    MP.rg = r;
+    var mine = MP.players[MP.uid] ? MP.players[MP.uid].f : null, F = G.FACTIONS;
+    var h = '<option value="">— 選擇' + esc(grs[r].t) + '的勢力 —</option>';
+    if (mine && grs[r].fs.indexOf(mine) < 0) h += '<option value="' + mine + '">' + esc(F[mine].name) + '（你目前的選擇）</option>';
+    grs[r].fs.forEach(function (f) { h += '<option value="' + f + '">' + esc(F[f].name) + '</option>'; });
+    sel.innerHTML = h;
+    document.querySelectorAll('#mprg [data-act=mprg]').forEach(function (b) { b.classList.toggle('on', +b.getAttribute('data-r') === r); });
+    if (!quiet) mpRenderLobby();
+  }
   function mpRenderLobby() {
     if (MP.phase !== 'lobby') return;
     var F = G.FACTIONS, ids = Object.keys(MP.players), taken = {};
@@ -6482,6 +6515,7 @@ if (typeof module !== 'undefined') module.exports = G;
         var lm = $('#mplim'); lm.value = String(MP.limit || 0);
         lm.addEventListener('change', function () { MP.limit = +this.value || 0; try { localStorage.setItem('crusade-mplim', String(MP.limit)); } catch (e) {} });
       }
+      try { mpRgInit(); } catch (e) {}
       $('#mpfac').addEventListener('change', function () {
         var v = this.value || null;
         if (MP.mode === 'p2p') return p2pPick(v);
@@ -6493,7 +6527,7 @@ if (typeof module !== 'undefined') module.exports = G;
       for (var i = 0; i < sel.options.length; i++) {
         var o = sel.options[i], f = o.value; if (!f) continue;
         var t = taken[f] && taken[f] !== MP.uid;
-        o.disabled = !!t; o.textContent = F[f].name + (t ? '（' + MP.players[taken[f]].name + ' 已選）' : '');
+        o.disabled = !!t; if (!/你目前的選擇/.test(o.textContent)) o.textContent = F[f].name + (t ? '（' + MP.players[taken[f]].name + ' 已選）' : '');
       }
       sel.value = mine || '';
     }
@@ -6585,26 +6619,60 @@ if (typeof module !== 'undefined') module.exports = G;
     return new Response(new Blob([u]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
   }
   var MPSK = 'crusade-mpsave';
+  var MPN = 5;
+  function mpSlotKey(k) { return k === 'L' ? MPSK : MPSK + '-' + k; }
+  function mpSavedAll() {
+    var out = [];
+    for (var k = 1; k <= MPN; k++) { try { var s = localStorage.getItem(mpSlotKey(k)); if (s) { s = JSON.parse(s); if (s && s.players) out.push({ k: String(k), s: s }); } } catch (e) {} }
+    try { var l = localStorage.getItem(MPSK); if (l) { l = JSON.parse(l); if (l && l.players) out.push({ k: 'L', s: l }); } } catch (e) {}
+    out.sort(function (a, b) { return (b.s.t || 0) - (a.s.t || 0); });
+    return out;
+  }
+  function mpSaved() { var a = mpSavedAll(); return a.length ? a[0].s : null; }
+  function mpPickSlot() {
+    var best = null, bt = Infinity;
+    for (var k = 1; k <= MPN; k++) { var s = null; try { s = localStorage.getItem(mpSlotKey(k)); } catch (e) {} if (!s) return { k: k }; var t = 0; try { t = JSON.parse(s).t || 0; } catch (e) {} if (t < bt) { bt = t; best = k; } }
+    return { k: best, over: true };
+  }
   function mpSaveLocal() {
     if (!MP.on || MP.role !== 'host' || !g || g.over) return;
     if (arguments[0] === true) MP.svT = 0;
     if (MP.svT && Date.now() - MP.svT < 15000 && MP.svTurn === g.turn) return;
     MP.svT = Date.now(); MP.svTurn = g.turn;
-    try {
-      var pl = {}; Object.keys(MP.players).forEach(function (u) { var q = MP.players[u]; pl[u] = { f: q.f, name: q.name, pid: q.pid || '' }; });
-      localStorage.setItem(MPSK, JSON.stringify({ t: Date.now(), y: G.year(g), players: pl, code: PJ.code || '', state: JSON.stringify(g) }));
-    } catch (e) { if (!MP.svWarn) { MP.svWarn = 1; toast('多人遊戲進度太大，存不進這台裝置的瀏覽器。'); } }
+    if (!MP.svSlot) { var pk = mpPickSlot(); MP.svSlot = pk.k; if (pk.over) toast('多人存檔已滿 ' + MPN + ' 個，這局蓋掉了最舊的那一個。'); }
+    var slot = MP.svSlot, pl = {}; Object.keys(MP.players).forEach(function (u) { var q = MP.players[u]; pl[u] = { f: q.f, name: q.name, pid: q.pid || '' }; });
+    var meta = { t: Date.now(), y: G.year(g), players: pl, code: PJ.code || '' }, json = JSON.stringify(g);
+    var put = function (o) {
+      try { localStorage.setItem(mpSlotKey(slot), JSON.stringify(o)); if (MP.svDropL) { MP.svDropL = 0; localStorage.removeItem(MPSK); } }
+      catch (e) { if (!MP.svWarn) { MP.svWarn = 1; toast('多人遊戲進度太大，存不進這台裝置的瀏覽器。可以刪掉幾個舊的多人存檔。'); } }
+    };
+    try { mpPack(json).then(function (ch) { meta.z = ch.join(''); put(meta); }, function () { meta.state = json; put(meta); }); }
+    catch (e) { meta.state = json; put(meta); }
   }
-  function mpSaved() { try { var s = localStorage.getItem(MPSK); return s ? JSON.parse(s) : null; } catch (e) { return null; } }
-  function mpSavedLine() {
-    var s = mpSaved(); if (!s || !s.players) return '';
+  function mpSavedLine(s) {
+    if (!s || !s.players) return '';
     var h = s.players.host, others = Object.keys(s.players).filter(function (u) { return u !== 'host'; }).map(function (u) { return s.players[u].name + '（' + (G.FACTIONS[s.players[u].f] || {}).name + '）'; });
     return '西元 ' + s.y + ' 年 · 你是' + ((G.FACTIONS[h && h.f] || {}).name || '?') + (others.length ? ' · 朋友：' + others.join('、') : '');
   }
-  function p2pResume() {
-    var s = mpSaved(); if (!s) return p2pMenu('找不到上次的多人遊戲。');
+  function mpSavedWhen(s) { try { var d = new Date(s.t); return (d.getMonth() + 1) + '/' + d.getDate() + ' ' + d.getHours() + ':' + ('0' + d.getMinutes()).slice(-2); } catch (e) { return ''; } }
+  function mpSavedList() {
+    var a = mpSavedAll(); if (!a.length) return '';
+    return '<div class="gh" style="margin:6px 0 4px">繼續之前的多人遊戲（最多存 ' + MPN + ' 局）</div>' + a.map(function (x) {
+      return '<div class="flist" style="align-items:stretch;gap:6px;margin-bottom:6px"><button class="choice" style="flex:1;min-width:0" data-act="p2presume" data-k="' + x.k + '"><span class="cl">' + esc(mpSavedLine(x.s).split(' · 朋友：')[1] ? '和 ' + mpSavedLine(x.s).split(' · 朋友：')[1] : '多人遊戲') + '</span><span class="ch">' + esc(mpSavedLine(x.s).split(' · 朋友：')[0]) + (x.s.code ? ' · 房間代碼 ' + esc(x.s.code) : '') + ' · 存於 ' + mpSavedWhen(x.s) + '</span></button>' +
+        '<button class="btn" style="flex:0 0 auto;padding:8px 10px" data-act="p2pdel" data-k="' + x.k + '" aria-label="刪除這個存檔">🗑</button></div>';
+    }).join('') + '<p class="muted small" style="margin:0 0 8px">跟不同朋友玩，各局會分開存。載入後把房間代碼或連結傳給那一局的朋友，他們會回到原本的國家。</p>';
+  }
+  function p2pResume(k) {
+    var all = mpSavedAll(), x = null; all.forEach(function (y) { if (y.k === String(k)) x = y; }); if (!x && !k && all.length) x = all[0];
+    if (!x) return p2pMenu('找不到這個多人存檔。');
     if (!p2pOk()) return p2pMenu(p2pWhy());
-    var st; try { st = JSON.parse(s.state); } catch (e) { return p2pMenu('上次的多人遊戲存檔壞掉了。'); }
+    var s = x.s;
+    if (s.z && !s.state) { mpUnpack([s.z]).then(function (txt) { s.state = txt; p2pResume2(x, s); }, function () { p2pMenu('這個多人存檔壞掉了。'); }); return; }
+    p2pResume2(x, s);
+  }
+  function p2pResume2(x, s) {
+    var st; try { st = JSON.parse(s.state); } catch (e) { return p2pMenu('這個多人存檔壞掉了。'); }
+    if (x.k === 'L') { var pk = mpPickSlot(); MP.svSlot = pk.k; MP.svDropL = 1; } else MP.svSlot = +x.k;
     var nick = mpReadNick();
     MP.mode = 'p2p'; MP.role = 'host'; MP.uid = 'host'; MP.nick = nick; MP.shell = false;
     P2P.slots = []; P2P.n = 0; P2P.lobbyKey = '';
@@ -6836,11 +6904,11 @@ if (typeof module !== 'undefined') module.exports = G;
   function p2pHost() {
     if (!p2pOk()) return p2pMenu(p2pWhy());
     var nick = mpReadNick();
-    MP.mode = 'p2p'; MP.role = 'host'; MP.uid = 'host'; MP.nick = nick; MP.phase = 'lobby'; MP.shell = false;
+    MP.mode = 'p2p'; MP.role = 'host'; MP.uid = 'host'; MP.nick = nick; MP.phase = 'lobby'; MP.shell = false; MP.svSlot = 0; MP.svDropL = 0;
     MP.players = { host: { f: null, name: nick } }; MP.info = { host: 'host', status: 'lobby' };
     P2P.slots = []; P2P.n = 0; P2P.lobbyKey = '';
     MP.room = { emit: function (topic, data) { if (topic === 'r') p2pReply(data); return Promise.resolve(); } };
-    mpRenderLobby(); p2pRenderSlots(); pjHostStart();
+    mpRenderLobby(); p2pRenderSlots(); pjHostStart(null, true);
   }
   function p2pReply(d) {
     P2P.slots.forEach(function (s) { if (s.id === d.to) p2pSendTo(s.dc, { t: 'r', d: d }); });
@@ -6993,7 +7061,7 @@ if (typeof module !== 'undefined') module.exports = G;
     var w = { readyState: 'connecting', send: function (x) { try { conn.send(x); } catch (e) {} }, close: function () { try { conn.close(); } catch (e) {} } };
     var opened = function () { if (w.readyState === 'open') return; w.readyState = 'open'; if (w.onopen) w.onopen(); };
     conn.on('open', opened); if (conn.open) setTimeout(opened, 0);
-    conn.on('data', function (d) { if (w.onmessage) w.onmessage({ data: d }); });
+    conn.on('data', function (d) { if (w.readyState !== 'open') opened(); if (w.onmessage) w.onmessage({ data: d }); });
     var closed = function () { if (w.readyState === 'closed') return; w.readyState = 'closed'; if (w.onclose) w.onclose(); };
     conn.on('close', closed); conn.on('error', closed);
     return w;
@@ -7005,8 +7073,9 @@ if (typeof module !== 'undefined') module.exports = G;
     else if (PJ.err) el.innerHTML = '<p class="warn">房間代碼服務暫時連不上（' + esc(PJ.err) + '），請用下面的長邀請碼。</p>';
     else el.innerHTML = '<p class="muted small">正在申請 5 碼房間代碼…</p>';
   }
-  function pjHostStart(code) {
-    if (PJ.peer && !PJ.peer.destroyed && PJ.code) { pjRender(); return; }
+  function pjHostStart(code, fresh) {
+    if (PJ.peer && !PJ.peer.destroyed && PJ.code && !fresh && (!code || code === PJ.code)) { pjRender(); return; }
+    if (PJ.peer) { try { PJ.peer.destroy(); } catch (e) {} PJ.peer = null; }
     PJ.err = ''; PJ.code = ''; pjRender();
     pjLoad().then(function (Peer) {
       var tries = 0;
@@ -7018,7 +7087,7 @@ if (typeof module !== 'undefined') module.exports = G;
           var s = { id: 'g' + (++P2P.n), state: 'making', code: '', pc: null, dc: null, spec: false, pj: 1 };
           P2P.slots.push(s);
           s.dc = pjWrap(conn);
-          s.dc.onopen = function () { s.state = 'open'; s.seen = Date.now(); p2pRenderSlots(); };
+          s.dc.onopen = function () { s.state = 'open'; s.seen = Date.now(); p2pRenderSlots(); try { if (MP.players[s.id] || (MP.specs && MP.specs[s.id])) p2pBroadcastLobby(); } catch (e) {} };
           s.dc.onclose = function () { p2pSlotClosed(s); };
           s.dc.onmessage = function (e) { p2pHostMsg(s, e.data); };
           p2pRenderSlots();
@@ -7042,7 +7111,7 @@ if (typeof module !== 'undefined') module.exports = G;
         var conn = peer.connect(PJ.PFX + code, { reliable: true });
         MP.mode = 'p2p'; MP.role = 'guest'; MP.phase = MP.on ? 'play' : 'lobby'; MP.shell = false; MP.players = {}; MP.info = { host: 'host', status: 'lobby' };
         var dc = pjWrap(conn); p2pGuestBind(dc, nick);
-        var on0 = dc.onopen; dc.onopen = function () { done = true; if (on0) on0(); };
+        var on0 = dc.onopen; dc.onopen = function () { done = true; if (on0) on0(); P2P.gotHost = false; var tr = 0; (function again() { setTimeout(function () { if (P2P.gotHost || P2P.hostDc !== dc || dc.readyState !== 'open' || ++tr > 4) return; p2pSendTo(dc, { t: 'hello', name: nick, ver: PVER, pid: MPID }); again(); }, 4000); })(); };
         setTimeout(function () { if (!done) p2pGuestMenu('連不上房間 ' + code + '。請確認代碼正確、房主的畫面還開著；不行的話改用長邀請碼。'); }, 20000);
       });
       peer.on('error', function (err) {
@@ -7053,7 +7122,7 @@ if (typeof module !== 'undefined') module.exports = G;
   }
   function p2pGuestMsg(raw) {
     var m; try { m = JSON.parse(raw); } catch (e) { return; }
-    P2P.lastMsg = Date.now();
+    P2P.lastMsg = Date.now(); P2P.gotHost = true;
     if (m.t === 'lobby') {
       MP.players = m.players || {}; MP.uid = m.you; MP.info = { host: m.host, status: m.status }; MP.spec = !!m.spec;
       if (MP.phase === 'lobby') mpRenderLobby(); else if (MP.on) renderBar();
@@ -7271,9 +7340,10 @@ if (typeof module !== 'undefined') module.exports = G;
     '<li><b>城市命名與名冊</b>：選城市後按面板上的「✎ 改名」可以隨時替城市取名；下面那排按鈕往左滑，有「國庫」（買賣糧食、稅率）、「城市名冊」（你所有城市）和「戰績」。外交選單會顯示各國消滅過哪些國家。</li>' +
     '<li><b>新手提示</b>：畫面上方綠字的 💡 會依目前狀況告訴你下一步可以做什麼，點一下可以關掉。</li>' +
     '<li><b>地圖</b>：拖曳移動，滾輪或雙指縮放。只看得到相鄰地塊的確切守軍，遠處只有約數。</li>' +
+    '<li><b>多人選勢力</b>：房間裡先按地區（歐洲、東亞、美洲……），下拉選單就只列那一區的國家，比較好找。</li>' +
     '<li><b>5 碼房間代碼（測試版）</b>：房主開房後會看到一組 5 個英文字母，朋友按「多人連線 → 我是朋友」輸入這 5 個字就能加入，遊戲中斷線也能用同一組代碼回來。這個功能要借用網路上的免費連線服務，連不上時畫面會說明，請改用下面的長邀請碼。</li>' +
     '<li><b>手機比較順</b>：地圖拉得很遠時，不畫地形圖案，兵力數字只顯示自己的地和選到的地附近；放大後細節就會出現。</li>' +
-    '<li><b>多人連線存檔</b>：房主的瀏覽器會自動存下多人遊戲的進度。下次打開「多人連線」，房主會看到「繼續上次的多人遊戲」，載入後按「＋邀請」產生連結傳給朋友，朋友點開就回到原本的國家。盟友是真人玩家時，拒絕出兵不會讓同盟解除。</li>' +
+    '<li><b>多人連線存檔</b>：房主的瀏覽器會自動存下多人遊戲的進度，最多存 5 局，跟不同朋友玩的各局分開存（存滿後，新的一局會蓋掉最舊的）。下次打開「多人連線」，房主會看到每一局和誰玩、玩到哪一年，選一局載入，再把那一局的房間代碼或「＋邀請」的連結傳給朋友，朋友就回到原本的國家。不要的存檔按旁邊的 🗑 按兩下就刪掉。盟友是真人玩家時，拒絕出兵不會讓同盟解除。</li>' +
     '<li><b>電腦為什麼打你</b>：電腦向你宣戰或索取貢金時，會寫出原因，例如你的惡名太高、剛換君主國內不穩、宗教對立、他覺得兵力比你強、你正忙著跟別國打仗。宋與遼在 1120 年前有澶淵之盟，很少互相開戰；大理也很少主動打宋。</li>' +
     '<li><b>封建</b>：點自己的城（非首都、已建成城、你至少有 4 座城），花 30 金幣可「分封」給領主：守軍 +3、之後每兩回合多長 1 人，但這座城的金幣收入少四成。封地上限是城市數的一半（最多 8 座），同一領主最多 3 座，領地越多越容易不滿。領主忠誠度看民心與首都狀況，低於 30 會警告，太低就會叛離、整批封地一起脫離。「賞賜」花 40 金幣忠誠 +20；「收回封地」免費但民心 −2。電腦勢力也會分封，也會被封臣叛變。地圖上的封地會有虛線外框和一面「封」字小旗，同一位領主的封地顏色相同。</li>' +
     '<li><b>勸降</b>：占領對方首都並處於交戰時，可以要求對方投降，成功就繼承他全部領地。電腦占領你的首都時也會寄勸降書給你，你可以拒絕或投降。成功率看實力差、士氣與剩餘領地數，同一對勢力每回合最多勸一次。</li>' +
@@ -7876,10 +7946,12 @@ if (typeof module !== 'undefined') module.exports = G;
     if (any && !tn && fc) fc.insertAdjacentHTML('beforebegin', '<p id="tutnote" class="tutnote">📘 新手引導開著時，只能選教學每一課都做得到的國家：開局旁邊有中立地或交戰中的敵人可以打，而且有港口（要學商船和海戰）。想玩灰色的國家，把上面的「新手引導」關掉就行，難度照樣可以選簡單。</p>');
     if (!any && tn) tn.remove();
   }
+  var START_RG = null;
   function renderStart() {
     var h = '';
     var ORDER = ["byz", "hre", "fra", "nmd", "bri", "aqu", "tou", "eng", "ita", "pap", "norm", "cas", "arag", "zar", "val", "por", "hung", "pol", "boh", "srb", "duk", "scand", "nor", "swe", "ire", "sco", "kiev", "che", "plk", "nov", "vla", "hal", "lit", "cum", "bul", "geo", "arm", "jer", "almor", "zir", "ham", "fat", "sul", "seljuk", "abb", "rum", "dan", "ale", "dam", "mos", "niz", "ghaz", "ghu", "kara", "khw", "qoc", "tib", "kas", "gaha", "chan", "chau", "kak", "chal", "hoy", "pala", "guj", "par", "egan", "song", "liao", "xia", "dali", "gor", "jpn", "ker", "nai", "tat", "mer", "dai", "pagan", "mon", "khmer", "champa", "srivijaya", "hari", "lavo", "tamb", "lam", "sun", "bru", "but", "maii", "chola", "cey", "jav", "gha", "gao", "hau", "yor", "ben", "kan", "mak", "alo", "eth", "adal", "som", "bun", "kil", "zim", "kon", "mala", "cah", "pue", "tol", "mix", "may", "tai", "chi", "col", "cus", "ice", "grn"];
     var HEAD = {"byz": "歐洲與地中海", "kiev": "羅斯與歐亞草原", "geo": "高加索與近東", "almor": "北非與阿拉伯", "ghaz": "中亞與高原", "gaha": "印度次大陸", "song": "東亞與蒙古草原", "dai": "東南亞與南印度", "gha": "撒哈拉以南非洲", "cah": "美洲與北大西洋"};
+    START_RG = { order: ORDER, head: HEAD };
     ORDER.forEach(function (f) {
       if (G.PLAYABLE.indexOf(f) < 0) return;
       var F = G.FACTIONS[f];
@@ -9267,7 +9339,8 @@ if (typeof module !== 'undefined') module.exports = G;
     if (a === 'mpstart') return mpHostStart();
     if (a === 'pjjoin') { var pji = $('#pjin'); return pjJoin(pji ? pji.value : '', mpReadNick()); }
     if (a === 'pjshare') { if (PJ.code) p2pShare('中世紀世界霸權', '來玩《中世紀：世界霸權》！多人連線 → 我是朋友 → 輸入房間代碼：' + PJ.code, location.origin + location.pathname + '#room=' + PJ.code); return; }
-    if (a === 'p2presume') return p2pResume();
+    if (a === 'p2presume') return p2pResume(b.getAttribute('data-k'));
+    if (a === 'p2pdel') { var dk = b.getAttribute('data-k'); if (b.getAttribute('data-sure') !== '1') { b.setAttribute('data-sure', '1'); b.textContent = '確定刪除？'; return; } try { localStorage.removeItem(mpSlotKey(dk === 'L' ? 'L' : +dk)); } catch (e) {} toast('已刪除這個多人存檔。'); return mpMenu(); }
     if (a === 'mpleave') return mpLeave();
     if (a === 'mpforce') return mpForce();
     if (a === 'p2pmenu') return p2pMenu();
