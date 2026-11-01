@@ -354,6 +354,15 @@ button{font:inherit;color:inherit}
 }
 #tutbar.tutfloat{position:fixed;left:8px;right:8px;z-index:9000;margin:0!important;max-height:40vh;overflow:auto;box-shadow:0 6px 20px rgba(0,0,0,.6)}
 .chron{list-style:none;margin:0;padding:0}.chron li{display:grid;grid-template-columns:52px minmax(0,1fr);gap:8px;padding:5px 0;border-bottom:1px solid var(--line);font-size:calc(13.5px * var(--fs,1))}.chron .num{color:var(--gold)}
+/* 寬螢幕：下排按鈕全部排得下，不用滑；放大地圖時面板改成左側一整欄 */
+@media (min-width:900px){
+  .actscroll .cmd{flex:1 1 0;min-width:92px}
+  .actscroll{-webkit-mask-image:none;mask-image:none;padding-right:0}
+  .bigmap.bigsel .panel{left:0;right:auto;top:0;bottom:0;width:min(400px,38vw);max-height:none;border-top:0;border-right:2px solid var(--gold);box-shadow:6px 0 18px rgba(0,0,0,.5)}
+}
+#hint{display:none!important}
+.actscroll{cursor:grab}
+@media (pointer:fine){.actscroll{scrollbar-width:thin;scrollbar-color:#c9a24b transparent;padding-bottom:4px}.actscroll::-webkit-scrollbar{display:block;height:8px}.actscroll::-webkit-scrollbar-thumb{background:#c9a24b;border-radius:4px}}
 </style>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
@@ -390,7 +399,7 @@ button{font:inherit;color:inherit}
     <div class="startmap" id="startmap" aria-hidden="true"></div>
     <div class="sc-in gx">
       <p class="eyebrow">MEDIEVAL: WORLD DOMINATION · 1096 AD</p>
-      <p class="muted small" id="verline">版本 v197 · 2026-11-01 · 惡名與反霸權聯盟、世界局勢、開除教籍改成各國自決、商業共和國制裁、教宗調停、信譽型君主、派使節修好；規則與說明更新；手機用電腦版網頁模式時會提醒</p>
+      <p class="muted small" id="verline">版本 v198 · 2026-11-01 · 電腦用滑鼠也能左右捲動下面那排（滾輪、拖曳、捲軸）</p>
       <h1>中世紀：世界霸權</h1>
       <p class="lead">1095 年，教宗在克萊蒙發出號召，整個歐洲動了起來。選一個勢力（共 121 個），再從該文明歷史上的君主裡挑一位登基；在四千多個六角格地塊的世界裡，與基督教世界、伊斯蘭世界與即將到來的蒙古鐵騎周旋。可以結盟借道、派商隊與商船貿易、派密探、遠征遠方、研究科技升級時代、替自己的城市取名。沒有回合上限，直到有人稱霸，或你失去一切。</p>
       <div id="startopts"></div>
@@ -9429,6 +9438,30 @@ if (typeof module !== 'undefined') module.exports = G;
       d.querySelector('button').addEventListener('click', function () { d.remove(); try { sessionStorage.setItem('crusade-dsk', '1'); } catch (e) {} });
       (document.body ? Promise.resolve() : new Promise(function (r) { document.addEventListener('DOMContentLoaded', r); })).then(function () { document.body.appendChild(d); });
     } catch (e) {}
+  })();
+  /* 電腦（滑鼠）也能左右捲動下面那排：滾輪、拖曳都可以 */
+  document.addEventListener('wheel', function (e) {
+    var s = e.target && e.target.closest && e.target.closest('.actscroll'); if (!s || s.scrollWidth <= s.clientWidth + 2) return;
+    var d = Math.abs(e.deltaY) > Math.abs(e.deltaX) ? e.deltaY : e.deltaX; if (!d) return;
+    s.scrollLeft += d; e.preventDefault();
+  }, { passive: false });
+  (function () {
+    var drag = null;
+    document.addEventListener('pointerdown', function (e) { if (e.pointerType !== 'mouse') return; var s = e.target.closest && e.target.closest('.actscroll'); if (!s || s.scrollWidth <= s.clientWidth + 2) return; drag = { s: s, x: e.clientX, l: s.scrollLeft, moved: false }; });
+    document.addEventListener('pointermove', function (e) { if (!drag) return; var dx = e.clientX - drag.x; if (Math.abs(dx) > 6) drag.moved = true; if (drag.moved) drag.s.scrollLeft = drag.l - dx; });
+    document.addEventListener('pointerup', function () { if (drag && drag.moved) { var stop = function (ev) { ev.stopPropagation(); ev.preventDefault(); document.removeEventListener('click', stop, true); }; document.addEventListener('click', stop, true); setTimeout(function () { document.removeEventListener('click', stop, true); }, 50); } drag = null; });
+  })();
+  /* 電腦（滑鼠）也能左右捲動下面那排：滾輪、拖曳都可以 */
+  document.addEventListener('wheel', function (e) {
+    var s = e.target && e.target.closest && e.target.closest('.actscroll'); if (!s || s.scrollWidth <= s.clientWidth + 2) return;
+    var d = Math.abs(e.deltaY) > Math.abs(e.deltaX) ? e.deltaY : e.deltaX; if (!d) return;
+    s.scrollLeft += d; e.preventDefault();
+  }, { passive: false });
+  (function () {
+    var drag = null;
+    document.addEventListener('pointerdown', function (e) { if (e.pointerType !== 'mouse') return; var s = e.target.closest && e.target.closest('.actscroll'); if (!s || s.scrollWidth <= s.clientWidth + 2) return; drag = { s: s, x: e.clientX, l: s.scrollLeft, moved: false }; });
+    document.addEventListener('pointermove', function (e) { if (!drag) return; var dx = e.clientX - drag.x; if (Math.abs(dx) > 6) drag.moved = true; if (drag.moved) drag.s.scrollLeft = drag.l - dx; });
+    document.addEventListener('pointerup', function () { if (drag && drag.moved) { var stop = function (ev) { ev.stopPropagation(); ev.preventDefault(); document.removeEventListener('click', stop, true); }; document.addEventListener('click', stop, true); setTimeout(function () { document.removeEventListener('click', stop, true); }, 50); } drag = null; });
   })();
   window.__g = function () { return g; }; window.__G = G; window.__ui = ui; window.__sel = function (id) { selectHex(id); }; window.__ra = function () { renderAll(); }; window.__focus = function (id, s) { focusOn(id, s); applyView(); };
 })();
