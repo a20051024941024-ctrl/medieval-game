@@ -150,6 +150,15 @@ button{font:inherit;color:inherit}
 .panel::after{content:'';position:sticky;bottom:0;display:block;height:0;pointer-events:none}
 .panel.more::after{content:'▼ 往下滑，還有更多';height:44px;margin:-44px 0 -24px;padding-top:20px;box-sizing:border-box;text-align:center;font-weight:900;font-size:calc(14px * var(--fs,1));color:#f1d48c;text-shadow:0 1px 3px #000;background:linear-gradient(rgba(18,32,39,0),rgba(18,32,39,.96) 55%);animation:mhint 1.4s ease-in-out infinite}
 @keyframes mhint{0%,100%{opacity:.75}50%{opacity:1}}
+.panel::after{content:'';position:sticky;bottom:0;display:block;height:0;pointer-events:none}
+.panel.more::after{content:'▼ 往下滑，還有更多';height:44px;margin:-44px 0 -24px;padding-top:20px;box-sizing:border-box;text-align:center;font-weight:900;font-size:calc(14px * var(--fs,1));color:#f1d48c;text-shadow:0 1px 3px #000;background:linear-gradient(rgba(18,32,39,0),rgba(18,32,39,.96) 55%);animation:mhint 1.4s ease-in-out infinite}
+@keyframes mhint{0%,100%{opacity:.75}50%{opacity:1}}
+.panel::after{content:'';position:sticky;bottom:0;display:block;height:0;pointer-events:none}
+.panel.more::after{content:'▼ 往下滑，還有更多';height:44px;margin:-44px 0 -24px;padding-top:20px;box-sizing:border-box;text-align:center;font-weight:900;font-size:calc(14px * var(--fs,1));color:#f1d48c;text-shadow:0 1px 3px #000;background:linear-gradient(rgba(18,32,39,0),rgba(18,32,39,.96) 55%);animation:mhint 1.4s ease-in-out infinite}
+@keyframes mhint{0%,100%{opacity:.75}50%{opacity:1}}
+.panel::after{content:'';position:sticky;bottom:0;display:block;height:0;pointer-events:none}
+.panel.more::after{content:'▼ 往下滑，還有更多';height:44px;margin:-44px 0 -24px;padding-top:20px;box-sizing:border-box;text-align:center;font-weight:900;font-size:calc(14px * var(--fs,1));color:#f1d48c;text-shadow:0 1px 3px #000;background:linear-gradient(rgba(18,32,39,0),rgba(18,32,39,.96) 55%);animation:mhint 1.4s ease-in-out infinite}
+@keyframes mhint{0%,100%{opacity:.75}50%{opacity:1}}
 .panel{contain:paint;flex:none;max-height:40vh;max-height:44dvh;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;touch-action:pan-y;padding-block:10px 24px;background:linear-gradient(#1a2e35,#122027);border-top:2px solid var(--gold)}
 @media (min-width:900px){.panel{width:340px;max-height:none;border-top:0;border-left:2px solid var(--gold);padding-block:14px}}
 .ph{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
@@ -404,7 +413,7 @@ button{font:inherit;color:inherit}
     <div class="startmap" id="startmap" aria-hidden="true"></div>
     <div class="sc-in gx">
       <p class="eyebrow">MEDIEVAL: WORLD DOMINATION · 1096 AD</p>
-      <p class="muted small" id="verline">版本 v183 · 2026-11-01 · 國名要拉得更遠才出現，字也小一點，不再蓋住地圖</p>
+      <p class="muted small" id="verline">版本 v184 · 2026-11-01 · 新手引導加一步：教你怎麼選地塊、怎麼取消選取（共 6 步）</p>
       <h1>中世紀：世界霸權</h1>
       <p class="lead">1095 年，教宗在克萊蒙發出號召，整個歐洲動了起來。選一個勢力（共 121 個），再從該文明歷史上的君主裡挑一位登基；在四千多個六角格地塊的世界裡，與基督教世界、伊斯蘭世界與即將到來的蒙古鐵騎周旋。可以結盟借道、派商隊與商船貿易、派密探、遠征遠方、研究科技升級時代、替自己的城市取名。沒有回合上限，直到有人稱霸，或你失去一切。</p>
       <div id="startopts"></div>
@@ -7444,26 +7453,30 @@ if (typeof module !== 'undefined') module.exports = G;
     }
     while (adv && guard++ < 6) {
       adv = false;
-      if (T.step === 0 && own && sp.L > 0) { T.step = 1; T.gold = fs.gold; T.ack = false; adv = true; }
+      if (T.step === 0 && !T.d && own && sp.L > 0) { T.d = 1; adv = true; }
+      else if (T.step === 0 && T.d === 1 && ui.sel == null) { T.d = 2; adv = true; }
+      else if (T.step === 0 && T.d === 2 && own && sp.L > 0) { T.step = 1; T.gold = fs.gold; T.ack = false; adv = true; }
       else if (T.step === 1 && (fs.gold < T.gold || (fs.gold < G.recruitCost(f).gold && T.ack))) { T.step = 2; T.s2 = ui.sel; T.ack = false; adv = true; }
       else if (T.step === 2 && ((best == null && T.ack) || (best != null && own && sp.t >= 3 && tutHostile(f, ui.sel) && (ui.sel !== T.s2 || T.ack)))) { T.step = 3; T.ap = g.ap; T.ack = false; adv = true; }
       else if (T.step === 3 && (g.ap < T.ap || g.ap <= 0 || best == null)) { T.step = 4; T.turn = g.turn; T.ack = false; adv = true; }
       else if (T.step === 4 && g.turn > T.turn) { T.step = 5; adv = true; }
     }
     var cp = G.placeName(G.CAPITAL[f]), spec = null, tx, ackBtn = false;
-    if (T.step === 0) { tx = '第 1 步：這是新手引導，跟著 👆 手指做就好。先點地圖上手指指的首都「' + cp + '」。'; spec = { hex: G.CAPITAL[f] }; }
-    else if (T.step === 1 && fs.gold < G.recruitCost(f).gold) { tx = '第 2 步：補兵要花金幣，你現在錢不夠，這步先跳過。之後有錢時，點城按「徵…」就能補兵。'; ackBtn = true; }
-    else if (T.step === 1) { tx = '第 2 步：點得好！現在按下面面板裡的「徵…」補兵（不耗行動點；錢不夠會自動跳過）。'; spec = own && sp.L > 0 ? { sel: '[data-act=recruit]' } : { hex: G.CAPITAL[f] }; }
-    else if (T.step === 2 && best == null) { tx = '第 3～4 步（出兵）：你的部隊現在沒有可以出發的地方，這兩步先跳過。'; ackBtn = true; }
-    else if (T.step === 2 && own && sp.t >= 3 && tutHostile(f, ui.sel) && ui.sel === T.s2) { tx = '第 3 步：這塊地的兵最多，要從這裡出兵，已經幫你選好了。看清楚後按「下一步」。'; ackBtn = true; }
-    else if (T.step === 2) { tx = '第 3 步：點手指指的那一格（你兵最多的地塊），準備從這裡出兵。'; spec = { hex: best }; }
+    if (T.step === 0) { tx = '第 1 步：這是新手引導，跟著 👆 手指做就好。先點地圖上手指指的首都「' + cp + '」。'; spec = { hex: G.CAPITAL[f] };
+      if (T.d === 1) { tx = '第 2 步：選到了！被選的地塊會有金框，下面面板顯示它的資料。點錯時要「取消選取」：按面板右上角的 ✕，或再點一次同一格。現在試試看把它取消。'; spec = ui.sel != null ? { sel: '[data-act=desel]' } : null; }
+      else if (T.d === 2) { tx = '第 2 步：取消成功，金框不見了！要選哪塊地就直接點它。現在再點一次首都「' + cp + '」把它選回來。'; } }
+    else if (T.step === 1 && fs.gold < G.recruitCost(f).gold) { tx = '第 3 步：補兵要花金幣，你現在錢不夠，這步先跳過。之後有錢時，點城按「徵…」就能補兵。'; ackBtn = true; }
+    else if (T.step === 1) { tx = '第 3 步：點得好！現在按下面面板裡的「徵…」補兵（不耗行動點；錢不夠會自動跳過）。'; spec = own && sp.L > 0 ? { sel: '[data-act=recruit]' } : { hex: G.CAPITAL[f] }; }
+    else if (T.step === 2 && best == null) { tx = '第 4～5 步（出兵）：你的部隊現在沒有可以出發的地方，這兩步先跳過。'; ackBtn = true; }
+    else if (T.step === 2 && own && sp.t >= 3 && tutHostile(f, ui.sel) && ui.sel === T.s2) { tx = '第 4 步：這塊地的兵最多，要從這裡出兵，已經幫你選好了。看清楚後按「下一步」。'; ackBtn = true; }
+    else if (T.step === 2) { tx = '第 4 步：點手指指的那一格（你兵最多的地塊），準備從這裡出兵。'; spec = { hex: best }; }
     else if (T.step === 3) {
-      if (own && tutHostile(f, ui.sel)) { if (ui.target != null) { tx = '第 4 步：按下面「確認」，讓部隊真的出發（用 1 點行動）。'; spec = { sel: '[data-act=go]' }; } else { tx = '第 4 步：點手指指的鄰格，把它選成出兵目標（攻擊敵人或調兵都可以）。'; spec = { hex: tutFoe(f, ui.sel) }; } }
-      else { tx = '第 3 步：先點手指指的那一格（你兵最多的地塊）。'; spec = { hex: best }; }
+      if (own && tutHostile(f, ui.sel)) { if (ui.target != null) { tx = '第 5 步：按下面「確認」，讓部隊真的出發（用 1 點行動）。'; spec = { sel: '[data-act=go]' }; } else { tx = '第 5 步：點手指指的鄰格，把它選成出兵目標（攻擊敵人或調兵都可以）。'; spec = { hex: tutFoe(f, ui.sel) }; } }
+      else { tx = '第 4 步：先點手指指的那一格（你兵最多的地塊）。'; spec = { hex: best }; }
     }
-    else if (T.step === 4) { tx = '第 5 步：這一年做完了，按「結束回合」進入下一年。'; spec = { sel: '[data-act=end]' }; }
+    else if (T.step === 4) { tx = '第 6 步：這一年做完了，按「結束回合」進入下一年。'; spec = { sel: '[data-act=end]' }; }
     else tx = '🎉 引導完成！之後上方的 💡 會繼續提示你下一步。';
-    return { n: T.step + 1, text: tx, done: T.step === 5, spec: T.step === 5 ? null : spec, ack: ackBtn };
+    return { n: T.step === 0 ? (T.d ? 2 : 1) : T.step + 2, text: tx, done: T.step === 5, spec: T.step === 5 ? null : spec, ack: ackBtn };
   }
   function tutEl(spec) {
     if (!spec) return null;
@@ -7484,7 +7497,8 @@ if (typeof module !== 'undefined') module.exports = G;
       if (mb0.width < 26 || mb0.left < mv0.left || mb0.right > mv0.right || mb0.top < mv0.top || mb0.bottom > mv0.bottom) { try { focusOn(r.spec.hex, mvSize().w < 640 ? 5.6 : 3.3); applyView(); renderMap(); el = tutEl(r.spec) || el; } catch (x) {} }
     }
     var b = el.getBoundingClientRect(), ft = document.querySelector('footer.bar');
-    if (el.tagName !== 'polygon' && ft && ft.getBoundingClientRect().top < b.bottom + 6 && ft.getBoundingClientRect().top > 0) { try { el.scrollIntoView({ block: 'center' }); } catch (x) {} b = el.getBoundingClientRect(); }
+    var pn9 = el.closest && el.closest('#panel'), pr9 = pn9 ? pn9.getBoundingClientRect() : null;
+    if (el.tagName !== 'polygon' && ((pr9 && (b.top < pr9.top + 2 || b.bottom > pr9.bottom - 2)) || (ft && ft.getBoundingClientRect().top < b.bottom + 6 && ft.getBoundingClientRect().top > 0))) { try { el.scrollIntoView({ block: 'center' }); } catch (x) {} b = el.getBoundingClientRect(); }
     var cx = b.left + b.width / 2, cy = b.top + b.height / 2, below = b.bottom < window.innerHeight - 90;
     hd.hidden = false; rg.hidden = false;
     hd.textContent = below ? '👆' : '👇';
@@ -7500,7 +7514,7 @@ if (typeof module !== 'undefined') module.exports = G;
     var anchor = document.getElementById('goalbar') || document.getElementById('msnbar') || $('#hint');
     if (!tb) { tb = document.createElement('div'); tb.id = 'tutbar'; tb.style.cssText = 'margin:6px 0 0;padding:8px 10px;border-radius:10px;background:#3a2a52;border:1px solid #c9a24b;color:#fff;font-size:13.5px;line-height:1.5'; anchor.insertAdjacentElement('afterend', tb); }
     tb.hidden = false; if (gb) gb.style.display = 'none';
-    var html = '<b style="color:#ffd97a">簡單模式引導 ' + (r.done ? '' : r.n + '/5 ') + '</b> ' + r.text + ' ' + (r.ack ? '<button data-act="tutack" style="margin-left:6px;padding:3px 10px;border-radius:8px;border:1px solid #ffd97a;background:#ffd97a;color:#3a2a52;font-size:13px;font-weight:700">下一步</button>' : '') + '<button data-act="tutskip" style="margin-left:6px;padding:2px 8px;border-radius:8px;border:1px solid #c9a24b;background:transparent;color:#ffd97a;font-size:12px">' + (r.done ? '知道了' : '跳過引導') + '</button>';
+    var html = '<b style="color:#ffd97a">簡單模式引導 ' + (r.done ? '' : r.n + '/6 ') + '</b> ' + r.text + ' ' + (r.ack ? '<button data-act="tutack" style="margin-left:6px;padding:3px 10px;border-radius:8px;border:1px solid #ffd97a;background:#ffd97a;color:#3a2a52;font-size:13px;font-weight:700">下一步</button>' : '') + '<button data-act="tutskip" style="margin-left:6px;padding:2px 8px;border-radius:8px;border:1px solid #c9a24b;background:transparent;color:#ffd97a;font-size:12px">' + (r.done ? '知道了' : '跳過引導') + '</button>';
     if (tb.getAttribute('data-h') !== html) { tb.innerHTML = html; tb.setAttribute('data-h', html); }
   }
   /* 強制：引導中只准點指定的地方（拖曳、縮放地圖不受影響） */
