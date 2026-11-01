@@ -123,6 +123,24 @@ button{font:inherit;color:inherit}
 .log li{display:grid;grid-template-columns:62px minmax(0,1fr);gap:8px;padding:6px 0;border-bottom:1px solid var(--line);font-size:calc(14px * var(--fs,1))}
 .log .when{font-size:calc(12px * var(--fs,1));color:var(--muted);padding-top:2px}
 .log .k-good span:last-child{color:var(--good)} .log .k-bad span:last-child{color:var(--bad)}
+.panel::after{content:'';position:sticky;bottom:0;display:block;height:0;pointer-events:none}
+.panel.more::after{content:'▼ 往下滑，還有更多';height:44px;margin:-44px 0 -24px;padding-top:20px;box-sizing:border-box;text-align:center;font-weight:900;font-size:calc(14px * var(--fs,1));color:#f1d48c;text-shadow:0 1px 3px #000;background:linear-gradient(rgba(18,32,39,0),rgba(18,32,39,.96) 55%);animation:mhint 1.4s ease-in-out infinite}
+@keyframes mhint{0%,100%{opacity:.75}50%{opacity:1}}
+.panel::after{content:'';position:sticky;bottom:0;display:block;height:0;pointer-events:none}
+.panel.more::after{content:'▼ 往下滑，還有更多';height:44px;margin:-44px 0 -24px;padding-top:20px;box-sizing:border-box;text-align:center;font-weight:900;font-size:calc(14px * var(--fs,1));color:#f1d48c;text-shadow:0 1px 3px #000;background:linear-gradient(rgba(18,32,39,0),rgba(18,32,39,.96) 55%);animation:mhint 1.4s ease-in-out infinite}
+@keyframes mhint{0%,100%{opacity:.75}50%{opacity:1}}
+.panel::after{content:'';position:sticky;bottom:0;display:block;height:0;pointer-events:none}
+.panel.more::after{content:'▼ 往下滑，還有更多';height:44px;margin:-44px 0 -24px;padding-top:20px;box-sizing:border-box;text-align:center;font-weight:900;font-size:calc(14px * var(--fs,1));color:#f1d48c;text-shadow:0 1px 3px #000;background:linear-gradient(rgba(18,32,39,0),rgba(18,32,39,.96) 55%);animation:mhint 1.4s ease-in-out infinite}
+@keyframes mhint{0%,100%{opacity:.75}50%{opacity:1}}
+.panel::after{content:'';position:sticky;bottom:0;display:block;height:0;pointer-events:none}
+.panel.more::after{content:'▼ 往下滑，還有更多';height:44px;margin:-44px 0 -24px;padding-top:20px;box-sizing:border-box;text-align:center;font-weight:900;font-size:calc(14px * var(--fs,1));color:#f1d48c;text-shadow:0 1px 3px #000;background:linear-gradient(rgba(18,32,39,0),rgba(18,32,39,.96) 55%);animation:mhint 1.4s ease-in-out infinite}
+@keyframes mhint{0%,100%{opacity:.75}50%{opacity:1}}
+.panel::after{content:'';position:sticky;bottom:0;display:block;height:0;pointer-events:none}
+.panel.more::after{content:'▼ 往下滑，還有更多';height:44px;margin:-44px 0 -24px;padding-top:20px;box-sizing:border-box;text-align:center;font-weight:900;font-size:calc(14px * var(--fs,1));color:#f1d48c;text-shadow:0 1px 3px #000;background:linear-gradient(rgba(18,32,39,0),rgba(18,32,39,.96) 55%);animation:mhint 1.4s ease-in-out infinite}
+@keyframes mhint{0%,100%{opacity:.75}50%{opacity:1}}
+.panel::after{content:'';position:sticky;bottom:0;display:block;height:0;pointer-events:none}
+.panel.more::after{content:'▼ 往下滑，還有更多';height:44px;margin:-44px 0 -24px;padding-top:20px;box-sizing:border-box;text-align:center;font-weight:900;font-size:calc(14px * var(--fs,1));color:#f1d48c;text-shadow:0 1px 3px #000;background:linear-gradient(rgba(18,32,39,0),rgba(18,32,39,.96) 55%);animation:mhint 1.4s ease-in-out infinite}
+@keyframes mhint{0%,100%{opacity:.75}50%{opacity:1}}
 .panel{contain:paint;flex:none;max-height:40vh;max-height:44dvh;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;touch-action:pan-y;padding-block:10px 24px;background:linear-gradient(#1a2e35,#122027);border-top:2px solid var(--gold)}
 @media (min-width:900px){.panel{width:340px;max-height:none;border-top:0;border-left:2px solid var(--gold);padding-block:14px}}
 .ph{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
@@ -154,7 +172,10 @@ button{font:inherit;color:inherit}
 .apbar i{display:block;height:100%;background:#f1d48c}
 .apd{width:14px;height:14px;transform:rotate(45deg);border:2px solid var(--gold)}
 .apd.on{background:var(--gold)}
-.acts{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:5px}
+.acts{display:block;min-width:0}
+.actscroll{display:flex;gap:5px;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;scrollbar-width:none;touch-action:pan-x;padding-right:18px;-webkit-mask-image:linear-gradient(90deg,#000 88%,transparent);mask-image:linear-gradient(90deg,#000 88%,transparent)}
+.actscroll::-webkit-scrollbar{display:none}
+.actscroll .cmd{flex:0 0 calc((100% - 15px) / 4.3);min-width:76px;scroll-snap-align:start}
 .acts .cmd small{font-size:calc(10px * var(--fs,1))}
 .acts .cmd b{font-size:calc(13px * var(--fs,1))}
 .dip{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:6px;margin-bottom:6px}
@@ -207,14 +228,14 @@ button{font:inherit;color:inherit}
 .bg{pointer-events:none}
 .bg .pl{stroke:#f4ead0;stroke-opacity:.9;stroke-width:1.5}
 .bg.dim{opacity:.5}
-.tn{font-family:var(--f-n);font-weight:700;font-size:calc(15px * var(--fs,1));fill:#fff;paint-order:stroke;stroke:rgba(0,0,0,.65);stroke-width:2.6px;stroke-linejoin:round}
+.tn{font-family:var(--f-n);font-weight:700;font-size:calc(19px * var(--fs,1));fill:#fff;paint-order:stroke;stroke:rgba(0,0,0,.75);stroke-width:3.4px;stroke-linejoin:round}
 .cty{fill:#f7efd6;stroke:#1a1405;stroke-width:1.1;stroke-linejoin:round}
 .cap{fill:var(--gold2);stroke:#000;stroke-opacity:.55;stroke-width:.8}
 .pip{fill:#0d1114;fill-opacity:.7;stroke:#f1d48c;stroke-width:1.2}
 .pip.on{fill:#f1d48c}
-.nm{pointer-events:none;font-family:var(--f-b);font-weight:700;font-size:calc(11.5px * var(--fs,1));fill:#fff;paint-order:stroke;stroke:rgba(5,10,12,.9);stroke-width:3.4px;stroke-linejoin:round}
+.nm{pointer-events:none;font-family:var(--f-b);font-weight:700;font-size:calc(17px * var(--fs,1));fill:#fff;paint-order:stroke;stroke:rgba(5,10,12,.92);stroke-width:4.6px;stroke-linejoin:round}
 .mapsvg .nm.l2,.mapsvg .nm.l1{display:none}
-.mapsvg .nm.cp{display:inline;fill:#ffe08a;font-size:calc(14px * var(--fs,1));font-weight:900;stroke-width:4.6px}
+.mapsvg .nm.cp{display:inline;fill:#ffe08a;font-size:calc(21px * var(--fs,1));font-weight:900;stroke-width:5.6px}
 .mapsvg.z2 .nm.l2{display:inline}
 .mapsvg.z1 .bg.neu{display:none}
 .gh{grid-column:1/-1;margin:16px 0 0;font-size:calc(15px * var(--fs,1));letter-spacing:.25em;color:var(--gold)}
@@ -374,7 +395,7 @@ button{font:inherit;color:inherit}
     <div class="startmap" id="startmap" aria-hidden="true"></div>
     <div class="sc-in gx">
       <p class="eyebrow">MEDIEVAL: WORLD DOMINATION · 1096 AD</p>
-      <p class="muted small" id="verline">版本 v181 · 2026-11-01 · 介面文字預設放大並可選標準／大／特大；開局依領土拉近；縮小幾步就顯示更大更清楚的國名</p>
+      <p class="muted small" id="verline">版本 v182 · 2026-11-01 · 地圖城名、兵力數字放大；開局再拉近；面板可下滑時顯示提示；最下排按鈕可左右滑動，常用的放最前面</p>
       <h1>中世紀：世界霸權</h1>
       <p class="lead">1095 年，教宗在克萊蒙發出號召，整個歐洲動了起來。選一個勢力（共 121 個），再從該文明歷史上的君主裡挑一位登基；在四千多個六角格地塊的世界裡，與基督教世界、伊斯蘭世界與即將到來的蒙古鐵騎周旋。可以結盟借道、派商隊與商船貿易、派密探、遠征遠方、研究科技升級時代、替自己的城市取名。沒有回合上限，直到有人稱霸，或你失去一切。</p>
       <div id="startopts"></div>
@@ -6633,7 +6654,7 @@ if (typeof module !== 'undefined') module.exports = G;
   /* 開局的拉近程度：領地大的勢力至少 13 倍，領地越少越近 */
   function openZoom(f) {
     var n = G.owned(g, f).length, wide = mvSize().w >= 640;
-    var s = n >= 60 ? 13 : n >= 30 ? 15 : n >= 12 ? 17 : 19;
+    var s = n >= 60 ? 14 : n >= 30 ? 16 : n >= 12 ? 18 : 20;
     return wide ? s * 0.6 : s;
   }
   function dist(a, b) { var dx = a.x - b.x, dy = a.y - b.y; return Math.sqrt(dx * dx + dy * dy) || 1; }
@@ -7818,16 +7839,15 @@ if (typeof module !== 'undefined') module.exports = G;
     $('#ap').innerHTML = '<span class="apdots" aria-hidden="true">' + dots + '</span><span>行動點 <span class="num">' + g.ap + '/' + (g.apCap || G.AP_MAX) + '</span></span><span class="muted">· 可動 <span class="num">' + idle + '</span></span>';
     var noap = g.ap <= 0, tg = G.tradeGain(g, f), rc = G.ritualCost(), canRit = G.canPay(g, f, rc) && G.festLeft(g, f) === 0;
     var wars = G.FIDS.filter(function (x) { return x !== f && g.fac[x].alive && G.rel(g, f, x).state === 'war'; }).length;
-    $('#acts').innerHTML =
-      cmd('trade', 'trade', '貿易', '商隊 ' + G.carActive(g, f).length + '/' + G.carMax(g, f), false) +
-      cmd('spy', 'build', '間諜', G.spyLeft(g, f) ? '可出動' : '本回合已用', false) +
-      cmd('ritual', 'ritual', '慶典', G.festLeft(g, f) > 0 ? '再等 ' + G.festLeft(g, f) + ' 回合' : '民心+' + G.ritualGain(f) + '・文化+60', !canRit) +
-      (function () {
-        var ts = G.techState(g, f);
-        return cmd('tech', 'build', '科技樹', ts.n + '/' + ts.total + (ts.avail.length ? ' · 可研究 ' + ts.avail.length : ''), false);
-      })() +
+    var ts0 = G.techState(g, f);
+    $('#acts').innerHTML = '<div class="actscroll">' +
       cmd('dip', 'dip', '外交', wars ? '交戰 ' + wars : '條約同盟', false) +
+      cmd('tech', 'build', '科技樹', ts0.n + '/' + ts0.total + (ts0.avail.length ? ' · 可研究 ' + ts0.avail.length : ''), false) +
+      cmd('trade', 'trade', '貿易', '商隊 ' + G.carActive(g, f).length + '/' + G.carMax(g, f), false) +
       cmd('log', 'log', '戰報', '最近事件', false, ui.log) +
+      cmd('ritual', 'ritual', '慶典', G.festLeft(g, f) > 0 ? '再等 ' + G.festLeft(g, f) + ' 回合' : '民心+' + G.ritualGain(f) + '・文化+60', !canRit) +
+      cmd('spy', 'build', '間諜', G.spyLeft(g, f) ? '可出動' : '本回合已用', false) +
+      '</div>' +
       '<button class="cmd primary" data-act="end">' + ic('end') + '<b>' + (ui.confirmEnd ? '確認結束' : '結束回合') + '</b><small>' + (ui.confirmEnd ? '尚有 ' + g.ap + ' 點／' + idle + ' 隊' : '下一年') + '</small></button>';
     var d = $('#dip'); d.hidden = true; d.innerHTML = '';
   }
@@ -8524,6 +8544,15 @@ if (typeof module !== 'undefined') module.exports = G;
   })();
   document.addEventListener('visibilitychange', function () { if (document.hidden) MUSIC.pause(); else MUSIC.auto(); });
 
+  /* 面板可以往下滑：還有內容沒看到時，底部顯示淡出與提示 */
+  (function () {
+    var pn = document.getElementById('panel'); if (!pn) return;
+    function upd() { try { pn.classList.toggle('more', pn.scrollHeight > pn.clientHeight + 8 && pn.scrollTop + pn.clientHeight < pn.scrollHeight - 10); } catch (e) {} }
+    pn.addEventListener('scroll', upd, { passive: true });
+    window.addEventListener('resize', upd);
+    if (window.MutationObserver) new MutationObserver(function () { setTimeout(upd, 30); }).observe(pn, { childList: true });
+    setInterval(upd, 1500);
+  })();
   window.__g = function () { return g; }; window.__G = G; window.__ui = ui; window.__sel = function (id) { selectHex(id); }; window.__ra = function () { renderAll(); }; window.__focus = function (id, s) { focusOn(id, s); applyView(); };
 })();
 
