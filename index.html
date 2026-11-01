@@ -390,7 +390,7 @@ button{font:inherit;color:inherit}
     <div class="startmap" id="startmap" aria-hidden="true"></div>
     <div class="sc-in gx">
       <p class="eyebrow">MEDIEVAL: WORLD DOMINATION · 1096 AD</p>
-      <p class="muted small" id="verline">版本 v196 · 2026-11-01 · 商隊改成跟商船一樣；繼承危機；騎士團；遠征任務；歷史編年史；國債；開除教籍；宋遼金蒙史實線</p>
+      <p class="muted small" id="verline">版本 v197 · 2026-11-01 · 惡名與反霸權聯盟、世界局勢、開除教籍改成各國自決、商業共和國制裁、教宗調停、信譽型君主、派使節修好；規則與說明更新；手機用電腦版網頁模式時會提醒</p>
       <h1>中世紀：世界霸權</h1>
       <p class="lead">1095 年，教宗在克萊蒙發出號召，整個歐洲動了起來。選一個勢力（共 121 個），再從該文明歷史上的君主裡挑一位登基；在四千多個六角格地塊的世界裡，與基督教世界、伊斯蘭世界與即將到來的蒙古鐵騎周旋。可以結盟借道、派商隊與商船貿易、派密探、遠征遠方、研究科技升級時代、替自己的城市取名。沒有回合上限，直到有人稱霸，或你失去一切。</p>
       <div id="startopts"></div>
@@ -1434,7 +1434,7 @@ function chron(g, f, t) {
   var y = year(g); if (c.length && c[c.length - 1].t === t && c[c.length - 1].y === y) return;
   c.push({ y: y, t: t }); if (c.length > 400) c.splice(0, c.length - 400);
 }
-function chronAll(g, t) { humansOf(g).forEach(function (f) { chron(g, f, t); }); }
+function chronAll(g, t) { if (typeof wlog === 'function') wlog(g, t); humansOf(g).forEach(function (f) { chron(g, f, t); }); }
 function titleTick(g) {
   var tt = g.tt || (g.tt = {}); _TT = tt;
   Object.keys(TITLES).forEach(function (f) {
@@ -1443,6 +1443,7 @@ function titleTick(g) {
     if (t > old) {
       var o = nm(f); tt[f] = t;
       if (g.turn > 1 && f === g.player) logMsg(g, '你的勢力壯大了：「' + o + '」升格為「' + nm(f) + '」。', 'good');
+      if (g.turn > 1) wlog(g, '「' + o + '」升格為「' + nm(f) + '」。');
       if (g.turn > 1) chron(g, f, '「' + o + '」升格為「' + nm(f) + '」。');
     }
   });
@@ -1655,7 +1656,7 @@ function activeTrades(g, f) {
 }
 function tradeGain(g, f) {
   var mult = f === 'ita' ? 1.5 : f === 'byz' ? 1.2 : f === 'kara' ? 1.2 : f === 'song' ? 1.2 : 1;
-  return Math.round((10 + 3 * portsOpen(g, f) + 3 * bldCount(g, f, 'hb')) * mult * moraleMult(g.fac[f].morale) * (1 + 0.3 * activeTrades(g, f)));
+  return Math.round((10 + 3 * portsOpen(g, f) + 3 * bldCount(g, f, 'hb')) * mult * moraleMult(g.fac[f].morale) * (1 + 0.3 * activeTrades(g, f)) * (sancOf(g, f) ? 0.5 : 1));
 }
 function ritualCost() { return { gold: 60, food: 10 }; }
 function festLeft(g, f) { var t = g.fest && g.fest[f]; return t === undefined ? 0 : Math.max(0, 4 - (g.turn - t)); }
@@ -2599,6 +2600,7 @@ function merchantTick(g) {
       total += gain; ok++; lastDest = best;
       if (mid >= 0) g.mtr.push({ f: f, h: mid });
     }
+    if (total && sancOf(g, f)) total = Math.round(total / 2);
     if (total) fs.gold += total;
     if (sunk) fs.ms = Math.max(0, fs.ms - sunk);
     if (f === g.player) {
@@ -2851,6 +2853,7 @@ function refreshAlive(g) {
     if (g.fac[f].alive) g.fac[f].everAlive = true;
     if (was && !g.fac[f].alive) {
       logMsg(g, nm(f) + '失去了所有領地，退出歷史舞台。', f === g.player ? 'bad' : 'war');
+      wlog(g, nm(f) + '滅亡' + (g.lastHit && g.lastHit[f] ? '（被' + nm(g.lastHit[f]) + '所滅）' : '') + '。');
       { var kb0 = g.lastHit && g.lastHit[f]; if (kb0 && isHum(g, kb0)) chron(g, kb0, '消滅了' + nm(f) + '。'); if (isHum(g, f)) chron(g, f, '失去所有領地，王朝覆滅。'); }
       (g.fallen || (g.fallen = [])).push({ f: f, t: g.turn, y: year(g), by: (g.lastHit && g.lastHit[f]) || null }); if (g.fallen.length > 60) g.fallen.shift();
       { var kb = g.lastHit && g.lastHit[f]; if (kb && kb !== f) { var kl = g.kl || (g.kl = {}); (kl[kb] || (kl[kb] = [])).push({ f: f, y: year(g) }); } }
@@ -2863,6 +2866,7 @@ function conquer(g, f, id, left, prev, mix) {
   if (prev) (g.lastHit || (g.lastHit = {}))[prev] = f;
   addRx(g, f, CITY[id] ? 4 : 2);
   if (CITY[id] && (isHum(g, f) || (prev && isHum(g, prev)))) { var big = CAPITAL[prev] === id || CITY[id].lv >= 3; if (big || isHum(g, f) && CITY[id].lv >= 2) { if (isHum(g, f)) chron(g, f, '攻下' + placeName(id) + (prev ? '（原屬' + nm(prev) + '）' : '') + '。'); if (prev && isHum(g, prev)) chron(g, prev, placeName(id) + '被' + nm(f) + '攻陷。'); } }
+  if (prev && prev !== f) { infAdd(g, f, CAPITAL[prev] === id ? 8 : CITY[id] ? 3 : 1); if (CAPITAL[prev] === id && (ownedTotal(g, prev) >= 15 || isHum(g, f))) wlog(g, nm(f) + '攻下了' + nm(prev) + '的首都' + placeName(id) + '。'); }
   p.o = f; _own = null; p.t = left; p.acted = true; p.cq = g.turn; p.sg = 0; if (p.w) p.w--; if (p.b && p.b.length) p.b.pop();
   if (f === g.player && relAt(g, id).length) logMsg(g, '你佔領了' + placeName(id) + '，這裡藏有神器：' + relAt(g, id).map(function (i) { return RELICS[i][0]; }).join('、') + '。派將領到此就能裝備。', 'good');
   setMix(p, mix || DEFMIX[f] || DEFMIX_ANY);
@@ -3079,6 +3083,7 @@ var P = {
   ordch: function (g, k, id) { return actOrdChapter(g, g.player, k, id); },
   borrow: function (g, amt, k) { return actBorrow(g, g.player, amt, k); },
   repay: function (g, amt) { return actRepay(g, g.player, amt); },
+  envoy: function (g) { return spendAP(g, function () { return actEnvoy(g, g.player); }); },
   cvbuild: function (g) { if (g.over) return fail('遊戲已結束。'); return spendAP(g, function () { return actCvBuild(g, g.player); }); },
   cvroute: function (g, from, to) { return actCvRoute(g, g.player, from, to); },
   caravan: function (g, id) { if (g.over) return fail('遊戲已結束。'); if (!g.evResolved) return fail('請先處理事件。'); return actCaravan(g, g.player, id); },
@@ -3645,6 +3650,7 @@ function acceptChance(g, type, f, x) {
   p += Math.min(0.25, 0.012 * (r.gf | 0));
   if (f === 'byz' && type !== 'aid') p += 0.1;
   if ((f === 'pap' || f === 'abb') && type !== 'aid') p += 0.05;
+  if (type !== 'peace') p -= infOf(g, f) / 250;
   return clamp(p, 0.05, 0.92);
 }
 function dipInfo(g, f, x) {
@@ -3708,7 +3714,9 @@ function declareWar(g, a, b, cause) {
   var breach = r.truce > 0, betray = r.state === 'ally', fs = g.fac[a];
   if (g.mar && g.mar[marKey(a, b)]) { delete g.mar[marKey(a, b)]; fs.morale = clamp(fs.morale - 6, 0, 100); g.rep[a] = clamp(g.rep[a] - 25, 0, 100); logRel(g, a, b, nm(a) + '撕毀了與' + nm(b) + '的姻親關係，諸國側目。', 'bad'); }
   r.state = 'war'; r.truce = 0; r.trade = 0; r.warT = 0;
-  if (betray) { fs.morale = clamp(fs.morale - 12, 0, 100); g.rep[a] = clamp(g.rep[a] - 30, 0, 100); }
+  if (betray) { fs.morale = clamp(fs.morale - 12, 0, 100); g.rep[a] = clamp(g.rep[a] - 30, 0, 100); infAdd(g, a, 10); }
+  else if (!cause) infAdd(g, a, breach ? 8 : 3);
+  if (MERCH[b] && a !== b) { (g.sanc || (g.sanc = {}))[a] = g.turn + 8; FIDS.forEach(function (c) { if (c !== a && rel(g, c, b).trade > 0) rel(g, a, c).trade = 0; }); logMsg(g, '💰 ' + nm(a) + '攻打商業共和國' + nm(b) + '，各地商人聯合抵制：8 回合內' + nm(a) + '的貿易、商隊、商船收入減半，跟' + nm(b) + '的貿易夥伴解除協定。', a === g.player ? 'bad' : 'war'); wlog(g, nm(a) + '攻打' + nm(b) + '，遭到各地商人抵制。'); }
   else if (breach) { fs.morale = clamp(fs.morale - 8, 0, 100); g.rep[a] = clamp(g.rep[a] - 20, 0, 100); }
   else if (!cause) g.rep[a] = clamp(g.rep[a] - 5, 0, 100);
   logRel(g, a, b, nm(a) + '向' + nm(b) + '宣戰' + (betray ? '，背棄了盟約' : breach ? '，撕毀了條約' : '') + '。', 'bad');
@@ -3731,21 +3739,29 @@ function declareWar(g, a, b, cause) {
 }
 function excommunicate(g, a) {
   (g.exc || (g.exc = {}))[a] = g.turn;
-  var n = 0;
+  var n = 0, joined = [], sided = [], askd = [], already = [];
+  infAdd(g, a, 15);
   FIDS.forEach(function (c) {
     if (c === a || c === 'pap' || !g.fac[c] || !g.fac[c].alive || FACTIONS[c].rel !== 'cath') return;
     if (lordOf(g, c) === a) return;
-    if (rel(g, c, a).state === 'war') return;
-    declareWar(g, c, a, true); n++;
+    var rc = rel(g, c, a);
+    if (rc.state === 'war') { already.push(c); return; }
+    if (rc.state === 'ally') { if (Math.random() < 0.5) sided.push(c); else { rc.state = 'peace'; rc.truce = 0; askd.push(c); } return; }
+    var busy = FIDS.some(function (y) { return y !== c && y !== a && g.fac[y] && g.fac[y].alive && rel(g, c, y).state === 'war'; });
+    var p = 0.3 + (borderOf(g, c, a) ? 0.25 : 0) + (strength(g, c) > strength(g, a) ? 0.15 : 0) - (busy ? 0.3 : 0) + (100 - (g.rep[a] || 50)) / 250 + infOf(g, a) / 300 - (c === 'hre' ? 0.25 : 0) + (FACTIONS[c].aggr - 0.5) * 0.3;
+    if (isHum(g, c)) { asPlayer(g, c, function () { logMsg(g, '⛪ 教宗號召你討伐被開除教籍的' + nm(a) + '。要不要出兵由你決定（外交選單可以宣戰）。', 'info'); }); return; }
+    if (Math.random() < clamp(p, 0.05, 0.9)) { declareWar(g, c, a, true); joined.push(c); n++; }
+    else if (Math.random() < 0.5) askd.push(c);
   });
+  wlog(g, '教宗開除' + nm(a) + '的教籍。' + (joined.length ? joined.map(nm).join('、') + '響應教宗出兵；' : '沒有國家出兵；') + (sided.length ? sided.map(nm).join('、') + '站在' + nm(a) + '這邊；' : '') + (askd.length ? askd.map(nm).join('、') + '要求' + nm(a) + '停戰。' : ''));
   if (g.ord) Object.keys(g.ord).forEach(function (k) { if (g.ord[k].fav) g.ord[k].fav[a] = 0; });
   if (g.rep) g.rep[a] = clamp((g.rep[a] || 50) - 20, 0, 100);
   if (g.fac[a]) g.fac[a].morale = clamp(g.fac[a].morale - (FACTIONS[a].rel === 'cath' ? 10 : 3), 0, 100);
   chron(g, a, '被教宗開除教籍，天主教諸國群起討伐。');
-  logMsg(g, '⛪ 教宗宣布開除' + nm(a) + '的教籍，號召基督徒討伐！' + n + ' 個天主教國家一起向' + nm(a) + '宣戰。', a === g.player ? 'bad' : 'war');
+  logMsg(g, '⛪ 教宗宣布開除' + nm(a) + '的教籍，號召基督徒討伐！' + (n ? n + ' 個天主教國家響應出兵（' + joined.slice(0, 6).map(nm).join('、') + (joined.length > 6 ? '等' : '') + '）' : '目前沒有國家出兵') + (sided.length ? '；' + sided.map(nm).join('、') + '仍站在' + nm(a) + '這邊' : '') + (askd.length ? '；' + askd.slice(0, 4).map(nm).join('、') + (askd.length > 4 ? '等' : '') + '要求' + nm(a) + '停戰' : '') + '。', a === g.player ? 'bad' : 'war');
 }
 function makePeace(g, a, b, truce) {
-  var r = rel(g, a, b);
+  var r = rel(g, a, b); infAdd(g, a, -3); infAdd(g, b, -3);
   r.state = 'peace'; r.truce = truce; r.warT = 0;
   logRel(g, a, b, nm(a) + '與' + nm(b) + '停戰。', 'good');
   chron(g, a, '與' + nm(b) + '停戰。'); chron(g, b, '與' + nm(a) + '停戰。');
@@ -3766,7 +3782,7 @@ function dipTry(g, f, x, type, okFn, okMsg, failMsg) {
   }
   var c = dipCost(f, type), fs = g.fac[f];
   if (fs.gold < c) return fail('金幣不足。');
-  if (Math.random() < acceptChance(g, type, f, x)) { fs.gold -= c; okFn(); return good(okMsg); }
+  if (Math.random() < acceptChance(g, type, f, x)) { fs.gold -= c; okFn(); if (type === 'treaty' || type === 'trade' || type === 'ally') infAdd(g, f, -2); return good(okMsg + (infOf(g, f) > 0 && (type === 'treaty' || type === 'trade' || type === 'ally') ? '（惡名 −2）' : '')); }
   fs.gold -= Math.ceil(c / 2);
   return good(failMsg, { failed: true });
 }
@@ -3840,7 +3856,7 @@ function actGift(g, f, x, kind) {
   if (fs[kind] < GIFT_AMT + 20) return fail((kind === 'gold' ? '金幣' : '糧食') + '不夠（至少要剩 20 以上）。');
   fs[kind] -= GIFT_AMT; tx[kind] += GIFT_AMT;
   r.gf = Math.min(20, (r.gf | 0) + 4);
-  g.rep[f] = clamp(g.rep[f] + 1, 0, 100);
+  g.rep[f] = clamp(g.rep[f] + 1, 0, 100); infAdd(g, f, -2);
   return good('你送給' + nm(x) + ' ' + GIFT_AMT + (kind === 'gold' ? ' 金幣' : ' 糧食') + '。對方好感上升，之後談條約更容易（效果會慢慢消退）。');
 }
 /* 貿易互換：有貿易協定時，用 40 單位資源換對方 32 單位另一種資源（糧↔金） */
@@ -3905,6 +3921,7 @@ function aiShouldDeclare(g, f, x, r) {
   if ((ca && ib) || (ia && cb)) p *= 1.9; else if ((ca && cb) || (ia && ib)) p *= 0.75;
   if (r.truce > 0) p *= 0.12;
   p *= succWeak(g, x);
+  p *= 1 + infOf(g, x) / 60;
   if (x === 'pap') p *= 0.15;
   return Math.random() < p;
 }
@@ -4607,6 +4624,11 @@ var EVENTS = [
 /* ---------- 連鎖事件：你的選擇會在幾回合後引出後續 ---------- */
 function chainAdd(g, id, delay, d) { (g.chain = g.chain || []).push({ id: id, t: g.turn + delay, d: d || null }); }
 var CHAIN = {
+  c_pope: { id: 'c_pope', title: '教宗調停', tag: '外交', text: function (g) { var d = g.evData || {}; return '你和' + (d.x ? nm(d.x) : '對手') + '打了好幾年，教宗派特使前來調停，勸兩位基督徒君主放下刀劍。'; },
+    choices: [
+      { label: '接受調停，停戰', hint: '與對方停戰，信譽 +5、惡名 −5', run: function (g, f) { var d = g.evData || {}; if (d.x && g.fac[d.x] && g.fac[d.x].alive && rel(g, f, d.x).state === 'war') makePeace(g, f, d.x, 8); g.rep[f] = clamp((g.rep[f] || 50) + 5, 0, 100); infAdd(g, f, -5); wlog(g, '教宗調停，' + nm(f) + '與' + nm(d.x) + '停戰。'); return '在教宗見證下，雙方簽下停戰協議。'; } },
+      { label: '拒絕調停，繼續打', hint: '信譽 −5、惡名 +5', run: function (g, f) { g.rep[f] = clamp((g.rep[f] || 50) - 5, 0, 100); infAdd(g, f, 5); return '你把特使請了回去，天主教世界議論紛紛。'; } }
+    ] },
   c_sea: { id: 'c_sea', title: '海上之盟', tag: '史實', text: '1120 年前後，女真建立的金國派使者渡海而來：遼國在金軍猛攻下節節敗退，金願與宋南北夾擊遼國，事成之後把燕雲十六州還給宋。朝中有人說這是收復失土的千載良機，也有人擔心「驅虎吞狼」。',
     choices: [
       { label: '結盟，一起攻遼', hint: '與金結盟、向遼宣戰；遼若被打垮，金可能轉頭打你', run: function (g, f) { if (!eaOK(g, 'jin') || !eaOK(g, 'liao')) return '局勢已經變了，盟約沒談成。'; eaSeaPact(g); return '宋金訂下海上之盟，宋軍北上攻遼。'; } },
@@ -4766,7 +4788,7 @@ EVENTS.push(
       { label: '暫緩', hint: '無', run: function () { return '學者們轉往別的城市。'; } }
     ] }
 );
-var CH_URGENT = { c_succ: 1, c_exp: 1, c_ordrich: 1, c_sea: 1, c_jk: 1, c_mon: 1, c_dp: 1, c_sx: 1 };
+var CH_URGENT = { c_pope: 1,  c_succ: 1, c_exp: 1, c_ordrich: 1, c_sea: 1, c_jk: 1, c_mon: 1, c_dp: 1, c_sx: 1 };
 function pickEvent(g) {
   /* 繼承危機、遠征提議這類一定要讓玩家看到的後續事件，排在史實事件前面 */
   if (g.chain) for (var ui0 = 0; ui0 < g.chain.length; ui0++) { var cu = g.chain[ui0]; if (CH_URGENT[cu.id] && cu.t <= g.turn && !(cu.d && cu.d.f && cu.d.f !== g.player) && CHAIN[cu.id]) { g.chain.splice(ui0, 1); if (cu.d) g.evData = cu.d; var evu = Object.create(CHAIN[cu.id]); evu._d = cu.d || null; evu._urgent = 1; return evu; } }
@@ -4935,6 +4957,7 @@ function setRuler(g, f, i) {
   (g.rulEnd || (g.rulEnd = {}))[f] = g.turn + rulLen(RULERS[f][i]) + Math.floor(Math.random() * 4);
   if (g.rulPend) delete g.rulPend[f];
   rulerGift(g, f, i);
+  if (RULERS[f][i][3] && RULERS[f][i][3].rep) { g.rep[f] = clamp((g.rep[f] || 50) + 5 * RULERS[f][i][3].rep, 0, 100); infAdd(g, f, -5 * RULERS[f][i][3].rep); }
   chron(g, f, RULERS[f][i][0] + '即位。');
   return true;
 }
@@ -5145,6 +5168,65 @@ function expTick(g) {
       delete ex[f]; cd[f] = g.turn + 10;
     }
   });
+}
+/* --- 世界局勢紀錄（全世界的大事，不只你自己的） --- */
+function wlog(g, t) { var w = g.wld || (g.wld = []), y = year(g); if (w.length && w[w.length - 1].t === t) return; w.push({ y: y, t: t }); if (w.length > 300) w.splice(0, w.length - 300); }
+/* --- 惡名：侵略越多越高，太高會引來反霸權聯盟 --- */
+function infOf(g, f) { return (g.inf && g.inf[f]) || 0; }
+function infAdd(g, f, d) { if (!f || !g.fac[f]) return; var m = g.inf || (g.inf = {}); m[f] = clamp((m[f] || 0) + d, 0, 100); }
+var REP_RULERS = { '路易九世（聖路易）': 2, '薩拉丁': 2, '阿歷克塞一世·科穆寧': 1, '曼努埃爾一世·科穆寧': 1, '腓特烈二世': 1, '腓力二世·奧古斯都': 1, '亨利二世': 1, '理查一世（獅心王）': 1, '腓特烈一世·巴巴羅薩': 1, '努爾丁': 1, '阿方索十世（智者）': 1, '大衛四世（建設者）': 1, '塔瑪爾女王': 1, '宋孝宗': 1, '羅傑二世': 1, '亞歷山大·涅夫斯基': 1, '伊莎貝拉一世': 1 };
+Object.keys(RULERS).forEach(function (f) { RULERS[f].forEach(function (r) { if (REP_RULERS[r[0]] && r[3]) r[3].rep = REP_RULERS[r[0]]; }); });
+var MERCH = { ita: 1, som: 1, kil: 1 };
+function sancOf(g, f) { return !!(g.sanc && g.sanc[f] && g.sanc[f] > g.turn); }
+var ENVOY_COST = 50;
+function envoyLeft(g, f) { var t = g.envoy && g.envoy[f]; return t && t > g.turn ? t - g.turn : 0; }
+function actEnvoy(g, f) {
+  if (envoyLeft(g, f)) return fail('使節團剛出發過，' + envoyLeft(g, f) + ' 回合後才能再派。');
+  if (g.fac[f].gold < ENVOY_COST) return fail('金幣不足（需要 ' + ENVOY_COST + '）。');
+  g.fac[f].gold -= ENVOY_COST; (g.envoy || (g.envoy = {}))[f] = g.turn + 3;
+  infAdd(g, f, -6); g.rep[f] = clamp((g.rep[f] || 50) + 2, 0, 100);
+  return good('使節團帶著禮物出訪各國，說明你的善意：惡名 −6、信譽 +2（現在惡名 ' + Math.round(infOf(g, f)) + '）。');
+}
+function coalTick(g) {
+  var co = g.coal || (g.coal = {});
+  FIDS.forEach(function (f) {
+    var fs = g.fac[f]; if (!fs || !fs.alive) return;
+    var r0 = rulerFx(g, f, 'rep') || 0;
+    if (r0) g.rep[f] = clamp((g.rep[f] || 50) + r0, 0, 100);
+    var warN = FIDS.some(function (y) { return y !== f && g.fac[y] && g.fac[y].alive && rel(g, f, y).state === 'war'; });
+    infAdd(g, f, -((warN ? 0.4 : 1) + 0.5 * r0));
+    var c = co[f];
+    if (c && (g.turn > c.end || infOf(g, f) < 20)) { delete co[f]; if (isHum(g, f)) asPlayer(g, f, function () { logMsg(g, '反' + nm(f) + '聯盟解散了，各國不再聯手對付你。', 'good'); }); wlog(g, '反' + nm(f) + '聯盟解散。'); c = null; }
+    if (isHum(g, f) && infOf(g, f) >= 40 && !c && !(g.infWarn && g.infWarn[f] > g.turn)) { (g.infWarn || (g.infWarn = {}))[f] = g.turn + 6; asPlayer(g, f, function () { logMsg(g, '⚠️ 你的惡名已經 ' + Math.round(infOf(g, f)) + '，各國越來越不安。到 50 以上就可能組成反' + nm(f) + '聯盟！可以派使節修好、停戰或簽約來降低惡名。', 'bad'); }); }
+    if (!c && infOf(g, f) >= 50 && ownedTotal(g, f) >= 30 && !(g.coalCd && g.coalCd[f] > g.turn) && Math.random() < 0.35) {
+      var mem = FIDS.filter(function (x) {
+        if (x === f || !g.fac[x] || !g.fac[x].alive || isHum(g, x) || x === 'mongol') return false;
+        var r = rel(g, x, f); if (r.state === 'ally' || r.state === 'war' || lordOf(g, x) === f || lordOf(g, f) === x) return false;
+        return borderOf(g, x, f) && Math.random() < 0.65;
+      });
+      if (mem.length >= 2) {
+        co[f] = { t: g.turn, end: g.turn + 20, m: mem }; (g.coalCd || (g.coalCd = {}))[f] = g.turn + 30;
+        mem.forEach(function (x) { declareWar(g, x, f, true); });
+        for (var i = 0; i < mem.length; i++) for (var j = i + 1; j < mem.length; j++) { var rr = rel(g, mem[i], mem[j]); if (rr.state === 'war') makePeace(g, mem[i], mem[j], 10); }
+        var txt = mem.length + ' 國組成反' + nm(f) + '聯盟（' + mem.slice(0, 6).map(nm).join('、') + (mem.length > 6 ? '等' : '') + '），一起宣戰！';
+        logMsg(g, '⚔️ ' + txt, f === g.player ? 'bad' : 'war'); wlog(g, txt); chron(g, f, '各國組成反' + nm(f) + '聯盟，群起而攻。');
+      }
+    }
+  });
+}
+/* --- 教宗調停：兩個天主教國家打太久，教宗出面 --- */
+function popeTick(g) {
+  if (!g.fac.pap || !g.fac.pap.alive) return;
+  var pc = g.popeCd || (g.popeCd = {});
+  var cath = FIDS.filter(function (x) { return g.fac[x] && g.fac[x].alive && FACTIONS[x].rel === 'cath' && x !== 'pap' && !(g.exc && g.exc[x] != null); });
+  for (var i = 0; i < cath.length; i++) for (var j = i + 1; j < cath.length; j++) {
+    var a = cath[i], b = cath[j], r = rel(g, a, b), k = a < b ? a + '|' + b : b + '|' + a;
+    if (r.state !== 'war' || r.warT < 8 || (pc[k] && pc[k] > g.turn) || Math.random() > 0.04) continue;
+    pc[k] = g.turn + 10;
+    var ha = isHum(g, a), hb = isHum(g, b);
+    if (ha || hb) { var hu = ha ? a : b, ot = ha ? b : a; chainAdd(g, 'c_pope', 0, { f: hu, x: ot }); continue; }
+    if (Math.random() < 0.6) { makePeace(g, a, b, 8); g.rep[a] = clamp(g.rep[a] + 2, 0, 100); g.rep[b] = clamp(g.rep[b] + 2, 0, 100); wlog(g, '教宗調停，' + nm(a) + '與' + nm(b) + '停戰。'); }
+  }
 }
 function rulerTick(g) {
   if (!g.rulEnd) return;
@@ -5616,6 +5698,7 @@ function caravanTick(g) {
       total += gain; ok++; last = best;
       g.ctr.push({ f: f, h: mid });
     }
+    if (total && sancOf(g, f)) total = Math.round(total / 2);
     if (total) fs.gold += total;
     if (lost) fs.cv = Math.max(0, fs.cv - lost);
     if (isHum(g, f)) asPlayer(g, f, function () {
@@ -5896,7 +5979,7 @@ function coastFire(g) {
   if (gone) g.fl = g.fl.filter(function (x) { return x.n >= 1; });
   fdirty();
 }
-function endTurn(g) { bindCN(g); titleTick(g); capTick(g); fiefTick(g); relTick(g); lmCheck(g); eraSync(g); endTurn0(g); histDisaster(g); rulerTick(g); ordTick(g); debtTick(g); expTick(g); eaTick(g); coastFire(g); carTick(g); lmCheck(g); eraSync(g); }
+function endTurn(g) { bindCN(g); titleTick(g); capTick(g); fiefTick(g); relTick(g); lmCheck(g); eraSync(g); endTurn0(g); histDisaster(g); rulerTick(g); ordTick(g); debtTick(g); expTick(g); eaTick(g); coalTick(g); popeTick(g); coastFire(g); carTick(g); lmCheck(g); eraSync(g); }
 function endTurn0(g) {
   _own = null;
   genTick(g);
@@ -6124,7 +6207,7 @@ var G = {
   hid: hid, hr: hr, hc: hc,
   newGame: newGame, owned: owned, season: season, year: year, capOf: capOf, income: income, provYield: provYield,
   codex: codex, recruitCost: recruitCost, unitCost: unitCost, mercCost: mercCost, mixOf: mixOf, mercOf: mercOf, unitName: unitName, mercName: mercName, unitAllowed: unitAllowed, SPECIAL: SPECIAL, UNIT_NAMES: UNIT_NAMES, DEFMIX: DEFMIX, buildCost: buildCost, tradeGain: tradeGain, ritualCost: ritualCost, ritualGain: ritualGain,
-  CV_COST: CV_COST, cvOf: cvOf, cvCap: cvCap, cvRouteOpts: cvRouteOpts, TAX_N: TAX_N, TAX_D: TAX_D, taxOf: taxOf, softCap: softCap, recLeft: recLeft, recLimit: recLimit, isMarried: isMarried, marryCost: marryCost, marryChance: marryChance, tributeCost: tributeCost, RESH: RESH, RES_N: RES_N, RES_D: RES_D, resCount: resCount, resFx: resFx, armySwap: armySwap, chainAdd: chainAdd, CHAIN: CHAIN, matchupHint: matchupHint, riverEdge: riverEdge, RIV_E: RIV_E, RIVERS: RIVERS, canPay: canPay, P: P, sendCount: sendCount, battleOdds: battleOdds, moveTargets: moveTargets, wallCost: wallCost, TECH: TECH, RUNIT: RUNIT, RSP: RSP, rulerGift: rulerGift, SPY: SPY, spyMods: spyMods, chron: chron, expState: expState, debtOf: debtOf, debtRate: debtRate, debtLimit: debtLimit, debtLenders: debtLenders, excommunicate: excommunicate, succWeak: succWeak, ORDS: ORDS, ORD_DON: ORD_DON, ordOn: ordOn, ordList: ordList, ordFav: ordFav, ordCanUse: ordCanUse, ordChapters: ordChapters, ordAidInfo: ordAidInfo, spyLeft: spyLeft, needRuler: needRuler, rulerChoices: rulerChoices, HIST_REL: HIST_REL, RULERS: RULERS, rulerOf: rulerOf, setRuler: setRuler, carOptions: carOptions, carActive: carActive, carMax: carMax, CAR_COST: CAR_COST, festLeft: festLeft, ROAD: ROAD, ROADSEG: ROADSEG, PASS: PASS, CAMEL: CAMEL, BLOCKED: BLOCKED, terrAtk: terrAtk, eraSync: eraSync, eraNum: eraNum, eraInfo: eraInfo, eraOf: eraOf, ERA_NAME: ERA_NAME, TECHS: TECHS, TBR: TBR, TECH_BY: TECH_BY, techLv: techLv, techState: techState, techHas: techHas, techFx: techFx, techCost: techCost, techWhy: techWhy, BLD: BLD, BLD_KEYS: BLD_KEYS, bldCount: bldCount, wallLv: wallLv, portOpen: portOpen, portsOpen: portsOpen, moveTroops: moveTroops,
+  CV_COST: CV_COST, cvOf: cvOf, cvCap: cvCap, cvRouteOpts: cvRouteOpts, TAX_N: TAX_N, TAX_D: TAX_D, taxOf: taxOf, softCap: softCap, recLeft: recLeft, recLimit: recLimit, isMarried: isMarried, marryCost: marryCost, marryChance: marryChance, tributeCost: tributeCost, RESH: RESH, RES_N: RES_N, RES_D: RES_D, resCount: resCount, resFx: resFx, armySwap: armySwap, chainAdd: chainAdd, CHAIN: CHAIN, matchupHint: matchupHint, riverEdge: riverEdge, RIV_E: RIV_E, RIVERS: RIVERS, canPay: canPay, P: P, sendCount: sendCount, battleOdds: battleOdds, moveTargets: moveTargets, wallCost: wallCost, TECH: TECH, RUNIT: RUNIT, RSP: RSP, rulerGift: rulerGift, SPY: SPY, spyMods: spyMods, infOf: infOf, sancOf: sancOf, envoyLeft: envoyLeft, ENVOY_COST: ENVOY_COST, MERCH: MERCH, chron: chron, expState: expState, debtOf: debtOf, debtRate: debtRate, debtLimit: debtLimit, debtLenders: debtLenders, excommunicate: excommunicate, succWeak: succWeak, ORDS: ORDS, ORD_DON: ORD_DON, ordOn: ordOn, ordList: ordList, ordFav: ordFav, ordCanUse: ordCanUse, ordChapters: ordChapters, ordAidInfo: ordAidInfo, spyLeft: spyLeft, needRuler: needRuler, rulerChoices: rulerChoices, HIST_REL: HIST_REL, RULERS: RULERS, rulerOf: rulerOf, setRuler: setRuler, carOptions: carOptions, carActive: carActive, carMax: carMax, CAR_COST: CAR_COST, festLeft: festLeft, ROAD: ROAD, ROADSEG: ROADSEG, PASS: PASS, CAMEL: CAMEL, BLOCKED: BLOCKED, terrAtk: terrAtk, eraSync: eraSync, eraNum: eraNum, eraInfo: eraInfo, eraOf: eraOf, ERA_NAME: ERA_NAME, TECHS: TECHS, TBR: TBR, TECH_BY: TECH_BY, techLv: techLv, techState: techState, techHas: techHas, techFx: techFx, techCost: techCost, techWhy: techWhy, BLD: BLD, BLD_KEYS: BLD_KEYS, bldCount: bldCount, wallLv: wallLv, portOpen: portOpen, portsOpen: portsOpen, moveTroops: moveTroops,
   endTurn: endTurn, pickEvent: pickEvent, eventView: eventView, applyChoice: applyChoice, scoreOf: scoreOf,
   lordsOf: lordsOf, FIEF_PER: FIEF_PER, fiefMax: fiefMax, fiefList: fiefList, cityN: cityN, FIEF_COST: FIEF_COST, FIEF_REWARD: FIEF_REWARD, isCapital: isCapital, msOf: msOf, NOHORSE: NOHORSE, deepOK: deepOK, msCap: msCap, MS_COST: MS_COST, nm: nm, aiTurn: aiTurn, portsOf: portsOf, genAt: genAt, resolveBattle: resolveBattle, citySiteBlock: citySiteBlock, buildCostG: buildCostG, settleName: settleName, isVillage: isVillage, RELICS: RELICS, REL_TXT: REL_TXT, relAt: relAt, gensOf: gensOf, genLv: genLv, genChoose: genChoose, genCandidates: genCandidates, LANDMARKS: LANDMARKS, LM_AT: LM_AT, lmInfo: lmInfo, lmBonus: lmBonus, callWarInfo: callWarInfo, culOf: culOf, culGain: culGain, CUL_WIN: CUL_WIN, msnTick: msnTick, surInfo: surInfo, moveCapCost: moveCapCost, syncCap: syncCap, xRate: xRate, xQuota: xQuota, genAvail: genAvail, genCost: genCost, GEN_MAX: GEN_MAX, GEN_TYPE: GEN_TYPE, GEN_TXT: GEN_TXT, GENS: GENS, shipsOf: shipsOf, fleets: fleets, fleetReach: seaReach, fleetStr: fleetStr, seaCapAt: seaCapAt, FLEET_MOVE: FLEET_MOVE, shipCap: shipCap, seaCapLeft: seaCapLeft, shipName: shipName, SHIP_COST: SHIP_COST, SHIP_CARRY: SHIP_CARRY, moraleMult: moraleMult, placeName: placeName, terrDef: terrDef,
   EVENTS: EVENTS, HIST: HIST, checkEnd: checkEnd, finish: finish, settle: settle, TERR_Y: TERR_Y,
@@ -7023,7 +7106,12 @@ if (typeof module !== 'undefined') module.exports = G;
     '<li><b>圍城、斷糧與疲勞</b>：被圍的城市每回合削弱守軍與民心；四周沒有一塊己方領地的城市會被「包圍斷糧」，守軍每回合餓死一部分。同一場戰爭打滿 10 回合後雙方民心緩慢下滑，越拖越重，議和可以止損。</li>' +
     '<li><b>繼承危機</b>：君主駕崩後會出現「繼承危機」：賞賜貴族（花錢、封臣忠誠上升、鄰國比較不敢動你）、鐵腕即位（首都駐軍增加，但民心與封臣忠誠下降）、或召開貴族會議（民心與忠誠上升，但聲望下降）。接下來 4 年國內不穩，鄰國比較容易趁機宣戰；電腦國家換君主時也一樣，可以趁機出手。</li>' +
     '<li><b>騎士團</b>：聖殿騎士團（1119 年）、醫院騎士團（1130 年）、條頓騎士團（1198 年）會照年代出現。它們沒有領土，但有兵有錢，只和天主教國家往來：下面那排的「騎士團」可以捐錢、請騎士助陣（好感 40 以上、要有前線）、把城交給他們設分部。騎士團太有錢時會出現「借錢或沒收」的抉擇；1307 年法蘭西若在，聖殿騎士團會被法王沒收而瓦解。</li>' +
-    '<li><b>開除教籍</b>：向教宗國宣戰會被教宗開除教籍：所有天主教國家一起向你宣戰（你的附庸除外），騎士團與你決裂，聲望 −20。電腦國家打教宗國也一樣。</li>' +
+    '<li><b>開除教籍</b>：向教宗國宣戰會被教宗開除教籍（惡名 +15、信譽 −20，騎士團與你決裂）。天主教各國會自己判斷要不要出兵：跟你接壤、比你強、你惡名高的最可能參戰；正在打別的仗的多半不管；你的盟友有一半會站在你這邊，另一半會跟你斷盟；神聖羅馬不太幫教宗。電腦國家打教宗國也一樣。</li>' +
+    '<li><b>惡名與反霸權聯盟</b>：打下別國的地會增加惡名（一般地 +1、城市 +3、首都 +8），無故宣戰 +3、撕毀條約 +8、背棄盟友 +10。惡名每年慢慢下降（打仗時降得慢），停戰 −3、簽條約／貿易協定／結盟 −2、送禮 −2、外交選單的「派使節修好」−6（−50 金、1 行動點、3 回合一次）。惡名越高，別國越想打你、越不肯簽約；惡名 50 以上、領地 30 塊以上時，鄰國可能組成「反霸權聯盟」一起宣戰，惡名降到 20 以下或 20 回合後解散。電腦大國也會被聯盟圍攻。</li>' +
+    '<li><b>商業共和國</b>：攻打義大利商業共和國、索馬里城邦、基爾瓦這些商業國家，各地商人會抵制你 8 回合：貿易、商隊、商船收入減半，跟他們有貿易協定的國家也會跟你解約。</li>' +
+    '<li><b>教宗調停</b>：兩個天主教國家打了 8 年以上，教宗可能出面調停：接受就停戰、信譽 +5、惡名 −5；拒絕則信譽 −5、惡名 +5。被開除教籍的國家不在其列。</li>' +
+    '<li><b>信譽型君主</b>：路易九世、薩拉丁每年信譽 +2；阿歷克塞一世、腓特烈一世·巴巴羅薩、腓特烈二世、腓力二世、亨利二世、獅心王理查、努爾丁、塔瑪爾女王、宋孝宗、羅傑二世、亞歷山大·涅夫斯基、伊莎貝拉一世等每年 +1，即位時也會加信譽、減惡名。挑君主時會寫在能力裡。</li>' +
+    '<li><b>世界局勢</b>：下面那排的「戰績」裡有「🌍 世界局勢」，列出全世界的大事：各國滅亡、升格、首都失陷、反霸權聯盟、開除教籍、商人抵制、教宗調停、騎士團成立、宋遼金蒙等。</li>' +
     '<li><b>歷史編年史</b>：遊戲會自動記下你王朝的大事：君主即位、宣戰與停戰、結盟、攻下或失去大城、稱號升格、時代躍進、繼承危機、遠征、開除教籍、破產、消滅敵國等。下面那排的「戰績」裡可以隨時翻看；本局結束時會整理成「你的王朝史」。</li>' +
     '<li><b>遠征任務</b>：每隔一陣子大臣會提議一場遠征（天主教與東正教國家常會是「收復耶路撒冷」，其他多半是附近的大城），接不接由你。接下後分三步：① 在目標 3 格內集結足夠大軍 ② 佔下緊鄰目標的一塊地 ③ 攻下目標，限 25 回合。上方會顯示進度（點一下會跳到目標），地圖上用紅旗 🚩 標出目標。成功得 250 金、民心 +8、聲望 +8，失敗沒有懲罰。</li>' +
     '<li><b>國債</b>：在「國庫」可以向義大利銀行家借錢（年利 10%），和聖殿騎士團交好（好感 40 以上）時也能向他們借（年利 6%）。最多可欠約 4 回合的收入。利息每回合自動扣；付不出來會滾進本金、民心 −3、聲望 −3；欠到上限的 1.5 倍就會破產：債一筆勾銷，但聲望 −25、民心 −10、封臣忠誠 −20，20 回合內借不到錢。電腦國家打仗缺錢時也會借。</li>' +
@@ -7695,6 +7783,7 @@ if (typeof module !== 'undefined') module.exports = G;
       if (k === 'ap') o.push('行動點 +' + v);
       else if (k === 'rx') o.push('研究 +' + (Math.round(v * 100) / 100) + '/回合');
       else if (k === 'tcost') o.push('科技費用 -' + Math.round(v * 100) + '%');
+      else if (k === 'rep') o.push('信譽每年 +' + v + '、惡名降得快');
       else o.push(N[k] + ' ' + (v > 0 ? '+' : '') + Math.round(v * 100) + '%');
     });
     return o.join('　');
@@ -7810,6 +7899,13 @@ if (typeof module !== 'undefined') module.exports = G;
       '<li>地上的數字 = 駐軍人數；顏色 = 屬於哪個勢力。</li>' +
       '<li>點錯了：再點同一格，或按面板右上的 ✕，就能取消選取。</li>' +
       '<li>右側的 <b>?</b> 隨時可以再打開這個說明。</li></ul>' +
+      '<p class="mtext"><b>進階玩法（下面那排往左滑）</b></p><ul style="padding-left:20px;line-height:1.75;font-size:14px;margin:0 0 8px">' +
+      '<li><b>調兵</b>：先點自己的地，再按「調兵」，點綠色虛線的地。</li>' +
+      '<li><b>貿易</b>：組商隊，每回合自動走陸路賺錢（像商船一樣）。</li>' +
+      '<li><b>外交</b>：宣戰、停戰、結盟；也看得到你的「惡名」，太高會被各國聯手圍攻，派使節可以降。</li>' +
+      '<li><b>國庫</b>：買賣糧食、調稅、借錢（國債）。</li>' +
+      '<li><b>戰績</b>：你的編年史和全世界的大事。</li>' +
+      '<li>天主教國家還有<b>騎士團</b>；大臣偶爾會提議<b>遠征</b>（上方會出現 🚩 進度）。</li></ul>' +
       '<button class="btn primary" data-act="tipok" style="width:100%;margin-top:6px">'+(first?'開始':'知道了')+'</button>';
     $('#mbody').innerHTML = h; $('#modal').hidden = false;
   }
@@ -7981,6 +8077,7 @@ if (typeof module !== 'undefined') module.exports = G;
       { tx: '外交：宣戰、停戰、結盟、簽貿易協定都在這裡。按下面這排的「外交」。', tip: '按這裡打開外交', spec: function () { return { sel: '.actscroll [data-act=dip]' }; }, adv: function () { return tutMod('外交'); } },
       { tx: '每張卡片是一個國家，上面寫你們現在的關係（和平、交戰、同盟）和好感。好感越高，提議越容易成功。', tip: '這是一個國家的卡片', spec: function () { return { sel: '#modal .dcard' }; }, ack: true },
       { tx: '要打和平的國家得先「宣戰」；打累了可以「停戰」；「互不侵犯」「結盟」能讓鄰居變朋友；「貿易協定」兩邊都多賺錢。每項用 1 點行動。', tip: '這些按鈕就是外交動作', spec: function () { return { sel: '#modal [data-act=dp]' }; }, ack: true },
+      { tx: '上面這塊是你的「惡名」：打下別國越多越高，太高時鄰國會聯手打你。停戰、簽約、送禮，或按「派使節到各國修好」都能降低。', tip: '惡名和派使節在這裡', spec: function () { return { sel: '#modal [data-act=envoy]' }; }, ack: true },
       { tx: '看完了，按右上角的 ✕ 關掉。', tip: '按 ✕ 關閉', spec: function () { return { sel: '#modal [data-act=closemodal]' }; }, adv: function () { return !tutModOpen(); } } ] },
     { id: 'car', name: '🐫 商隊貿易', steps: [
       { tx: '商隊走陸路去別的城市做生意，每回合自動賺金幣，跟商船一樣。按下面這排的「貿易」。', tip: '按這裡打開貿易', spec: function () { return { sel: '.actscroll [data-act=trade]' }; }, adv: function () { return tutMod('商隊'); } },
@@ -8531,7 +8628,7 @@ if (typeof module !== 'undefined') module.exports = G;
       (G.ordCanUse(f) && G.ordList(g).length ? cmd('orders', 'troops', '騎士團', G.ordList(g).length + ' 個', false) : '') +
       cmd('treasury', 'gold', '國庫', G.debtOf(g, f) ? '欠債 ' + Math.round(G.debtOf(g, f)) : '買賣糧食・借錢', false) +
       cmd('cities', 'build', '城市名冊', G.owned(g, f).filter(function (id) { return g.p[id].L > 0; }).length + ' 座城', false) +
-      cmd('stats', 'troops', '戰績', '編年史・曲線', false) +
+      cmd('stats', 'troops', '戰績', '編年史・世界', false) +
       '</div>' +
       '<button class="cmd primary" data-act="end">' + ic('end') + '<b>' + (ui.confirmEnd ? '確認結束' : '結束回合') + '</b><small>' + (ui.confirmEnd ? '尚有 ' + g.ap + ' 點／' + idle + ' 隊' : '下一年') + '</small></button>';
     var d = $('#dip'); d.hidden = true; d.innerHTML = '';
@@ -8540,12 +8637,17 @@ if (typeof module !== 'undefined') module.exports = G;
   function dbtn(k, x, label, sub, dis, cls) {
     return '<button class="btn' + (cls ? ' ' + cls : '') + '" data-act="dp" data-k="' + k + '" data-f="' + x + '"' + (dis ? ' disabled' : '') + '><span>' + label + '</span><small>' + sub + '</small></button>';
   }
+  function worldHTML(lim) {
+    var w = (g.wld || []).slice().reverse(); if (lim) w = w.slice(0, lim);
+    if (!w.length) return '<p class="muted small">世界還很平靜。</p>';
+    return '<ol class="chron">' + w.map(function (e) { return '<li><span class="num">' + e.y + '</span><span>' + esc(e.t) + '</span></li>'; }).join('') + '</ol>';
+  }
   function showStats() {
     var f = g.player, st = (g.st && g.st[f]) || { kills: 0, lost: 0, conq: 0 };
     var h = '<button data-act="closemodal" aria-label="關閉" style="position:sticky;top:0;float:right;z-index:5;width:40px;height:40px;margin:-4px -4px 0 8px;border-radius:50%;border:1px solid #f1d48c;background:#1b2a36;color:#f1d48c;font-size:22px;line-height:1;cursor:pointer">✕</button>' + '<div class="mtag">戰績</div><h2 id="mtitle">戰績與勢力</h2>';
     { var cu = G.culOf(g, f), cg = G.culGain(g, f), cp = Math.min(100, Math.round(100 * cu / G.CUL_WIN));
       h += '<div class="gh" style="margin:6px 0 4px">文化 <small class="muted">' + cu + ' / ' + G.CUL_WIN + ' · 每回合 +' + cg + '</small></div><div style="background:var(--panel2,#223);border-radius:6px;height:10px;overflow:hidden"><div style="width:' + cp + '%;height:100%;background:#f1d48c"></div></div><p class="muted small" style="margin-top:4px">文化點來自城市等級、教堂和學院（每棟 +3）、科技（每項 +2）。累積到 ' + G.CUL_WIN + ' 就是文化勝利，不必占領全圖。</p>'; }
-    h += '<div class="gh" style="margin:8px 0 4px">📖 編年史 <small class="muted">你的王朝大事（最新在上）</small></div><div style="max-height:34vh;overflow:auto;margin-bottom:8px">' + chronHTML(80, true) + '</div>';
+    h += '<div class="gh" style="margin:8px 0 4px">🌍 世界局勢 <small class="muted">全世界的大事（最新在上）</small></div><div style="max-height:30vh;overflow:auto;margin-bottom:8px">' + worldHTML(60) + '</div>' + '<div class="gh" style="margin:8px 0 4px">📖 編年史 <small class="muted">你的王朝大事（最新在上）</small></div><div style="max-height:34vh;overflow:auto;margin-bottom:8px">' + chronHTML(80, true) + '</div>';
     h += '<dl class="stats"><div><dt>殲敵</dt><dd>' + st.kills + '</dd></div><div><dt>折損</dt><dd>' + st.lost + '</dd></div><div><dt>攻占</dt><dd>' + st.conq + '</dd></div></dl>';
     { var kl2 = (g.kl && g.kl[f]) || [];
       h += '<div class="gh" style="margin:8px 0 4px">消滅過的國家 <small class="muted">' + kl2.length + ' 個</small></div><p class="small" style="margin:0 0 6px;line-height:1.7">' + (kl2.length ? kl2.map(function (k) { return '<b>' + esc(G.nm(k.f)) + '</b> <span class="muted">' + k.y + '</span>'; }).join('、') : '<span class="muted">尚無。把一個勢力的最後一塊地奪走，就會記在這裡。</span>') + '</p>'; }
@@ -8684,7 +8786,14 @@ if (typeof module !== 'undefined') module.exports = G;
   }
   function showDiplomacy() {
     var f = g.player, fs = g.fac[f], noap = g.ap <= 0;
-    var h = '<button data-act="closemodal" aria-label="關閉" style="position:sticky;top:0;float:right;z-index:5;width:40px;height:40px;margin:-4px -4px 0 8px;border-radius:50%;border:1px solid #f1d48c;background:#1b2a36;color:#f1d48c;font-size:22px;line-height:1;cursor:pointer">✕</button>' + '<div class="mtag">外交 · 你的信譽 ' + g.rep[f] + '</div><h2 id="mtitle">外交</h2>';
+    var h = '<button data-act="closemodal" aria-label="關閉" style="position:sticky;top:0;float:right;z-index:5;width:40px;height:40px;margin:-4px -4px 0 8px;border-radius:50%;border:1px solid #f1d48c;background:#1b2a36;color:#f1d48c;font-size:22px;line-height:1;cursor:pointer">✕</button>' + '<div class="mtag">外交 · 你的信譽 ' + Math.round(g.rep[f]) + ' · 惡名 ' + Math.round(G.infOf(g, f)) + '</div><h2 id="mtitle">外交</h2>';
+    { var inf0 = G.infOf(g, f), co0 = g.coal && g.coal[f], ev0 = G.envoyLeft(g, f);
+      h += '<div style="background:rgba(255,120,90,.08);border:1px solid rgba(255,140,100,.35);border-radius:10px;padding:8px 10px;margin:6px 0">';
+      h += '<div class="small"><b>惡名 ' + Math.round(inf0) + ' / 100</b>' + (inf0 >= 50 ? ' <b style="color:#ff9a96">各國可能聯手打你！</b>' : inf0 >= 35 ? ' <span style="color:#ffcf8a">鄰國開始不安</span>' : ' <span class="muted">還算安全</span>') + '<br><span class="muted">打下別國的地會增加惡名（首都最多），惡名高時別國比較會打你、比較不肯簽約；到 50 以上鄰國可能組成反霸權聯盟。停戰、簽約、送禮、派使節都能降低。</span></div>';
+      if (co0) h += '<p class="small" style="color:#ff9a96;margin:6px 0 0">⚔️ 反' + esc(G.nm(f)) + '聯盟還有 ' + Math.max(0, co0.end - g.turn) + ' 回合：' + co0.m.map(function (x) { return esc(G.nm(x)); }).join('、') + '。惡名降到 20 以下就會解散。</p>';
+      if (G.sancOf(g, f)) h += '<p class="small" style="color:#ffcf8a;margin:6px 0 0">💰 你正被商人抵制：還有 ' + (g.sanc[f] - g.turn) + ' 回合，貿易、商隊、商船收入減半。</p>';
+      if (g.exc && g.exc[f] != null) h += '<p class="small" style="color:#ff9a96;margin:6px 0 0">⛪ 你被開除教籍了。</p>';
+      h += '<button class="btn" data-act="envoy" style="width:100%;margin-top:6px;text-align:left"' + (ev0 || g.fac[f].gold < G.ENVOY_COST || g.ap <= 0 ? ' disabled' : '') + '>派使節到各國修好<br><small class="muted">' + (ev0 ? ev0 + ' 回合後才能再派' : '−' + G.ENVOY_COST + ' 金、1 行動點：惡名 −6、信譽 +2') + '</small></button></div>'; }
     var DF = [['all', '全部'], ['war', '交戰'], ['near', '接壤'], ['ally', '盟友附庸']];
     h += '<div class="gh" style="margin:4px 0">我方目前的外交</div>' + relSum(f);
     h += '<div class="dfil"><input id="dipq" type="search" placeholder="搜尋勢力名稱" value="' + esc(ui.dipQ || '') + '" autocomplete="off">' + DF.map(function (c) { return '<button class="chip' + ((ui.dipF || 'all') === c[0] ? ' on' : '') + '" data-dflt="' + c[0] + '">' + c[1] + '</button>'; }).join('') + '<span class="muted small" id="dipcnt"></span></div>';
@@ -8711,7 +8820,7 @@ if (typeof module !== 'undefined') module.exports = G;
         else h += dbtn('marry', x, '聯姻', '−' + G.marryCost(f) + ' 金 · 成功率 ' + Math.round(G.marryChance(g, f, x) * 100) + '% · 15 回合互不侵犯，背棄代價重', noap || fs.gold < G.marryCost(f));
       }
       if (d.state === 'peace') {
-        h += dbtn('declare', x, d.truce > 0 ? '撕毀條約並宣戰' : '宣戰', x === 'pap' ? '⚠ 會被開除教籍，所有天主教國家向你宣戰' : d.truce > 0 ? '信譽 −20、民心 −8' : '信譽 −5', noap, 'danger');
+        h += dbtn('declare', x, d.truce > 0 ? '撕毀條約並宣戰' : '宣戰', x === 'pap' ? '⚠ 會被開除教籍，天主教各國可能出兵' : G.MERCH[x] ? '⚠ 商業共和國：商人會抵制你 8 回合' : d.truce > 0 ? '信譽 −20、民心 −8' : '信譽 −5', noap, 'danger');
         h += dbtn('treaty', x, d.truce > 0 ? '續簽互不侵犯' : '互不侵犯條約', '−' + d.cost.treaty + ' 金 · 成功率 ' + pc('treaty') + ' · 直到宣戰為止', noap || fs.gold < d.cost.treaty);
         h += dbtn('ally', x, '結為同盟', '−' + d.cost.ally + ' 金 · 成功率 ' + pc('ally'), noap || fs.gold < d.cost.ally);
       }
@@ -9069,6 +9178,7 @@ if (typeof module !== 'undefined') module.exports = G;
     if (a === 'trade') return showCaravan();
     if (a === 'cvbuild') { var cvr = G.P.cvbuild(g); afterAction(cvr); return showCaravan(cvr && cvr.msg); }
     if (a === 'cvrt') return showCvRoute(+b.getAttribute('data-h'));
+    if (a === 'envoy') { var en = G.P.envoy(g); afterAction(en); toast(en.msg); return showDiplomacy(); }
     if (a === 'borrow') { var bo = G.P.borrow(g, +b.getAttribute('data-n'), b.getAttribute('data-k')); afterAction(bo); return showTreasury(); }
     if (a === 'repay') { var rp = G.P.repay(g, +b.getAttribute('data-n')); afterAction(rp); return showTreasury(); }
     if (a === 'orders') return showOrders();
@@ -9089,7 +9199,7 @@ if (typeof module !== 'undefined') module.exports = G;
     if (a === 'dp') {
       var k = b.getAttribute('data-k'), x = b.getAttribute('data-f'), res;
       var rid = (ui.sel != null && g.p[ui.sel] && g.p[ui.sel].o === g.player) ? ui.sel : G.CAPITAL[g.player];
-      if (k === 'declare') { if (ui.confirmDecl !== x) { ui.confirmDecl = x; toast(x === 'pap' ? '⚠ 向教宗國宣戰會被開除教籍：所有天主教國家都會一起向你宣戰！確定的話再按一次「宣戰」。' : '⚠ 這會真的向' + G.nm(x) + '宣戰。再按一次「宣戰」才會生效。'); return; } ui.confirmDecl = null; res = G.P.declare(g, x); }
+      if (k === 'declare') { if (ui.confirmDecl !== x) { ui.confirmDecl = x; toast(x === 'pap' ? '⚠ 向教宗國宣戰會被開除教籍：天主教各國會考慮出兵討伐你（跟你接壤、比你強的最可能），惡名 +15！確定的話再按一次「宣戰」。' : '⚠ 這會真的向' + G.nm(x) + '宣戰。再按一次「宣戰」才會生效。'); return; } ui.confirmDecl = null; res = G.P.declare(g, x); }
       else if (k === 'peace') res = G.P.peace(g, x);
       else if (k === 'tribute') res = G.P.tribute(g, x);
       else if (k === 'sur') res = G.P.surrender(g, x);
@@ -9305,6 +9415,20 @@ if (typeof module !== 'undefined') module.exports = G;
     window.addEventListener('resize', upd);
     if (window.MutationObserver) new MutationObserver(function () { setTimeout(upd, 30); }).observe(pn, { childList: true });
     setInterval(upd, 1500);
+  })();
+  /* 手機用「電腦版網頁」模式開：畫面會被縮成電腦寬度，字很小。偵測到就提醒怎麼關掉 */
+  (function () {
+    try {
+      var sw = Math.min(screen.width || 9999, screen.height || 9999), coarse = window.matchMedia && matchMedia('(pointer:coarse)').matches;
+      if (!coarse || sw > 520 || window.innerWidth < 760) return;
+      if (sessionStorage.getItem('crusade-dsk') === '1') return;
+      var ios = /iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent) && 'ontouchend' in document;
+      var d = document.createElement('div'); d.id = 'dskwarn';
+      d.style.cssText = 'position:fixed;left:0;right:0;top:0;z-index:100000;padding:22px 26px;background:#f1d48c;color:#2a1d05;font-size:34px;line-height:1.5;font-weight:800;box-shadow:0 6px 20px rgba(0,0,0,.6)';
+      d.innerHTML = '⚠️ 你的瀏覽器現在是「電腦版網頁」模式，所以字和按鈕都很小。<br>' + (ios ? '請按網址列的「ᴀA」或瀏覽器選單（⋯ 或 ⋮），選「要求行動版網站」。' : '請按瀏覽器右上（或右下）的 ⋮ 選單，把「電腦版網站／要求桌面版網站」取消勾選。') + '<br><button style="margin-top:14px;font-size:30px;padding:10px 24px;border-radius:12px;border:0;background:#2a1d05;color:#f1d48c;font-weight:800">知道了</button>';
+      d.querySelector('button').addEventListener('click', function () { d.remove(); try { sessionStorage.setItem('crusade-dsk', '1'); } catch (e) {} });
+      (document.body ? Promise.resolve() : new Promise(function (r) { document.addEventListener('DOMContentLoaded', r); })).then(function () { document.body.appendChild(d); });
+    } catch (e) {}
   })();
   window.__g = function () { return g; }; window.__G = G; window.__ui = ui; window.__sel = function (id) { selectHex(id); }; window.__ra = function () { renderAll(); }; window.__focus = function (id, s) { focusOn(id, s); applyView(); };
 })();
