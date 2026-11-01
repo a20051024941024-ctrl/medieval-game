@@ -405,7 +405,7 @@ button{font:inherit;color:inherit}
     <div class="startmap" id="startmap" aria-hidden="true"></div>
     <div class="sc-in gx">
       <p class="eyebrow">MEDIEVAL: WORLD DOMINATION · 1096 AD</p>
-      <p class="muted small" id="verline">版本 v205 · 2026-11-01 · 電腦會守首都（調兵回防、優先補兵、緊急徵召民兵）、匯出／匯入存檔換手機</p>
+      <p class="muted small" id="verline">版本 v206 · 2026-11-01 · 點地只查看、不再自動出兵或自動調兵扣行動點</p>
       <h1>中世紀：世界霸權</h1>
       <p class="lead">1095 年，教宗在克萊蒙發出號召，整個歐洲動了起來。選一個勢力（共 121 個），再從該文明歷史上的君主裡挑一位登基；在四千多個六角格地塊的世界裡，與基督教世界、伊斯蘭世界與即將到來的蒙古鐵騎周旋。可以結盟借道、派商隊與商船貿易、派密探、遠征遠方、研究科技升級時代、替自己的城市取名。沒有回合上限，直到有人稱霸，或你失去一切。</p>
       <div id="startopts"></div>
@@ -7399,6 +7399,7 @@ if (typeof module !== 'undefined') module.exports = G;
     '<li><b>新手提示</b>：畫面上方綠字的 💡 會依目前狀況告訴你下一步可以做什麼，點一下可以關掉。</li>' +
     '<li><b>地圖</b>：拖曳移動，滾輪或雙指縮放。只看得到相鄰地塊的確切守軍，遠處只有約數。</li>' +
     '<li><b>換手機／電腦</b>：開始畫面按「匯出存檔」，選一個存檔做成小檔案，用 LINE、Email 或雲端硬碟傳到另一台裝置；在那台按「匯入存檔」選這個檔案，再選要放進哪個欄位，就能接著玩。多人存檔也能這樣搬。兩台裝置的遊戲版本要一樣（或匯入那台比較新）。</li>' +
+    '<li><b>點地＝查看</b>：點別人的地或中立地只會顯示它的資料，不會自動出兵；面板上有「⚔ 從旁邊的某地出兵」按鈕，按了才會選好出兵。已經選了自己的地、再點旁邊的地，那塊地會變成出兵目標（箭頭）；同一塊再點一次，就改成只查看它。打不到的遠處只會提示你要先把部隊調到哪裡，不會自己幫你調兵扣行動點。</li>' +
     '<li><b>電腦會守首都</b>：首都或大城被你的大軍逼近時，電腦會從附近調兵回防、優先在那裡補兵；普通和困難難度下，首都告急還會緊急徵召民兵（每 4 回合一次），所以最好先削弱它周圍的部隊再攻城。</li>' +
     '<li><b>多人選勢力</b>：房間裡先按地區（歐洲、東亞、美洲……），下拉選單就只列那一區的國家，比較好找。</li>' +
     '<li><b>5 碼房間代碼（測試版）</b>：房主開房後會看到一組 5 個英文字母，朋友按「多人連線 → 我是朋友」輸入這 5 個字就能加入，遊戲中斷線也能用同一組代碼回來。這個功能要借用網路上的免費連線服務，連不上時畫面會說明，請改用下面的長邀請碼。</li>' +
@@ -8742,8 +8743,18 @@ if (typeof module !== 'undefined') module.exports = G;
       ui.view.cx += (cx - want) / k; applyView();
     } catch (e) {} }, 60);
   }
+  function atkFromBest(id) {
+    var bestS = null, bsc = -1;
+    if (!g || !g.p[id] || g.p[id].o === g.player || g.over) return null;
+    G.NB[id].forEach(function (n) { var q = g.p[n]; if (!q || q.o !== g.player || q.acted || q.t < 2) return; if (q.t > bsc) { bsc = q.t; bestS = n; } });
+    if (bestS == null) return null;
+    var os = ui.sel, om = ui.mode, ot = ui.target; ui.sel = bestS; ui.mode = 'atk';
+    var ok = !!moveInfo()[id]; ui.sel = os; ui.mode = om; ui.target = ot;
+    return ok ? bestS : null;
+  }
   function renderPanel() {
     renderPanel0();
+    try { if (ui.fleet == null && ui.sel != null && ui.target == null && !ui.army && g.p[ui.sel] && g.p[ui.sel].o !== g.player) { var bs7 = atkFromBest(ui.sel), ph7 = document.querySelector('#panel .ph'); if (bs7 != null && ph7) ph7.insertAdjacentHTML('afterend', '<button class="btn primary" style="width:100%;margin:6px 0" data-act="atkfrom">⚔ 從旁邊的「' + esc(G.placeName(bs7)) + '」（' + g.p[bs7].t + ' 人）出兵' + (g.p[ui.sel].o ? '攻打' : '占領') + '這裡</button>'); } } catch (e) {}
     try { bigKeepVisible(); } catch (e) {}
     try { if (ui.fleet == null && ui.sel != null && g.p[ui.sel] && g.p[ui.sel].o) { var phx = document.querySelector('#panel .ph'); if (phx) phx.insertAdjacentHTML('afterend', relSum(g.p[ui.sel].o)); } } catch (e) {}
     try { var de = document.documentElement, bs = (ui.sel != null || ui.fleet != null); if (de.classList.contains('bigmap') && de.classList.contains('bigsel') !== bs) { de.classList.toggle('bigsel', bs); var bb = document.querySelector('.bar'); if (bs && bb) de.style.setProperty('--barh', bb.offsetHeight + 'px'); } else if (!de.classList.contains('bigmap') && de.classList.contains('bigsel')) de.classList.remove('bigsel'); } catch (e) {}
@@ -9358,6 +9369,7 @@ if (typeof module !== 'undefined') module.exports = G;
     }
     if (ui.fleet == null && ui.sel === id && ui.target == null && !ui.army) { ui.sel = null; ui.confirmEnd = false; renderPanel(); renderBar(); renderHL(); return; }
     var tg = moveInfo();
+    if (ui.sel != null && tg[id] && ui.target === id && !ui.army && !(g.guide && g.turn <= 12)) { ui.sel = id; ui.target = null; ui.mode = 'atk'; ui.confirmEnd = false; renderPanel(); renderBar(); renderHL(); return toast('改成查看「' + G.placeName(id) + '」。'); }
     if (ui.sel != null && tg[id]) {
       if (ui.army && g.p[id].o === g.player) { ui.target = id; return doMove(); }
       ui.target = id; ui.confirmEnd = false; renderPanel(); renderBar(); renderHL(); return;
@@ -9366,12 +9378,14 @@ if (typeof module !== 'undefined') module.exports = G;
       var s1 = ui.sel, mt1 = G.moveTargets(g, g.player, s1), cand = null;
       G.NB[id].forEach(function (n) { var q = g.p[n]; if (!q || q.o !== g.player || n === s1 || mt1[n] !== 'road') return; if (cand == null || q.t > g.p[cand].t) cand = n; });
       if (cand != null) {
+        ui.sel = id; ui.mode = 'atk'; ui.target = null; ui.confirmEnd = false; ui.army = null; renderPanel(); renderBar(); renderHL();
+        return toast('「' + G.placeName(s1) + '」打不到這裡：要先把部隊調到旁邊的「' + G.placeName(cand) + '」，下一回合再出兵。');
         var mr1 = G.P.move(g, s1, cand, 'all');
         if (mr1.ok) { ui.sel = cand; ui.mode = 'atk'; ui.army = null; ui.target = moveInfo()[id] ? id : null; ui.confirmEnd = false; ui._snap = { s: s1, t: cand }; renderAll(); save(); toast('已先把部隊調到「' + G.placeName(cand) + '」（−1 行動點，沿途地形與兵種會影響能走多遠）；確認進攻即可出擊。'); return; }
         return toast(mr1.msg || '無法調動。');
       }
     }
-    if (g.p[id] && g.p[id].o !== g.player && !ui.army) {
+    if (g.p[id] && g.p[id].o !== g.player && !ui.army && g.guide && g.turn <= 12) {
       var bestS = null, bsc = -1;
       G.NB[id].forEach(function (n) { var q = g.p[n]; if (!q || q.o !== g.player || q.acted || q.t < 2) return; if (q.t > bsc) { bsc = q.t; bestS = n; } });
       if (bestS != null) {
@@ -9460,6 +9474,7 @@ if (typeof module !== 'undefined') module.exports = G;
     if (a === 'rgtab') { ui.rg = b.getAttribute('data-r'); try { localStorage.setItem('crusade-rg2', ui.rg); } catch (e) {} rgShow(); try { var t0 = document.querySelector('.rgtabs'); if (t0 && t0.getBoundingClientRect().top < 0) t0.scrollIntoView({ block: 'start' }); } catch (e) {} return; }
     if (a === 'guide') { GUIDE = b.getAttribute('data-v') === '1'; try { localStorage.setItem('crusade-guide', GUIDE ? '1' : '0'); } catch (e) {} renderOpts(); return markCards(); }
     if (a === 'diff') { DIFF = +b.getAttribute('data-v'); try { localStorage.setItem('crusade-diff', DIFF); } catch (e) {} renderOpts(); return markCards(); }
+    if (a === 'atkfrom') { var at7 = ui.sel, bs8 = atkFromBest(at7); if (bs8 == null) return toast('旁邊沒有能出兵的己方部隊。'); ui.sel = bs8; ui.mode = 'atk'; ui.fleet = null; ui.target = at7; ui.confirmEnd = false; renderPanel(); renderBar(); renderHL(); return; }
     if (a === 'xpexp') return xpExportMenu();
     if (a === 'xpimp') return xpImportMenu();
     if (a === 'xpmake') return xpMake(b.getAttribute('data-t'), b.getAttribute('data-k'));
