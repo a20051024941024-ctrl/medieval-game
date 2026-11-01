@@ -171,11 +171,11 @@ button{font:inherit;color:inherit}
 .hx{cursor:pointer;stroke:rgba(0,0,0,.28);stroke-width:1}
 .hx:hover{stroke:#fff;stroke-width:2}
 .t-g{fill:#8fb05a}.t-f{fill:#3f6b34}.t-h{fill:#a98d4a}.t-m{fill:#7d746b}.t-d{fill:#e0c887}.t-n{fill:#5fae45}.t-s{fill:#c9c06a}.t-w{fill:#e8eff3}
-.ov{pointer-events:none;fill-opacity:.52}
-.mapsvg.z1 .ov{fill-opacity:.78}
-.mapsvg.z1 .bd{stroke-width:6.5}
-.mapsvg.z1 .bdk{stroke-width:6}
-.fn{pointer-events:none;display:none;font-family:var(--f-b);font-weight:900;letter-spacing:2px;stroke:#05090c;stroke-width:calc(4px * var(--zs));stroke-linejoin:round;paint-order:stroke;filter:brightness(1.7) saturate(1.2)}
+.ov{pointer-events:none;fill-opacity:.44}
+.mapsvg.z1 .ov{fill-opacity:.62}
+.mapsvg.z1 .bd{stroke-width:5.2}
+.mapsvg.z1 .bdk{stroke-width:5}
+.fn{pointer-events:none;display:none;font-family:var(--f-b);font-weight:900;letter-spacing:2px;stroke:#05090c;stroke-width:calc(4px * var(--zs));stroke-linejoin:round;paint-order:stroke;filter:brightness(1.55) saturate(1.05)}
 .fn.me{stroke:#05090c;stroke-width:calc(5px * var(--zs));filter:brightness(1.6) drop-shadow(0 0 calc(5px * var(--zs)) #f1d48c)}
 .ov.neu{fill:#8a7f60;fill-opacity:.28}
 .gl{pointer-events:none;fill:none;stroke:rgba(20,16,6,.6);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
@@ -190,8 +190,8 @@ button{font:inherit;color:inherit}
 .gl.rv{stroke:#1d6aa0;stroke-width:2.6}
 .gl.st{stroke:#6d6a22;stroke-width:2.2}
 .cst{pointer-events:none;stroke:#0a1a22;stroke-width:3;stroke-linecap:round;fill:none}
-.bd{pointer-events:none;stroke-width:4.4;stroke-linecap:round;fill:none;opacity:.95}
-.bdk{pointer-events:none;stroke:#05070a;stroke-opacity:.95;stroke-width:4.6;stroke-linecap:round;fill:none}
+.bd{pointer-events:none;stroke-width:3.2;stroke-linecap:round;fill:none;opacity:.9}
+.bdk{pointer-events:none;stroke:#05070a;stroke-opacity:.55;stroke-width:3.4;stroke-linecap:round;fill:none}
 .hl{pointer-events:none;fill:none;stroke-width:3.2;stroke-linejoin:round}
 .hl.land{stroke:#ff8b7a;stroke-dasharray:7 5;fill:#ff8b7a;fill-opacity:.16}
 .hl.road{stroke:#a4e69b;stroke-dasharray:7 5;fill:#a4e69b;fill-opacity:.14}
@@ -372,7 +372,7 @@ button{font:inherit;color:inherit}
     <div class="startmap" id="startmap" aria-hidden="true"></div>
     <div class="sc-in gx">
       <p class="eyebrow">MEDIEVAL: WORLD DOMINATION · 1096 AD</p>
-      <p class="muted small" id="verline">版本 v178 · 2026-11-01 · 騎兵突襲：騎兵為主的軍團可越過一格空曠敵地，直接打第二圈的目標</p>
+      <p class="muted small" id="verline">版本 v179 · 2026-11-01 · 騎兵突襲（含 AI）、勢力稱號升級、領地配色更柔和、規則頁更新</p>
       <h1>中世紀：世界霸權</h1>
       <p class="lead">1095 年，教宗在克萊蒙發出號召，整個歐洲動了起來。選一個勢力（共 121 個），再從該文明歷史上的君主裡挑一位登基；在四千多個六角格地塊的世界裡，與基督教世界、伊斯蘭世界與即將到來的蒙古鐵騎周旋。可以結盟借道、派商隊與商船貿易、派密探、遠征遠方、研究科技升級時代、替自己的城市取名。沒有回合上限，直到有人稱霸，或你失去一切。</p>
       <div id="startopts"></div>
@@ -1392,7 +1392,35 @@ var FACTIONS = {
 function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
 function rint(n) { return Math.floor(Math.random() * n); }
 function shuffle(a) { for (var i = a.length - 1; i > 0; i--) { var j = rint(i + 1), t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
-function nm(f) { return f === 'pir' ? '海盜' : f ? FACTIONS[f].name : '盜匪'; }
+/* 稱號：領地達 16 格升一級、40 格再升一級（只升不降） */
+var TITLE_AT = [16, 40], _TT = {};
+var TITLES = {
+  byz: ['拜占庭帝國', '羅馬帝國'], hre: ['神聖羅馬王國', '神聖羅馬帝國'], fra: ['法蘭西王國', '法蘭西帝國'], eng: ['英格蘭王國', '安茹帝國'],
+  ita: ['義大利海上共和國', '義大利帝國'], norm: ['西西里王國', '諾曼帝國'], cas: ['西班牙王國', '西班牙帝國'], almor: ['穆拉比特王朝', '穆拉比特帝國'],
+  fat: ['法蒂瑪哈里發國', '法蒂瑪帝國'], seljuk: ['塞爾柱蘇丹國', '塞爾柱帝國'], rum: ['魯姆蘇丹國', '安那托利亞帝國'], kiev: ['基輔大公國', '羅斯帝國'],
+  hung: ['匈牙利王國', '匈牙利帝國'], pol: ['波蘭王國', '波蘭帝國'], scand: ['丹麥王國', '北海帝國'], ghaz: ['伽色尼王朝', '伽色尼帝國'],
+  kara: ['喀喇汗王朝', '喀喇汗帝國'], khmer: ['高棉帝國', '吳哥大帝國'], chola: ['朱羅王朝', '朱羅帝國'], cum: ['欽察汗國', '欽察大汗國'],
+  arag: ['阿拉貢王國', '地中海帝國'], por: ['葡萄牙王國', '葡萄牙帝國'], nor: ['挪威王國', '北方帝國'], swe: ['瑞典王國', '瑞典帝國'],
+  eth: ['衣索比亞王國', '衣索比亞帝國'], jav: ['爪哇王國', '爪哇帝國'], cus: ['庫斯科王國', '印加帝國'], tol: ['托爾特克王國', '托爾特克帝國'],
+  khw: ['花剌子模王朝', '花剌子模帝國'], ghu: ['古爾蘇丹國', '古爾帝國'], pala: ['波羅王朝', '波羅帝國'], chal: ['西遮婁其王國', '西遮婁其帝國'], jpn: ['日本', '日本帝國'],
+  bul: ['保加爾汗國', '保加爾帝國'], abb: ['阿拔斯哈里發國', '阿拔斯帝國'], sco: ['蘇格蘭王國', '不列顛王國'], ire: ['愛爾蘭王國', '愛爾蘭帝國']
+};
+function nm(f) {
+  if (f === 'pir') return '海盜'; if (!f) return '盜匪';
+  var t = _TT[f], T = TITLES[f];
+  return (t && T && T[t - 1]) ? T[t - 1] : FACTIONS[f].name;
+}
+function titleTick(g) {
+  var tt = g.tt || (g.tt = {}); _TT = tt;
+  Object.keys(TITLES).forEach(function (f) {
+    if (!g.fac[f] || !g.fac[f].alive) return;
+    var n = ownedN(g, f), t = n >= TITLE_AT[1] ? 2 : n >= TITLE_AT[0] ? 1 : 0, old = tt[f] || 0;
+    if (t > old) {
+      var o = nm(f); tt[f] = t;
+      if (g.turn > 1 && f === g.player) logMsg(g, '你的勢力壯大了：「' + o + '」升格為「' + nm(f) + '」。', 'good');
+    }
+  });
+}
 function season(g) { return 0; }
 function year(g) { return START_YEAR + g.turn - 1; }
 var RX_T = [0, 12, 30, 55, 90, 135, 190, 260, 340, 440];
@@ -1429,7 +1457,7 @@ function fail(msg) { return { ok: false, msg: msg }; }
 function good(msg, extra) { var o = extra || {}; o.ok = true; o.msg = msg; return o; }
 function cityName(id) { return CITY[id] ? CITY[id].name : null; }
 var _CN = {}, _GP = null;
-function bindCN(g) { _CN = g.cn || (g.cn = {}); _GP = g.p; }
+function bindCN(g) { _CN = g.cn || (g.cn = {}); _GP = g.p; _TT = g.tt || (g.tt = {}); }
 function settleName(id, L) { var r = TERR[id] === 'f' || TERR[id] === 'h' || TERR[id] === 'm' || TERR[id] === 'w'; return [r ? '山寨' : '村莊', r ? '城堡' : '市鎮', r ? '堡壘' : '城市'][Math.max(1, Math.min(3, L)) - 1]; }
 function isVillage(id, p) { return !!p && p.L === 1 && !CITY[id]; }
 var ISL_NM = {};
@@ -1493,7 +1521,7 @@ function applyHistRel(g) {
     var r = rel(g, e[0], e[1]); r.state = e[2]; r.truce = 0; r.warT = 0;
   });
 }
-function newGame(pid, diff) { var m = newGame0(pid, diff); m.ver = SAVE_VER; m.sig = MAPSIG; m.cn = {}; _CN = m.cn; PLAYABLE.forEach(function (f) { if (f !== pid && RULERS[f] && RULERS[f].length) setRuler(m, f, Math.floor(Math.random() * RULERS[f].length)); }); Object.keys(BLOCKED).forEach(function (k) { var q = m.p[k]; if (q) { q.o = null; q.t = 0; q.L = 0; q.b = []; q.ar = []; } }); _own = null; applyHistRel(m); eraSync(m); return m; }
+function newGame(pid, diff) { var m = newGame0(pid, diff); m.ver = SAVE_VER; m.sig = MAPSIG; m.cn = {}; _CN = m.cn; m.tt = {}; _TT = m.tt; titleTick(m); PLAYABLE.forEach(function (f) { if (f !== pid && RULERS[f] && RULERS[f].length) setRuler(m, f, Math.floor(Math.random() * RULERS[f].length)); }); Object.keys(BLOCKED).forEach(function (k) { var q = m.p[k]; if (q) { q.o = null; q.t = 0; q.L = 0; q.b = []; q.ar = []; } }); _own = null; applyHistRel(m); eraSync(m); return m; }
 function newGame0(pid, diff) {
   syncCap(null);
   var g = { player: pid, turn: 1, ap: AP_MAX, p: [], fac: {}, dip: {}, rep: {}, offers: [], log: [], over: null, evResolved: false, lastEv: null, evData: null, holyCd: {}, diff: diff === undefined ? 1 : diff };
@@ -3430,6 +3458,19 @@ function aiMoves(g, f) {
       var sc = ratio * targetValue(g, to) * (t.o === g.player ? 1.1 : 1);
       if (sc > bs) { bs = sc; best = { to: to, send: avail }; }
     });
+    if (!best && avail >= 6 && mixOf(g, from)[2] >= 0.4 && Math.random() < 0.4) {
+      var am = { mx: mixOf(g, from), n: s.t }, RTs = armyRaidTargets(g, f, from, am), rb = null, rbs = 0;
+      Object.keys(RTs).forEach(function (k) {
+        var to = +k, t = g.p[to];
+        var rc2 = AI_REACH[f] || 28; if (hexDist(CAPITAL[f], to) > rc2 * rc2) return;
+        var pl = armyPlan(g, f, from, to, am); if (!pl.ok || !pl.raid || pl.via !== from) return;
+        var ratio = avail / (Math.max(1, t.t) * 1.15 * terrDef(g, to, t.o));
+        if (ratio < thr + 0.45) return;
+        var sc = ratio * targetValue(g, to) * (t.o === g.player ? 1.1 : 1);
+        if (sc > rbs) { rbs = sc; rb = to; }
+      });
+      if (rb !== null) { g.raidN = (g.raidN | 0) + 1; g_raid = rb; try { moveTroops(g, f, from, rb, avail); } finally { g_raid = -1; } return; }
+    }
     if (best && Math.random() < 0.55 + A.aggr * 0.45) { moveTroops(g, f, from, best.to, best.send); return; }
     /* 內陸部隊向前線集結 */
     if (fd[from] > 0 && s.t > 5) {
@@ -5350,7 +5391,7 @@ function coastFire(g) {
   if (gone) g.fl = g.fl.filter(function (x) { return x.n >= 1; });
   fdirty();
 }
-function endTurn(g) { bindCN(g); capTick(g); fiefTick(g); relTick(g); lmCheck(g); eraSync(g); endTurn0(g); histDisaster(g); rulerTick(g); coastFire(g); carTick(g); lmCheck(g); eraSync(g); }
+function endTurn(g) { bindCN(g); titleTick(g); capTick(g); fiefTick(g); relTick(g); lmCheck(g); eraSync(g); endTurn0(g); histDisaster(g); rulerTick(g); coastFire(g); carTick(g); lmCheck(g); eraSync(g); }
 function endTurn0(g) {
   _own = null;
   genTick(g);
@@ -5599,6 +5640,16 @@ if (typeof module !== 'undefined') module.exports = G;
   try { SLOT = +localStorage.getItem('crusade-slot') || 1; var dv = localStorage.getItem('crusade-diff'); DIFF = dv === null ? 1 : +dv; if (!(DIFF >= 0 && DIFF <= 2)) DIFF = 1; } catch (e) {}
   function SK(n) { return n === 1 ? SAVE0 : SAVE0 + '-s' + n; }
   var NC = { maori: '#3aa6a0', abor: '#c06a2b', tehu: '#7d9a4a', kam: '#6f8fb5', byz: '#7b3fa0', hre: '#8a8d93', fra: '#2f6fd0', eng: '#8c2f3c', ita: '#2fa79a', norm: '#c98a2a', cas: '#d9b83c', almor: '#4a7a2e', fat: '#2d9a58', seljuk: '#d4651f', rum: '#e08a6a', kiev: '#b24f8a', hung: '#9aa83a', pol: '#c9c1a1', scand: '#4f86b8', ghaz: '#1c5f66', kara: '#7c5a3a', mongol: '#111418', song: '#ee5a4f', liao: '#3d4a8f', xia: '#c89b5c', dali: '#58b368', gor: '#7fd0e0', jpn: '#f2f2f2', dai: '#e0b0d0', gaha: '#ffb347', chal: '#a0522d', pala: '#6fa8dc', jin: '#6b4e1f', khmer: '#e0673a', pagan: '#d9a441', champa: '#2aa6c9', srivijaya: '#9b6fd1', chola: '#c4344f', pap: '#b52a2a', arag: '#30ce5e', por: '#9a49d4', ire: '#b5a42a', sco: '#30b4ce', nor: '#d44994', swe: '#4db52a', boh: '#3730ce', srb: '#d47749', geo: '#2ab581', arm: '#c130ce', jer: '#b7d449', che: '#2a6fb5', nov: '#ce3051', vla: '#49d455', hal: '#5f2ab5', lit: '#ce9a30', cum: '#49d4ce', bul: '#b52a92', zir: '#78ce30', ham: '#4960d4', abb: '#b53c2a', sul: '#30ce72', khw: '#ac49d4', qoc: '#b5b52a', tib: '#309fce', kas: '#d44982', ghu: '#3bb52a', chan: '#4b30ce', chau: '#d48949', kak: '#2ab593', hoy: '#ce30c7', mon: '#a5d449', ker: '#2a5eb5', nai: '#ce303c', tat: '#49d466', mer: '#702ab5', gha: '#ceae30', gao: '#49c8d4', hau: '#b52a80', yor: '#64ce30', ben: '#494ed4', kan: '#b54e2a', mak: '#30ce86', alo: '#bd49d4', eth: '#a3b52a', adal: '#308bce', som: '#d44970', bun: '#2ab52b', kil: '#5f30ce', zim: '#d49b49', kon: '#2ab5a5', mala: '#ce30b3', jav: '#93d449', nmd: '#2a4cb5', bri: '#ce3830', aqu: '#49d478', tou: '#822ab5', zar: '#cec230', val: '#49b6d4', duk: '#b52a6f', plk: '#50ce30', dan: '#5549d4', ale: '#b55f2a', dam: '#30ce9b', mos: '#cf49d4', niz: '#91b52a', cey: '#3077ce', guj: '#d4495f', par: '#2ab53d', egan: '#7330ce', hari: '#d4ad49', lavo: '#2ab4b5', tamb: '#ce309e', sun: '#81d449', bru: '#2a3ab5', lam: '#ce4c30', but: '#49d48a', maii: '#942ab5', cah: '#c6ce30', pue: '#49a4d4', tol: '#b52a5d', mix: '#3bce30', may: '#6749d4', tai: '#b5712a', chi: '#30ceaf', col: '#d449c7', cus: '#80b52a', ice: '#3063ce', grn: '#d4494d' };
+  /* 柔和配色：降低飽和度，保留各勢力的辨識度 */
+  (function () {
+    function h2(h) { var r = parseInt(h.substr(1, 2), 16) / 255, g = parseInt(h.substr(3, 2), 16) / 255, b = parseInt(h.substr(5, 2), 16) / 255, mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, s = 0, hh = 0, d = mx - mn;
+      if (d) { s = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn); hh = mx === r ? (g - b) / d + (g < b ? 6 : 0) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; hh /= 6; }
+      s *= 0.78; l = l + (0.52 - l) * 0.1;
+      function f(p, q, t) { if (t < 0) t += 1; if (t > 1) t -= 1; return t < 1 / 6 ? p + (q - p) * 6 * t : t < 1 / 2 ? q : t < 2 / 3 ? p + (q - p) * (2 / 3 - t) * 6 : p; }
+      var q2 = l < 0.5 ? l * (1 + s) : l + s - l * s, p2 = 2 * l - q2;
+      return '#' + [f(p2, q2, hh + 1 / 3), f(p2, q2, hh), f(p2, q2, hh - 1 / 3)].map(function (x) { return ('0' + Math.round(x * 255).toString(16)).slice(-2); }).join(''); }
+    Object.keys(NC).forEach(function (k) { if (/^#[0-9a-f]{6}$/i.test(NC[k])) NC[k] = h2(NC[k]); });
+  })();
   var TN = { g: '平原', f: '森林', h: '丘陵', m: '山地', d: '沙漠', n: '河谷沃土', s: '草原', w: '雪原' };
   var S = 30, DX = S * Math.sqrt(3), W = G.W, H = G.H;
   var BX0 = 0, BX1 = DX * (W + 0.5), BY0 = S * 1.3, BY1 = S * (1 + 1.5 * (H - 2)) + S + 6, BW = BX1 - BX0, BH = BY1 - BY0;
@@ -6449,7 +6500,8 @@ if (typeof module !== 'undefined') module.exports = G;
     '<li><b>駱駝騎兵</b>：沙漠與阿拉伯、北非、薩赫勒一帶的勢力（例如穆拉比特、法蒂瑪、阿拔斯、迦納、加奧、加涅姆、索馬里城邦等）的騎兵是駱駝騎兵：在沙漠不缺水損耗、行軍不減速，沙漠中進攻與防守戰力 +10%。</li>' +
     '<li><b>地形與行軍</b>：森林、丘陵、山地行軍本來就慢；騎兵越多的部隊在這些地形損失越大（森林最多多花 1 點、山地 1.5 點移動力）。進攻山地、丘陵、森林時，進攻方戰力也會打折。</li>' +
     '<li><b>城牆</b>：城市可花金幣修城牆（不超過城市等級，最高 3 級），守軍防禦每級 +18%，攻城器械可以削弱城牆效果；城破會損毀一級。</li>' +
-    '<li><b>騎兵突襲</b>：騎兵占四成以上的軍團，走到邊境後還有移動力，可以越過一格空曠的敵地或無主地（不能越過城市、村莊），直接攻打第二圈的目標。戰力 −10%，失敗時撤回的兵力只剩約七成；奪下的地塊和己方領地不相連，補給較差。步兵為主的軍團不能這樣打。</li>' +
+    '<li><b>稱號</b>：勢力的領地達 16 格升一級（例如「法蘭西」→「法蘭西王國」），達 40 格再升一級（例如「法蘭西帝國」），只升不降；升級時會有訊息提示。</li>' +
+    '<li><b>騎兵突襲</b>：騎兵占四成以上的軍團，走到邊境後還有移動力，可以越過一格空曠的敵地或無主地（不能越過城市、村莊），直接攻打第二圈的目標。戰力 −10%，失敗時撤回的兵力只剩約七成；奪下的地塊和己方領地不相連，補給較差。步兵為主的軍團不能這樣打。電腦控制的勢力偶爾也會這樣突襲你。</li>' +
     '<li><b>無主島嶼</b>：亞速爾、馬德拉、加那利、台灣島、海南島、波多黎各、巴哈馬是一開始沒人佔的小島，各有少量守軍。要有「遠洋航行」科技的艦隊才到得了外海的島，近岸的島用普通艦隊即可；佔下之後可以建村莊慢慢開拓。</li>' +
     '<li><b>歷史事件</b>：史實事件（農民起義、安卡拉之戰、阿金庫爾、貞德、君士坦丁堡陷落、遠洋探險、繞過好望角）與旅行家、漢薩商人、大學請願等隨機事件，都要符合條件才會出現，例如要有遠洋航行科技和港口、民心夠低、還握有首都；條件不符就跳過，不會硬湊。</li>' +
     '<li><b>天災與民變</b>：瘟疫（1347 年起有黑死病）、饑荒、君主駕崩的繼承危機、民怨沸騰都會觸發事件。剛佔領的城市十回合內若駐軍太少，居民可能趁亂起事。</li>' +
@@ -6843,7 +6895,7 @@ if (typeof module !== 'undefined') module.exports = G;
       }
     });
     s += '<path class="cst" d="' + coast + '"/><path class="bdk" d="' + dark + '"/>';
-    Object.keys(col).forEach(function (f) { s += '<path class="bd" style="stroke:' + NC[f] + ';filter:brightness(1.45)" d="' + col[f] + '"/>'; });
+    Object.keys(col).forEach(function (f) { s += '<path class="bd" style="stroke:' + NC[f] + ';filter:brightness(1.3)" d="' + col[f] + '"/>'; });
     if (g.player && col[g.player]) s += '<path class="bd" style="stroke:#fff3c4;stroke-width:1.8;opacity:.9" d="' + col[g.player] + '"/>';
     /* 勢力名稱 */
     if (!o.demo) {
