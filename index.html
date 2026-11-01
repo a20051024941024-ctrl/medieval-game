@@ -63,11 +63,17 @@ button{font:inherit;color:inherit}
 .sc-in h1{font-size:clamp(40px,10vw,68px);font-weight:900;letter-spacing:.1em;margin-block:6px 10px;
   background:linear-gradient(#f8e3a8,#c99a3e);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 3px 0 rgba(0,0,0,.6))}
 .lead{max-width:560px;font-size:calc(16px * var(--fs,1));color:#d6d2c0;margin-bottom:18px}
+.rgtabs{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px;padding:4px 0 8px}
+.rgtabs .chip{font-size:calc(15px * var(--fs,1));padding:8px 14px;font-weight:800}
 .fcards{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:12px}
 .fcard{display:flex;flex-direction:column;gap:10px;text-align:left;padding:16px;min-width:0;cursor:pointer;
   background:linear-gradient(160deg,color-mix(in srgb,var(--fc) 38%,#0e1a1f),#0e1a1f 62%);
   border:1px solid color-mix(in srgb,var(--fc) 55%,#000);border-top:5px solid var(--fc);border-radius:8px}
 .fcard:hover{border-color:var(--gold)}
+.fcard.fno{opacity:.42;filter:grayscale(.8)}
+.fcard.fno:hover{border-color:inherit}
+.fnot{font-size:calc(12px * var(--fs,1));font-weight:800;color:#ffb4a8}
+.tutnote{margin:0 0 10px;padding:8px 12px;border-radius:10px;background:#3a2a52;border:1px solid #c9a24b;color:#fff;font-size:calc(13.5px * var(--fs,1));line-height:1.6}
 .fname{font-weight:900;font-size:calc(24px * var(--fs,1));letter-spacing:.06em}
 .fblurb{color:#c9cfc3;font-size:calc(14px * var(--fs,1))}
 .ftraits{margin:0;padding-left:18px;font-size:calc(14px * var(--fs,1));flex:1}
@@ -123,6 +129,42 @@ button{font:inherit;color:inherit}
 .log li{display:grid;grid-template-columns:62px minmax(0,1fr);gap:8px;padding:6px 0;border-bottom:1px solid var(--line);font-size:calc(14px * var(--fs,1))}
 .log .when{font-size:calc(12px * var(--fs,1));color:var(--muted);padding-top:2px}
 .log .k-good span:last-child{color:var(--good)} .log .k-bad span:last-child{color:var(--bad)}
+.panel::after{content:'';position:sticky;bottom:0;display:block;height:0;pointer-events:none}
+.panel.more::after{content:'▼ 往下滑，還有更多';height:44px;margin:-44px 0 -24px;padding-top:20px;box-sizing:border-box;text-align:center;font-weight:900;font-size:calc(14px * var(--fs,1));color:#f1d48c;text-shadow:0 1px 3px #000;background:linear-gradient(rgba(18,32,39,0),rgba(18,32,39,.96) 55%);animation:mhint 1.4s ease-in-out infinite}
+@keyframes mhint{0%,100%{opacity:.75}50%{opacity:1}}
+.panel::after{content:'';position:sticky;bottom:0;display:block;height:0;pointer-events:none}
+.panel.more::after{content:'▼ 往下滑，還有更多';height:44px;margin:-44px 0 -24px;padding-top:20px;box-sizing:border-box;text-align:center;font-weight:900;font-size:calc(14px * var(--fs,1));color:#f1d48c;text-shadow:0 1px 3px #000;background:linear-gradient(rgba(18,32,39,0),rgba(18,32,39,.96) 55%);animation:mhint 1.4s ease-in-out infinite}
+@keyframes mhint{0%,100%{opacity:.75}50%{opacity:1}}
+.panel::after{content:'';position:sticky;bottom:0;display:block;height:0;pointer-events:none}
+.panel.more::after{content:'▼ 往下滑，還有更多';height:44px;margin:-44px 0 -24px;padding-top:20px;box-sizing:border-box;text-align:center;font-weight:900;font-size:calc(14px * var(--fs,1));color:#f1d48c;text-shadow:0 1px 3px #000;background:linear-gradient(rgba(18,32,39,0),rgba(18,32,39,.96) 55%);animation:mhint 1.4s ease-in-out infinite}
+@keyframes mhint{0%,100%{opacity:.75}50%{opacity:1}}
+.panel::after{content:'';position:sticky;bottom:0;display:block;height:0;pointer-events:none}
+.panel.more::after{content:'▼ 往下滑，還有更多';height:44px;margin:-44px 0 -24px;padding-top:20px;box-sizing:border-box;text-align:center;font-weight:900;font-size:calc(14px * var(--fs,1));color:#f1d48c;text-shadow:0 1px 3px #000;background:linear-gradient(rgba(18,32,39,0),rgba(18,32,39,.96) 55%);animation:mhint 1.4s ease-in-out infinite}
+@keyframes mhint{0%,100%{opacity:.75}50%{opacity:1}}
+.panel::after{content:'';position:sticky;bottom:0;display:block;height:0;pointer-events:none}
+.panel.more::after{content:'▼ 往下滑，還有更多';height:44px;margin:-44px 0 -24px;padding-top:20px;box-sizing:border-box;text-align:center;font-weight:900;font-size:calc(14px * var(--fs,1));color:#f1d48c;text-shadow:0 1px 3px #000;background:linear-gradient(rgba(18,32,39,0),rgba(18,32,39,.96) 55%);animation:mhint 1.4s ease-in-out infinite}
+@keyframes mhint{0%,100%{opacity:.75}50%{opacity:1}}
+.panel::after{content:'';position:sticky;bottom:0;display:block;height:0;pointer-events:none}
+.panel.more::after{content:'▼ 往下滑，還有更多';height:44px;margin:-44px 0 -24px;padding-top:20px;box-sizing:border-box;text-align:center;font-weight:900;font-size:calc(14px * var(--fs,1));color:#f1d48c;text-shadow:0 1px 3px #000;background:linear-gradient(rgba(18,32,39,0),rgba(18,32,39,.96) 55%);animation:mhint 1.4s ease-in-out infinite}
+@keyframes mhint{0%,100%{opacity:.75}50%{opacity:1}}
+.panel::after{content:'';position:sticky;bottom:0;display:block;height:0;pointer-events:none}
+.panel.more::after{content:'▼ 往下滑，還有更多';height:44px;margin:-44px 0 -24px;padding-top:20px;box-sizing:border-box;text-align:center;font-weight:900;font-size:calc(14px * var(--fs,1));color:#f1d48c;text-shadow:0 1px 3px #000;background:linear-gradient(rgba(18,32,39,0),rgba(18,32,39,.96) 55%);animation:mhint 1.4s ease-in-out infinite}
+@keyframes mhint{0%,100%{opacity:.75}50%{opacity:1}}
+.panel::after{content:'';position:sticky;bottom:0;display:block;height:0;pointer-events:none}
+.panel.more::after{content:'▼ 往下滑，還有更多';height:44px;margin:-44px 0 -24px;padding-top:20px;box-sizing:border-box;text-align:center;font-weight:900;font-size:calc(14px * var(--fs,1));color:#f1d48c;text-shadow:0 1px 3px #000;background:linear-gradient(rgba(18,32,39,0),rgba(18,32,39,.96) 55%);animation:mhint 1.4s ease-in-out infinite}
+@keyframes mhint{0%,100%{opacity:.75}50%{opacity:1}}
+.panel::after{content:'';position:sticky;bottom:0;display:block;height:0;pointer-events:none}
+.panel.more::after{content:'▼ 往下滑，還有更多';height:44px;margin:-44px 0 -24px;padding-top:20px;box-sizing:border-box;text-align:center;font-weight:900;font-size:calc(14px * var(--fs,1));color:#f1d48c;text-shadow:0 1px 3px #000;background:linear-gradient(rgba(18,32,39,0),rgba(18,32,39,.96) 55%);animation:mhint 1.4s ease-in-out infinite}
+@keyframes mhint{0%,100%{opacity:.75}50%{opacity:1}}
+.panel::after{content:'';position:sticky;bottom:0;display:block;height:0;pointer-events:none}
+.panel.more::after{content:'▼ 往下滑，還有更多';height:44px;margin:-44px 0 -24px;padding-top:20px;box-sizing:border-box;text-align:center;font-weight:900;font-size:calc(14px * var(--fs,1));color:#f1d48c;text-shadow:0 1px 3px #000;background:linear-gradient(rgba(18,32,39,0),rgba(18,32,39,.96) 55%);animation:mhint 1.4s ease-in-out infinite}
+@keyframes mhint{0%,100%{opacity:.75}50%{opacity:1}}
+.panel::after{content:'';position:sticky;bottom:0;display:block;height:0;pointer-events:none}
+.panel.more::after{content:'▼ 往下滑，還有更多';height:44px;margin:-44px 0 -24px;padding-top:20px;box-sizing:border-box;text-align:center;font-weight:900;font-size:calc(14px * var(--fs,1));color:#f1d48c;text-shadow:0 1px 3px #000;background:linear-gradient(rgba(18,32,39,0),rgba(18,32,39,.96) 55%);animation:mhint 1.4s ease-in-out infinite}
+@keyframes mhint{0%,100%{opacity:.75}50%{opacity:1}}
+.panel::after{content:'';position:sticky;bottom:0;display:block;height:0;pointer-events:none}
+.panel.more::after{content:'▼ 往下滑，還有更多';height:44px;margin:-44px 0 -24px;padding-top:20px;box-sizing:border-box;text-align:center;font-weight:900;font-size:calc(14px * var(--fs,1));color:#f1d48c;text-shadow:0 1px 3px #000;background:linear-gradient(rgba(18,32,39,0),rgba(18,32,39,.96) 55%);animation:mhint 1.4s ease-in-out infinite}
+@keyframes mhint{0%,100%{opacity:.75}50%{opacity:1}}
 .panel::after{content:'';position:sticky;bottom:0;display:block;height:0;pointer-events:none}
 .panel.more::after{content:'▼ 往下滑，還有更多';height:44px;margin:-44px 0 -24px;padding-top:20px;box-sizing:border-box;text-align:center;font-weight:900;font-size:calc(14px * var(--fs,1));color:#f1d48c;text-shadow:0 1px 3px #000;background:linear-gradient(rgba(18,32,39,0),rgba(18,32,39,.96) 55%);animation:mhint 1.4s ease-in-out infinite}
 @keyframes mhint{0%,100%{opacity:.75}50%{opacity:1}}
@@ -353,7 +395,7 @@ button{font:inherit;color:inherit}
 .tg{font-size:calc(11px * var(--fs,1));font-weight:700;margin-left:4px}
 .tg.war{color:var(--bad)} .tg.ally{color:var(--good)}
 .bh{font-size:calc(15px * var(--fs,1));letter-spacing:.12em;margin:4px 0 6px}
-.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(max(8px,env(safe-area-inset-bottom,0px)) + 100px);z-index:60;max-width:min(92vw,460px);
+.toast{pointer-events:none;position:fixed;left:50%;transform:translateX(-50%);bottom:calc(max(8px,env(safe-area-inset-bottom,0px)) + 100px);z-index:60;max-width:min(92vw,460px);
   background:#f0e8d0;color:#1a1608;padding:10px 14px;border-radius:8px;font-size:calc(14px * var(--fs,1));font-weight:500;box-shadow:0 6px 20px rgba(0,0,0,.5)}
 
 /* 橫式（手機橫放）：地圖在左、面板在右，上下列縮小 */
@@ -419,7 +461,7 @@ button{font:inherit;color:inherit}
     <div class="startmap" id="startmap" aria-hidden="true"></div>
     <div class="sc-in gx">
       <p class="eyebrow">MEDIEVAL: WORLD DOMINATION · 1096 AD</p>
-      <p class="muted small" id="verline">版本 v185 · 2026-11-01 · 修正新手引導：不會再叫剛移動過的部隊往後退而卡住；選錯目標會提示改點</p>
+      <p class="muted small" id="verline">版本 v186 · 2026-11-01 · 選國畫面改成地區分頁、121 國都能選；修正 v183 起其他國家地圖顏色消失；簡單模式只能選開局有仗可打的國家；新手引導教打中立地</p>
       <h1>中世紀：世界霸權</h1>
       <p class="lead">1095 年，教宗在克萊蒙發出號召，整個歐洲動了起來。選一個勢力（共 121 個），再從該文明歷史上的君主裡挑一位登基；在四千多個六角格地塊的世界裡，與基督教世界、伊斯蘭世界與即將到來的蒙古鐵騎周旋。可以結盟借道、派商隊與商船貿易、派密探、遠征遠方、研究科技升級時代、替自己的城市取名。沒有回合上限，直到有人稱霸，或你失去一切。</p>
       <div id="startopts"></div>
@@ -5686,7 +5728,7 @@ if (typeof module !== 'undefined') module.exports = G;
   try { CULON = localStorage.getItem('crusade-cul') === '1'; } catch (e) {}
   try { SLOT = +localStorage.getItem('crusade-slot') || 1; var dv = localStorage.getItem('crusade-diff'); DIFF = dv === null ? 1 : +dv; if (!(DIFF >= 0 && DIFF <= 2)) DIFF = 1; } catch (e) {}
   function SK(n) { return n === 1 ? SAVE0 : SAVE0 + '-s' + n; }
-  var NC = { maori: '#3aa6a0', abor: '#c06a2b', tehu: '#7d9a4a', kam: '#6f8fb5', byz: '#7b3fa0', hre: '#8a8d93', fra: '#2f6fd0', eng: '#8c2f3c', ita: '#2fa79a', norm: '#c98a2a', cas: '#d9b83c', almor: '#4a7a2e', fat: '#2d9a58', seljuk: '#d4651f', rum: '#e08a6a', kiev: '#b24f8a', hung: '#9aa83a', pol: '#c9c1a1', scand: '#4f86b8', ghaz: '#1c5f66', kara: '#7c5a3a', mongol: '#111418', song: '#ee5a4f', liao: '#3d4a8f', xia: '#c89b5c', dali: '#58b368', gor: '#7fd0e0', jpn: '#f2f2f2', dai: '#e0b0d0', gaha: '#ffb347', chal: '#a0522d', pala: '#6fa8dc', jin: '#6b4e1f', khmer: '#e0673a', pagan: '#d9a441', champa: '#2aa6c9', srivijaya: '#9b6fd1', chola: '#c4344f' };
+  var NC = { maori: '#3aa6a0', abor: '#c06a2b', tehu: '#7d9a4a', kam: '#6f8fb5', byz: '#7b3fa0', hre: '#8a8d93', fra: '#2f6fd0', eng: '#8c2f3c', ita: '#2fa79a', norm: '#c98a2a', cas: '#d9b83c', almor: '#4a7a2e', fat: '#2d9a58', seljuk: '#d4651f', rum: '#e08a6a', kiev: '#b24f8a', hung: '#9aa83a', pol: '#c9c1a1', scand: '#4f86b8', ghaz: '#1c5f66', kara: '#7c5a3a', mongol: '#111418', song: '#ee5a4f', liao: '#3d4a8f', xia: '#c89b5c', dali: '#58b368', gor: '#7fd0e0', jpn: '#f2f2f2', dai: '#e0b0d0', gaha: '#ffb347', chal: '#a0522d', pala: '#6fa8dc', jin: '#6b4e1f', khmer: '#e0673a', pagan: '#d9a441', champa: '#2aa6c9', srivijaya: '#9b6fd1', chola: '#c4344f', pap: '#b52a2a', arag: '#30ce5e', por: '#9a49d4', ire: '#b5a42a', sco: '#30b4ce', nor: '#d44994', swe: '#4db52a', boh: '#3730ce', srb: '#d47749', geo: '#2ab581', arm: '#c130ce', jer: '#b7d449', che: '#2a6fb5', nov: '#ce3051', vla: '#49d455', hal: '#5f2ab5', lit: '#ce9a30', cum: '#49d4ce', bul: '#b52a92', zir: '#78ce30', ham: '#4960d4', abb: '#b53c2a', sul: '#30ce72', khw: '#ac49d4', qoc: '#b5b52a', tib: '#309fce', kas: '#d44982', ghu: '#3bb52a', chan: '#4b30ce', chau: '#d48949', kak: '#2ab593', hoy: '#ce30c7', mon: '#a5d449', ker: '#2a5eb5', nai: '#ce303c', tat: '#49d466', mer: '#702ab5', gha: '#ceae30', gao: '#49c8d4', hau: '#b52a80', yor: '#64ce30', ben: '#494ed4', kan: '#b54e2a', mak: '#30ce86', alo: '#bd49d4', eth: '#a3b52a', adal: '#308bce', som: '#d44970', bun: '#2ab52b', kil: '#5f30ce', zim: '#d49b49', kon: '#2ab5a5', mala: '#ce30b3', jav: '#93d449', nmd: '#2a4cb5', bri: '#ce3830', aqu: '#49d478', tou: '#822ab5', zar: '#cec230', val: '#49b6d4', duk: '#b52a6f', plk: '#50ce30', dan: '#5549d4', ale: '#b55f2a', dam: '#30ce9b', mos: '#cf49d4', niz: '#91b52a', cey: '#3077ce', guj: '#d4495f', par: '#2ab53d', egan: '#7330ce', hari: '#d4ad49', lavo: '#2ab4b5', tamb: '#ce309e', sun: '#81d449', bru: '#2a3ab5', lam: '#ce4c30', but: '#49d48a', maii: '#942ab5', cah: '#c6ce30', pue: '#49a4d4', tol: '#b52a5d', mix: '#3bce30', may: '#6749d4', tai: '#b5712a', chi: '#30ceaf', col: '#d449c7', cus: '#80b52a', ice: '#3063ce', grn: '#d4494d' };
   /* 柔和配色：降低飽和度，保留各勢力的辨識度 */
   (function () {
     function h2(h) { var r = parseInt(h.substr(1, 2), 16) / 255, g = parseInt(h.substr(3, 2), 16) / 255, b = parseInt(h.substr(5, 2), 16) / 255, mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, s = 0, hh = 0, d = mx - mn;
@@ -6525,7 +6567,7 @@ if (typeof module !== 'undefined') module.exports = G;
     '<li><b>附庸</b>：實力比接壤的對手強 1.4 倍以上時，可在外交選單「要求臣服」。附庸每回合把約三成盈餘進貢給宗主、跟著宗主參戰，附庸的地塊也算進宗主的霸權地塊；附庸若覺得宗主太弱，可能宣布獨立。</li>' +
     '<li><b>補給線</b>：部隊離己方城市（沿己方領土）超過 4 格就會「遠離補給線」，多耗糧、每回合損耗兵力、攻擊力 −10%；占領城市可以延伸補給線。草原民族（蒙古等）不受此限。地圖上這類地塊的徽章會出現紅框。</li>' +
     '<li><b>聚落</b>：空地可以便宜地蓋「村莊」（山地、森林、丘陵叫「山寨」），不能蓋在沙漠、也不能緊鄰別的聚落；費用隨你的聚落數增加。村莊／山寨每回合只能徵 6 人、只能徵步兵和弓兵，補給範圍只有城市的一半。駐軍滿 6 人、離其他 2 級以上聚落至少隔 2 格，才能升成「市鎮／城堡」，再升成「城市／堡壘」。地圖上原本的名城不受這些限制。</li>' +
-    '<li><b>新手教學</b>：只有難度選「簡單」時，前 12 回合會有手指一步步帶你操作；普通與困難沒有。</li>' +
+    '<li><b>新手教學</b>：只有難度選「簡單」時，前 12 回合會有手指一步步帶你操作（選地塊、取消選取、補兵、出兵、結束回合）；普通與困難沒有。簡單模式只能選開局就有事可做的國家——旁邊有沒人管的中立地，或已經在跟人打仗；英格蘭、丹麥、朱羅這種開局只能主動宣戰的國家，要選「普通」以上才能玩。</li>' +
     '<li><b>一次徵滿</b>：城市面板有「一次徵滿（步兵）」，連續徵兵到本回合上限或錢糧用完。</li>' +
     '<li><b>徵兵</b>只能在聚落進行；城市等級越高，每回合可徵兵數、產出與防禦都更高；駐軍沒有硬上限，但超過軟上限（城市規模的兩倍）每回合會損耗並多耗糧。</li>' +
     '<li><b>特產</b>：山區有鐵礦、草原有戰馬、東方有絲綢、南洋有香料、西非有黃金；占有愈多，進攻力或金幣收入愈高（點地塊可看到特產）。</li>' +
@@ -7133,11 +7175,31 @@ if (typeof module !== 'undefined') module.exports = G;
     cv.setAttribute('data-ok', '1');
   }
   window.addEventListener('resize', function () { clearTimeout(SMC.t); SMC.t = setTimeout(function () { try { var sc = $('#start'); if (sc && !sc.hidden) startMapCanvas(); } catch (e) {} }, 300); });
+  function rgShow() {
+    var r = ui.rg; if (!r) { try { r = localStorage.getItem('crusade-rg2'); } catch (e) {} }
+    if (!r || !document.querySelector('.fcard[data-rg="' + r + '"]')) r = 'r0'; ui.rg = r;
+    document.querySelectorAll('.fcard[data-rg]').forEach(function (c) { c.style.display = c.getAttribute('data-rg') === r ? '' : 'none'; });
+    document.querySelectorAll('[data-act=rgtab]').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-r') === r); });
+  }
+  function markCards() {
+    var via = ui.via || {}, easy = DIFF === 0, any = false;
+    document.querySelectorAll('.fcard[data-f]').forEach(function (c) {
+      var no = easy && via[c.getAttribute('data-f')] === false; if (no) any = true;
+      c.classList.toggle('fno', no);
+      var nt = c.querySelector('.fnot');
+      if (no && !nt) c.insertAdjacentHTML('afterbegin', '<span class="fnot">簡單模式不能選：開局旁邊沒有中立地、也沒有敵人，只能主動宣戰</span>');
+      if (!no && nt) nt.remove();
+    });
+    var fc = $('#fcards'), tn = document.getElementById('tutnote');
+    if (any && !tn && fc) fc.insertAdjacentHTML('beforebegin', '<p id="tutnote" class="tutnote">📘 簡單模式有一步一步的新手引導，所以只能選一開始就有仗可打的國家（旁邊有中立地，或已經在交戰）。灰色的國家要換成「普通」以上難度才能玩。</p>');
+    if (!any && tn) tn.remove();
+  }
   function renderStart() {
     var h = '';
-    var ORDER = ['byz', 'hre', 'fra', 'eng', 'ita', 'norm', 'cas', 'hung', 'pol', 'scand', 'kiev', 'almor', 'fat', 'seljuk', 'rum', 'ghaz', 'kara', 'gaha', 'chal', 'pala', 'song', 'liao', 'xia', 'dali', 'gor', 'jpn', 'dai', 'pagan', 'khmer', 'champa', 'srivijaya', 'chola'];
-    var HEAD = { byz: '歐洲與地中海', almor: '北非與中東', ghaz: '中亞與南亞', song: '東亞', pagan: '東南亞與南印度' };
+    var ORDER = ["byz", "hre", "fra", "nmd", "bri", "aqu", "tou", "eng", "ita", "pap", "norm", "cas", "arag", "zar", "val", "por", "hung", "pol", "boh", "srb", "duk", "scand", "nor", "swe", "ire", "sco", "kiev", "che", "plk", "nov", "vla", "hal", "lit", "cum", "bul", "geo", "arm", "jer", "almor", "zir", "ham", "fat", "sul", "seljuk", "abb", "rum", "dan", "ale", "dam", "mos", "niz", "ghaz", "ghu", "kara", "khw", "qoc", "tib", "kas", "gaha", "chan", "chau", "kak", "chal", "hoy", "pala", "guj", "par", "egan", "song", "liao", "xia", "dali", "gor", "jpn", "ker", "nai", "tat", "mer", "dai", "pagan", "mon", "khmer", "champa", "srivijaya", "hari", "lavo", "tamb", "lam", "sun", "bru", "but", "maii", "chola", "cey", "jav", "gha", "gao", "hau", "yor", "ben", "kan", "mak", "alo", "eth", "adal", "som", "bun", "kil", "zim", "kon", "mala", "cah", "pue", "tol", "mix", "may", "tai", "chi", "col", "cus", "ice", "grn"];
+    var HEAD = {"byz": "歐洲與地中海", "kiev": "羅斯與歐亞草原", "geo": "高加索與近東", "almor": "北非與阿拉伯", "ghaz": "中亞與高原", "gaha": "印度次大陸", "song": "東亞與蒙古草原", "dai": "東南亞與南印度", "gha": "撒哈拉以南非洲", "cah": "美洲與北大西洋"};
     ORDER.forEach(function (f) {
+      if (G.PLAYABLE.indexOf(f) < 0) return;
       var F = G.FACTIONS[f];
       if (HEAD[f]) h += '<h2 class="gh">' + HEAD[f] + '</h2>';
       h += '<button class="fcard" data-act="start" data-f="' + f + '" style="--fc:' + NC[f] + '">' +
@@ -7146,7 +7208,20 @@ if (typeof module !== 'undefined') module.exports = G;
         '<span class="fgo">選擇' + F.name + ' &rsaquo;</span></button>';
     });
     $('#fcards').innerHTML = h;
+    (function () {
+      var fc = $('#fcards'), kids = [].slice.call(fc.children), cur = null, tabs = [];
+      kids.forEach(function (el) {
+        if (el.tagName === 'H2') { cur = 'r' + tabs.length; tabs.push({ r: cur, t: el.textContent, n: 0 }); el.style.display = 'none'; return; }
+        if (cur && el.classList.contains('fcard')) { el.setAttribute('data-rg', cur); tabs[tabs.length - 1].n++; }
+      });
+      fc.insertAdjacentHTML('afterbegin', '<div class="rgtabs"><span class="muted small" style="width:100%">先選地區，再選國家：</span>' + tabs.map(function (x) { return '<button class="chip" data-act="rgtab" data-r="' + x.r + '">' + x.t + ' <small>' + x.n + '</small></button>'; }).join('') + '</div>');
+    })();
+    rgShow();
     var demo = G.newGame('byz');
+    /* 簡單模式（新手引導）只能選一開始就有事可做的國家：旁邊有中立地，或已經在跟人打仗 */
+    ui.via = {};
+    ORDER.forEach(function (f) { ui.via[f] = G.owned(demo, f).some(function (id) { return G.NB[id].some(function (k) { var o = demo.p[k].o; return !o || (o !== f && G.rel(demo, f, o).state === 'war'); }); }); });
+    markCards();
     ui.view = { s: 1, cx: BW / 2, cy: (BY0 + BY1) / 2 };
     startMapCanvas(demo);
     var c = $('#cont');
@@ -7424,8 +7499,12 @@ if (typeof module !== 'undefined') module.exports = G;
   }
   /* ---------- 簡單模式：強制式新手引導（手指指給你看，只能點指定的地方） ---------- */
   function tutAtk(f, n) { var o = g.p[n].o; return o !== f && (!o || G.rel(g, f, o).state === 'war'); }
-  function tutOk(f, id, n) { var p = g.p[id], q = g.p[n]; if (!p || !q || p.acted) return false; if (q.o === f) return !p.arr; return tutAtk(f, n); }
+  var TMT = { k: '', m: {} };
+  function tutMT(f, id) { var k = g.turn + ':' + g.ap + ':' + f; if (TMT.k !== k) TMT = { k: k, m: {} }; if (!TMT.m[id]) { try { TMT.m[id] = G.moveTargets(g, f, id) || {}; } catch (e) { TMT.m[id] = {}; } } return TMT.m[id]; }
+  function tutOk(f, id, n) { var p = g.p[id], q = g.p[n]; if (!p || !q || p.acted) return false; if (tutMT(f, id)[n] !== 'land') return false; if (q.o === f) return !p.arr; return tutAtk(f, n); }
   function tutHostile(f, id) { return !g.p[id].acted && G.NB[id].some(function (n) { return tutOk(f, id, n); }); }
+  function tutAtkAt(f, id) { return !g.p[id].acted && G.NB[id].some(function (n) { return tutAtk(f, n) && tutOk(f, id, n); }); }
+  function tutFit(f, id, best) { return tutHostile(f, id) && (best == null || !tutAtkAt(f, best) || tutAtkAt(f, id)); }
   function tutBest(f) {
     var best = null, bs = 0;
     G.owned(g, f).forEach(function (id) { var p = g.p[id]; if (p.t < 3 || !tutHostile(f, id)) return; var sc = p.t + (G.NB[id].some(function (n) { return tutAtk(f, n); }) ? 1000 : 0); if (sc > bs) { bs = sc; best = id; } });
@@ -7454,7 +7533,7 @@ if (typeof module !== 'undefined') module.exports = G;
     }
     if (T.skip) return null;
     var sp = ui.sel != null ? g.p[ui.sel] : null, own = sp && sp.o === f, adv = true, guard = 0, best = tutBest(f);
-    if ((T.step === 2 || T.step === 3) && ui.sel != null && !(own && sp.t >= 3 && tutHostile(f, ui.sel)) && best != null) {
+    if ((T.step === 2 || T.step === 3) && ui.sel != null && !(own && sp.t >= 3 && tutFit(f, ui.sel, best)) && best != null) {
       ui.sel = null; ui.target = null; ui.army = null; sp = null; own = false;
       try { renderPanel(); renderBar(); renderHL(); } catch (x) {}
     }
@@ -7464,7 +7543,7 @@ if (typeof module !== 'undefined') module.exports = G;
       else if (T.step === 0 && T.d === 1 && ui.sel == null) { T.d = 2; adv = true; }
       else if (T.step === 0 && T.d === 2 && own && sp.L > 0) { T.step = 1; T.gold = fs.gold; T.ack = false; adv = true; }
       else if (T.step === 1 && (fs.gold < T.gold || (fs.gold < G.recruitCost(f).gold && T.ack))) { T.step = 2; T.s2 = ui.sel; T.ack = false; adv = true; }
-      else if (T.step === 2 && ((best == null && T.ack) || (best != null && own && sp.t >= 3 && tutHostile(f, ui.sel) && (ui.sel !== T.s2 || T.ack)))) { T.step = 3; T.ap = g.ap; T.ack = false; adv = true; }
+      else if (T.step === 2 && ((best == null && T.ack) || (best != null && own && sp.t >= 3 && tutFit(f, ui.sel, best) && (ui.sel !== T.s2 || T.ack)))) { T.step = 3; T.ap = g.ap; T.ack = false; adv = true; }
       else if (T.step === 3 && (g.ap < T.ap || g.ap <= 0 || best == null)) { T.step = 4; T.turn = g.turn; T.ack = false; adv = true; }
       else if (T.step === 4 && g.turn > T.turn) { T.step = 5; adv = true; }
     }
@@ -7475,10 +7554,10 @@ if (typeof module !== 'undefined') module.exports = G;
     else if (T.step === 1 && fs.gold < G.recruitCost(f).gold) { tx = '第 3 步：補兵要花金幣，你現在錢不夠，這步先跳過。之後有錢時，點城按「徵…」就能補兵。'; ackBtn = true; }
     else if (T.step === 1) { tx = own && sp.L > 0 ? '第 3 步：點得好！現在按下面面板裡的「徵…」補兵（不耗行動點；錢不夠會自動跳過）。' : '第 3 步：先點手指指的首都「' + cp + '」，再按面板裡的「徵…」補兵。'; spec = own && sp.L > 0 ? { sel: '[data-act=recruit]' } : { hex: G.CAPITAL[f] }; }
     else if (T.step === 2 && best == null) { tx = '第 4～5 步（出兵）：你的部隊現在沒有可以出發的地方，這兩步先跳過。'; ackBtn = true; }
-    else if (T.step === 2 && own && sp.t >= 3 && tutHostile(f, ui.sel) && ui.sel === T.s2) { tx = '第 4 步：這塊地的兵最多，要從這裡出兵，已經幫你選好了。看清楚後按「下一步」。'; ackBtn = true; }
+    else if (T.step === 2 && own && sp.t >= 3 && tutFit(f, ui.sel, best) && ui.sel === T.s2) { tx = '第 4 步：這塊地的兵最多，要從這裡出兵，已經幫你選好了。看清楚後按「下一步」。'; ackBtn = true; }
     else if (T.step === 2) { tx = '第 4 步：點手指指的那一格（你兵最多的地塊），準備從這裡出兵。'; spec = { hex: best }; }
     else if (T.step === 3) {
-      if (own && tutHostile(f, ui.sel)) { if (ui.target != null && !tutOk(f, ui.sel, ui.target)) { tx = '第 5 步：這一格現在去不了（剛移動過的部隊只能進攻，不能往自己領地退）。改點手指指的格子當目標。'; spec = { hex: tutFoe(f, ui.sel) }; } else if (ui.target != null) { tx = '第 5 步：按下面「確認」，讓部隊真的出發（用 1 點行動）。'; spec = { sel: '[data-act=go]' }; } else { tx = '第 5 步：點手指指的鄰格，把它選成出兵目標（攻擊敵人或調兵都可以）。'; spec = { hex: tutFoe(f, ui.sel) }; } }
+      if (own && tutFit(f, ui.sel, best)) { if (ui.target != null && !tutOk(f, ui.sel, ui.target)) { tx = '第 5 步：這一格現在去不了（剛移動過的部隊只能進攻，不能往自己領地退）。改點手指指的格子當目標。'; spec = { hex: tutFoe(f, ui.sel) }; } else if (ui.target != null) { tx = '第 5 步：按下面「確認」，讓部隊真的出發（用 1 點行動）。'; spec = { sel: '[data-act=go]' }; } else { tx = '第 5 步：點手指指的鄰格，把它選成出兵目標（沒有國家的中立地，或正在跟你打仗的敵人）。'; spec = { hex: tutFoe(f, ui.sel) }; } }
       else { tx = '第 4 步：先點手指指的那一格（你兵最多的地塊）。'; spec = { hex: best }; }
     }
     else if (T.step === 4) { tx = '第 6 步：這一年做完了，按「結束回合」進入下一年。'; spec = { sel: '[data-act=end]' }; }
@@ -7506,6 +7585,14 @@ if (typeof module !== 'undefined') module.exports = G;
     var b = el.getBoundingClientRect(), ft = document.querySelector('footer.bar');
     var pn9 = el.closest && el.closest('#panel'), pr9 = pn9 ? pn9.getBoundingClientRect() : null;
     if (el.tagName !== 'polygon' && ((pr9 && (b.top < pr9.top + 2 || b.bottom > pr9.bottom - 2)) || (ft && ft.getBoundingClientRect().top < b.bottom + 6 && ft.getBoundingClientRect().top > 0))) { try { el.scrollIntoView({ block: 'center' }); } catch (x) {} b = el.getBoundingClientRect(); }
+    if (el.tagName === 'polygon' && r.spec.hex != null) {
+      /* 目標格被地圖上方的國家清單、按鈕擋住時，把地圖移過去讓它露出來 */
+      var hit = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2);
+      if ((!hit || !hit.closest || !hit.closest('#mapview svg')) && ui.tutF2 !== r.n + ':' + r.spec.hex) {
+        ui.tutF2 = r.n + ':' + r.spec.hex;
+        try { focusOn(r.spec.hex, ui.view && ui.view.s ? ui.view.s : 5.6); applyView(); renderMap(); el = tutEl(r.spec) || el; b = el.getBoundingClientRect(); } catch (x) {}
+      }
+    }
     var cx = b.left + b.width / 2, cy = b.top + b.height / 2, below = b.bottom < window.innerHeight - 90;
     hd.hidden = false; rg.hidden = false;
     hd.textContent = below ? '👆' : '👇';
@@ -8230,6 +8317,7 @@ if (typeof module !== 'undefined') module.exports = G;
     if (a === 'locate') { autoFocus(); applyView(); return toast('已回到你的位置'); }
     if (a === 'fallnowok') { $('#modal').hidden = true; fallNow(); return; }
     if (a === 'start') {
+      if (DIFF === 0 && ui.via && ui.via[b.getAttribute('data-f')] === false) { toast('簡單模式不能選這個國家：開局沒有中立地可開發、也沒有敵人。請選別的國家，或把難度改成「普通」。'); return; }
       if (slotHas(SLOT)) {
         var sm0 = slotSum(SLOT), ok0 = true;
         try { ok0 = confirm('欄位 ' + SLOT + ' 已經有存檔' + (sm0 ? '（' + sm0 + '）' : '') + '。\n開新遊戲會把它蓋掉，確定要開始嗎？\n\n按「取消」可以回去換一個空的欄位。'); } catch (e) { ok0 = true; }
@@ -8242,7 +8330,8 @@ if (typeof module !== 'undefined') module.exports = G;
     if (a === 'syncoff') { CLOUD.code = ''; CLOUD.msg = ''; try { localStorage.removeItem('crusade-sync'); } catch (e) {} return renderOpts(); }
     if (a === 'culopt') { CULON = b.getAttribute('data-v') === '1'; try { localStorage.setItem('crusade-cul', CULON ? '1' : '0'); } catch (e) {} return renderOpts(); }
     if (a === 'fs') { FS = +b.getAttribute('data-v'); try { localStorage.setItem('crusade-fs', String(FS)); } catch (e) {} applyFS(); MVS = null; try { renderOpts(); var r1 = document.getElementById('fsrow'), r2 = document.getElementById('fsrow2'); if (r1) r1.innerHTML = fsChips(); if (r2) r2.innerHTML = fsChips(); } catch (e) {} try { renderBar(); renderPanel(); applyView(); } catch (e) {} return toast('文字大小已更新'); }
-    if (a === 'diff') { DIFF = +b.getAttribute('data-v'); try { localStorage.setItem('crusade-diff', DIFF); } catch (e) {} return renderOpts(); }
+    if (a === 'rgtab') { ui.rg = b.getAttribute('data-r'); try { localStorage.setItem('crusade-rg2', ui.rg); } catch (e) {} rgShow(); try { var t0 = document.querySelector('.rgtabs'); if (t0 && t0.getBoundingClientRect().top < 0) t0.scrollIntoView({ block: 'start' }); } catch (e) {} return; }
+    if (a === 'diff') { DIFF = +b.getAttribute('data-v'); try { localStorage.setItem('crusade-diff', DIFF); } catch (e) {} renderOpts(); return markCards(); }
     if (a === 'slot') { SLOT = +b.getAttribute('data-v'); try { localStorage.setItem('crusade-slot', SLOT); } catch (e) {} return renderOpts(); }
     if (a === 'continue') { var cs = +b.getAttribute('data-slot'); if (cs) { SLOT = cs; try { localStorage.setItem('crusade-slot', SLOT); } catch (e) {} } return continueGame(); }
     if (a === 'restart' && MP.on) { location.reload(); return; }
