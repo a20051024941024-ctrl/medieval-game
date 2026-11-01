@@ -372,7 +372,7 @@ button{font:inherit;color:inherit}
     <div class="startmap" id="startmap" aria-hidden="true"></div>
     <div class="sc-in gx">
       <p class="eyebrow">MEDIEVAL: WORLD DOMINATION · 1096 AD</p>
-      <p class="muted small" id="verline">版本 v179 · 2026-11-01 · 騎兵突襲（含 AI）、勢力稱號升級、領地配色更柔和、規則頁更新</p>
+      <p class="muted small" id="verline">版本 v180 · 2026-11-01 · 開局更穩定地拉近到首都；遠景縮放時顯示更多勢力名稱</p>
       <h1>中世紀：世界霸權</h1>
       <p class="lead">1095 年，教宗在克萊蒙發出號召，整個歐洲動了起來。選一個勢力（共 121 個），再從該文明歷史上的君主裡挑一位登基；在四千多個六角格地塊的世界裡，與基督教世界、伊斯蘭世界與即將到來的蒙古鐵騎周旋。可以結盟借道、派商隊與商船貿易、派密探、遠征遠方、研究科技升級時代、替自己的城市取名。沒有回合上限，直到有人稱霸，或你失去一切。</p>
       <div id="startopts"></div>
@@ -6547,7 +6547,7 @@ if (typeof module !== 'undefined') module.exports = G;
     if (!svg) return;
     var zs = +svg.style.getPropertyValue('--zs') || 1, z1 = /(^| )z1( |$)/.test(svg.getAttribute('class') || '');
     var els = svg.querySelectorAll('.fn');
-    for (var i = 0; i < els.length; i++) els[i].style.display = (z1 && +els[i].getAttribute('data-tw') / zs >= 7.5) ? 'inline' : 'none';
+    for (var i = 0; i < els.length; i++) els[i].style.display = (z1 && +els[i].getAttribute('data-tw') / zs >= 3.6) ? 'inline' : 'none';
   }
   function zsVar() { var sz = mvSize(), k = fitK(sz) * Math.max(1, Math.min(14, ui.view.s)); return (1 / k).toFixed(4); }
   function zcls() { var s = ui.view.s; return s >= 3.3 ? 'z3' : s >= 2.2 ? 'z2' : 'z1'; }
@@ -6611,7 +6611,7 @@ if (typeof module !== 'undefined') module.exports = G;
   function focusOn(id, s) { ui.noKeep = Date.now() + 600; ui.view = { s: s, cx: HX[id], cy: HY[id] }; }
   function initView() {
     var sz = mvSize(), cap = G.CAPITAL[g.player];
-    focusOn(cap, sz.w < 640 ? 5.6 : 3.3);
+    ui.lk = 0; focusOn(cap, sz.w < 640 ? 5.6 : 3.3);
   }
   function dist(a, b) { var dx = a.x - b.x, dy = a.y - b.y; return Math.sqrt(dx * dx + dy * dy) || 1; }
   var ptrs = {}, drag = null, pinch = null;
@@ -6619,6 +6619,7 @@ if (typeof module !== 'undefined') module.exports = G;
     var mv = $('#mapview');
     var tTouch0 = 0;
     mv.addEventListener('pointerdown', function (e) {
+      ui.moved = true;
       ptrs[e.pointerId] = { x: e.clientX, y: e.clientY };
       var ids = Object.keys(ptrs);
       if (ids.length === 1) { drag = { x: e.clientX, y: e.clientY, cx: ui.view.cx, cy: ui.view.cy, moved: false }; pinch = null; }
@@ -6911,7 +6912,7 @@ if (typeof module !== 'undefined') module.exports = G;
         var mx = 0, my = 0; cp.forEach(function (h) { mx += HX[h]; my += HY[h]; }); mx /= cp.length; my /= cp.length;
         var bh = cp[0], bd2 = 1e18; cp.forEach(function (h) { var d = (HX[h] - mx) * (HX[h] - mx) + (HY[h] - my) * (HY[h] - my); if (d < bd2) { bd2 = d; bh = h; } });
         var nmx = G.nm(ff), tw = Math.sqrt(cp.length) * 52 * 0.95 / Math.max(2, nmx.length);
-        s += '<text class="fn' + (ff === g.player ? ' me' : '') + '" x="' + HX[bh].toFixed(1) + '" y="' + (HY[bh] + 4).toFixed(1) + '" dominant-baseline="middle" data-tw="' + (ff === g.player ? 999 : tw.toFixed(1)) + '" text-anchor="middle" style="fill:' + NC[ff] + ';font-size:' + (ff === g.player ? 'max(calc(11px * var(--zs)), ' : '') + 'min(calc(' + (15 * Math.min(2.6, 0.7 + 0.12 * Math.sqrt(cp.length))).toFixed(1) + 'px * var(--zs)), ' + tw.toFixed(1) + 'px)' + (ff === g.player ? ')' : '') + '">' + esc(nmx) + '</text>';
+        s += '<text class="fn' + (ff === g.player ? ' me' : '') + '" x="' + HX[bh].toFixed(1) + '" y="' + (HY[bh] + 4).toFixed(1) + '" dominant-baseline="middle" data-tw="' + (ff === g.player ? 999 : tw.toFixed(1)) + '" text-anchor="middle" style="fill:' + NC[ff] + ';font-size:' + (ff === g.player ? 'max(calc(11px * var(--zs)), ' : '') + 'max(calc(7px * var(--zs)), min(calc(' + (15 * Math.min(2.6, 0.7 + 0.12 * Math.sqrt(cp.length))).toFixed(1) + 'px * var(--zs)), ' + tw.toFixed(1) + 'px))' + (ff === g.player ? ')' : '') + '">' + esc(nmx) + '</text>';
       });
     }
     /* 徽章 */
@@ -7096,11 +7097,11 @@ if (typeof module !== 'undefined') module.exports = G;
   }
   function startGame(pid) {
     clearSave(); MUSIC.auto();
-    g = G.newGame(pid, DIFF); g.noCul = !CULON;
+    ui.moved = false; g = G.newGame(pid, DIFF); g.noCul = !CULON;
     enterGame();
     /* 新遊戲一開始要拉近到首都：簡單模式先關掉「大」模式，並在畫面排版完成後重算尺寸再對焦 */
     if (g.diff === 0) { try { document.documentElement.classList.remove('bigmap'); document.documentElement.classList.remove('bigsel'); } catch (e) {} }
-    [60, 250, 600].forEach(function (ms) { setTimeout(function () { try { if (!g || ui.tut && ui.tut.step > 0) return; MVS = null; initView(); applyView(); renderMap(); } catch (e) {} }, ms); });
+    [60, 250, 600, 1100, 1900].forEach(function (ms) { setTimeout(function () { try { if (!g || ui.tut && ui.tut.step > 0 || (ui.moved && ms > 600)) return; MVS = null; initView(); applyView(); renderMap(); } catch (e) {} }, ms); });
     return showRulerPick(pid);
   }
   function rulerFxText(fx) {
