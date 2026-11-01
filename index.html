@@ -372,7 +372,7 @@ button{font:inherit;color:inherit}
     <div class="startmap" id="startmap" aria-hidden="true"></div>
     <div class="sc-in gx">
       <p class="eyebrow">MEDIEVAL: WORLD DOMINATION · 1096 AD</p>
-      <p class="muted small" id="verline">版本 v177 · 2026-11-01 · 新增 7 座無主島嶼（亞速爾、馬德拉、加那利、台灣島、海南島、波多黎各、巴哈馬）；新增條件式歷史事件（條件不符不觸發）</p>
+      <p class="muted small" id="verline">版本 v178 · 2026-11-01 · 騎兵突襲：騎兵為主的軍團可越過一格空曠敵地，直接打第二圈的目標</p>
       <h1>中世紀：世界霸權</h1>
       <p class="lead">1095 年，教宗在克萊蒙發出號召，整個歐洲動了起來。選一個勢力（共 121 個），再從該文明歷史上的君主裡挑一位登基；在四千多個六角格地塊的世界裡，與基督教世界、伊斯蘭世界與即將到來的蒙古鐵騎周旋。可以結盟借道、派商隊與商船貿易、派密探、遠征遠方、研究科技升級時代、替自己的城市取名。沒有回合上限，直到有人稱霸，或你失去一切。</p>
       <div id="startopts"></div>
@@ -2821,6 +2821,7 @@ function moveTroops(g, f, from, to, send) {
   if (!s || !t || s.o !== f) return fail('出發地不是你的領地。');
   if (s.acted) return fail('這支部隊本回合已經行動過。');
   var kinds = moveTargets(g, f, from), kind = kinds[to];
+  if (g_raid === to) kind = 'land';
   if (!kind) return fail('無法抵達那裡。');
   if (kind === 'sea' && isHum(g, f)) return fail('渡海要先在港口把部隊「裝載」上船，開到對岸再「登陸」。');
   send = Math.min(send, s.t - 1);
@@ -2868,6 +2869,7 @@ function moveTroops(g, f, from, to, send) {
   g_gA = joinA ? genEff(g, f, from, 'att', to, aMix) : 1; g_gD = gnD ? genEff(g, prev, to, 'def', to, mixOf(g, to)) : 1;
   g_gA *= vetM(s); g_gD *= vetM(t);
   if (g_rush) g_gA *= RUSH_MOD;
+  if (g_raid === to) g_gA *= 0.9;
   if (s.b && s.b.indexOf('fo') >= 0) g_gA *= 1.06;
   g_riv = (kind !== 'sea' && riverEdge(from, to)) ? 1 : 0;
   var dT0 = t.t;
@@ -2885,7 +2887,7 @@ function moveTroops(g, f, from, to, send) {
     msg = nm(f) + '攻占了' + placeName(to) + (prev ? '（原屬' + nm(prev) + '）' : '') + '，餘 ' + b.left + ' 人' + (loot ? '，掠得 ' + loot + ' 金幣' : '') + '。';
     k = isP ? 'good' : (prev === g.player ? 'bad' : 'war');
   } else {
-    t.t = b.defLeft; s.t += b.left; s.mr = (s.mr || 0) + Math.round(mrS * b.left / send); t.vx = (t.vx || 0) + 1; s.vx = Math.floor(vA0 * 0.5);
+    t.t = b.defLeft; s.t += (g_raid === to ? Math.floor(b.left * 0.7) : b.left); s.mr = (s.mr || 0) + Math.round(mrS * b.left / send); t.vx = (t.vx || 0) + 1; s.vx = Math.floor(vA0 * 0.5);
     msg = nm(f) + '進攻' + placeName(to) + '失利，' + (prev ? nm(prev) : '守軍') + '守住了陣地。';
     k = isP ? 'bad' : (prev === g.player ? 'good' : 'war');
   }
@@ -3031,7 +3033,7 @@ var P = {
 };
 
 /* ---------- 軍團 ---------- */
-var g_armyGn, g_rush = 0, RUSH_MOD = 0.92;
+var g_armyGn, g_rush = 0, RUSH_MOD = 0.92, g_raid = -1;
 var NUM_CN = '零一二三四五六七八九十';
 function numCn(n) { return n <= 10 ? NUM_CN.charAt(n) : n < 20 ? '十' + NUM_CN.charAt(n - 10) : n < 100 ? NUM_CN.charAt(Math.floor(n / 10)) + '十' + (n % 10 ? NUM_CN.charAt(n % 10) : '') : String(n); }
 function armNorm(g, id) {
@@ -3187,6 +3189,40 @@ function armyReach(g, f, from, a) {
   });
   return { rem: rem, cost: D.cost, atk: atk };
 }
+/* ---- 騎兵突襲：騎兵占四成以上的軍團，走到邊境後可越過一格空曠的敵地／無主地，直接打第二圈 ---- */
+function armyRaidPlan(g, f, from, to, a, D) {
+  var m = (a && a.mx) || mixOf(g, from), MSG = '沒有己方領地與目標相連，走不到那裡（渡海要用艦隊運兵）。';
+  if (m[2] < 0.4 || !LAND[to]) return { ok: false, msg: MSG };
+  if (NB[to].some(function (n) { return g.p[n].o === f; })) return { ok: false, msg: MSG };
+  var rem = armyRem(g, from, a), best = null, bm = null, bc = 1e9;
+  NB[to].forEach(function (x) {
+    var q = g.p[x]; if (!LAND[x] || CITY[x] || q.L > 0 || q.o === f) return;
+    if (q.o && rel(g, f, q.o).state !== 'war') return;
+    NB[x].forEach(function (y) {
+      if (g.p[y].o !== f || D.cost[y] === undefined) return;
+      var c = D.cost[y] + mvCost(g, f, x) + mvCost(g, f, to);
+      if (c < bc) { bc = c; best = y; bm = x; }
+    });
+  });
+  if (best === null) return { ok: false, msg: MSG };
+  var r1 = function (v) { return Math.round(v * 10) / 10; };
+  if (bc > rem + 1e-9) return { ok: false, msg: '騎兵突襲要先走到邊境，再連過兩格（共需 ' + r1(bc) + ' 點移動力，本回合剩 ' + r1(rem) + '）。' };
+  var path = [best]; while (path[0] !== from) path.unshift(D.prev[path[0]]); path.push(bm);
+  return { ok: true, raid: true, path: path, via: best, mid: bm, attack: true, total: r1(bc), now: { last: best, spent: D.cost[best], arrived: true, canAtk: true }, turns: 1, rem: rem };
+}
+function armyRaidTargets(g, f, from, a) {
+  var m = (a && a.mx) || mixOf(g, from), out = {}; if (m[2] < 0.4) return out;
+  g_cs = m[2];
+  var rem = armyRem(g, from, a), D = armyDijk(g, f, from, rem), seen = {};
+  Object.keys(D.cost).forEach(function (k) {
+    NB[+k].forEach(function (x) { NB[x].forEach(function (to) {
+      if (seen[to] || g.p[to].o === f || !LAND[to]) return; seen[to] = 1;
+      var q = g.p[to]; if (q.o && rel(g, f, q.o).state !== 'war') return;
+      var r = armyRaidPlan(g, f, from, to, a, D); if (r.ok) out[to] = r.mid;
+    }); });
+  });
+  return out;
+}
 /* 規劃到任一格的路線：回傳 { path, via, attack, total, now:{last,spent,arrived,canAtk}, turns } */
 function armyPlan(g, f, from, to, a) {
   var p0 = g.p[from], t = g.p[to]; if (!p0 || !t || from === to) return { ok: false, msg: '請選擇其他地塊。' };
@@ -3197,7 +3233,7 @@ function armyPlan(g, f, from, to, a) {
     if (t.o && rel(g, f, t.o).state !== 'war') return { ok: false, msg: rel(g, f, t.o).state === 'ally' ? '不能攻擊盟友。' : '尚未向' + nm(t.o) + '宣戰。' };
     attack = true;
     NB[to].forEach(function (n) { if (g.p[n].o === f && D.cost[n] !== undefined && (via === null || D.cost[n] < D.cost[via])) via = n; });
-    if (via === null) return { ok: false, msg: '沒有己方領地與目標相連，走不到那裡（渡海要用艦隊運兵）。' };
+    if (via === null) { var rp = armyRaidPlan(g, f, from, to, a, D); return rp; }
   }
   var path = [via]; while (path[0] !== from) path.unshift(D.prev[path[0]]);
   var rem = armyRem(g, from, a), used = 0, last = from, lastUsed = 0, i;
@@ -3236,6 +3272,13 @@ function actArmyMove(g, f, from, to, aid) {
   var n = Math.min(a.n, s.t - 1);
   if (n < 1) return fail('駐軍太少，無法出動。');
   var cur = from, mv = a, msg = '';
+  if (pl.raid) {
+    if (pl.via !== from) { mv = armyShift(g, f, from, pl.via, a, n); cur = pl.via; mv.mt = g.turn; mv.mu = (a.mt === g.turn ? (a.mu || 0) : 0) + pl.now.spent; }
+    mv.go = null; g_raid = to;
+    var rr; try { rr = armyAtk(g, f, cur, to, mv.id); } finally { g_raid = -1; }
+    if (rr.ok) rr.msg = '⚡ 騎兵突襲！' + (rr.msg || '');
+    return rr;
+  }
   if (pl.now.last !== from) {
     mv = armyShift(g, f, from, pl.now.last, a, n); cur = pl.now.last;
     mv.mt = g.turn; mv.mu = (a.mt === g.turn ? (a.mu || 0) : 0) + pl.now.spent;
@@ -5540,7 +5583,7 @@ var G = {
   SAVE_VER: SAVE_VER, MAPSIG: MAPSIG, rel: rel, migrate: migrate, strength: strength, dipInfo: dipInfo, declareWar: declareWar, aiDiplomacy: aiDiplomacy,
   swapAmt: swapAmt, routeCands: routeCands, coastTarget: coastTarget, supplyDist: supplyDist, supRange: supRange, lordOf: lordOf, vassalsOf: vassalsOf, ownedTotal: ownedTotal, offerEvent: offerEvent, acceptChance: acceptChance,
   fleetCap: fleetCap, isHum: isHum, humansOf: humansOf, asPlayer: asPlayer, mpInit: mpInit, mpChoose: mpChoose, mpEnd: mpEnd, mpAllEnded: mpAllEnded, mpWaiting: mpWaiting, mpAdvance: mpAdvance, mpMirror: mpMirror, mpView: mpView, mpResume: mpResume,
-  holyKind: holyKind, armies: armies, garrisonOf: garrisonOf, armyReach: armyReach, armyDijk: armyDijk, zocAt: zocAt, armyPlan: armyPlan, armyMP: armyMP, armyRem: armyRem, mvCost: mvCost, rulerLv: rulerLv, rulerInfo: rulerInfo, vetLv: vetLv, RX_T: RX_T, holyKind: holyKind, holyCost: holyCost, canHoly: canHoly, isChristian: isChristian, START_YEAR: START_YEAR, LON: LON, LAT: LAT, WORLD: WORLD
+  holyKind: holyKind, armies: armies, garrisonOf: garrisonOf, armyReach: armyReach, armyDijk: armyDijk, zocAt: zocAt, armyPlan: armyPlan, armyRaidTargets: armyRaidTargets, armyMP: armyMP, armyRem: armyRem, mvCost: mvCost, rulerLv: rulerLv, rulerInfo: rulerInfo, vetLv: vetLv, RX_T: RX_T, holyKind: holyKind, holyCost: holyCost, canHoly: canHoly, isChristian: isChristian, START_YEAR: START_YEAR, LON: LON, LAT: LAT, WORLD: WORLD
 };
 if (typeof module !== 'undefined') module.exports = G;
 
@@ -6406,6 +6449,7 @@ if (typeof module !== 'undefined') module.exports = G;
     '<li><b>駱駝騎兵</b>：沙漠與阿拉伯、北非、薩赫勒一帶的勢力（例如穆拉比特、法蒂瑪、阿拔斯、迦納、加奧、加涅姆、索馬里城邦等）的騎兵是駱駝騎兵：在沙漠不缺水損耗、行軍不減速，沙漠中進攻與防守戰力 +10%。</li>' +
     '<li><b>地形與行軍</b>：森林、丘陵、山地行軍本來就慢；騎兵越多的部隊在這些地形損失越大（森林最多多花 1 點、山地 1.5 點移動力）。進攻山地、丘陵、森林時，進攻方戰力也會打折。</li>' +
     '<li><b>城牆</b>：城市可花金幣修城牆（不超過城市等級，最高 3 級），守軍防禦每級 +18%，攻城器械可以削弱城牆效果；城破會損毀一級。</li>' +
+    '<li><b>騎兵突襲</b>：騎兵占四成以上的軍團，走到邊境後還有移動力，可以越過一格空曠的敵地或無主地（不能越過城市、村莊），直接攻打第二圈的目標。戰力 −10%，失敗時撤回的兵力只剩約七成；奪下的地塊和己方領地不相連，補給較差。步兵為主的軍團不能這樣打。</li>' +
     '<li><b>無主島嶼</b>：亞速爾、馬德拉、加那利、台灣島、海南島、波多黎各、巴哈馬是一開始沒人佔的小島，各有少量守軍。要有「遠洋航行」科技的艦隊才到得了外海的島，近岸的島用普通艦隊即可；佔下之後可以建村莊慢慢開拓。</li>' +
     '<li><b>歷史事件</b>：史實事件（農民起義、安卡拉之戰、阿金庫爾、貞德、君士坦丁堡陷落、遠洋探險、繞過好望角）與旅行家、漢薩商人、大學請願等隨機事件，都要符合條件才會出現，例如要有遠洋航行科技和港口、民心夠低、還握有首都；條件不符就跳過，不會硬湊。</li>' +
     '<li><b>天災與民變</b>：瘟疫（1347 年起有黑死病）、饑荒、君主駕崩的繼承危機、民怨沸騰都會觸發事件。剛佔領的城市十回合內若駐軍太少，居民可能趁亂起事。</li>' +
@@ -6642,6 +6686,8 @@ if (typeof module !== 'undefined') module.exports = G;
           if (out[n] !== 'land') out[n] = (near && AD.cost[x] < rem - 1e-9) ? 'land' : (out[n] || 'landfar');
         });
       });
+      var RT = G.armyRaidTargets(g, g.player, ui.sel, armS);
+      Object.keys(RT).forEach(function (k) { if (!out[k]) out[k] = 'land'; });
       return out;
     }
     var kinds = G.moveTargets(g, g.player, ui.sel);
@@ -7648,9 +7694,13 @@ if (typeof module !== 'undefined') module.exports = G;
   function moveBox0(from) {
     var f = g.player, h = '<div class="mbox">', needWar = false;
     var kinds = G.moveTargets(g, f, from), to = ui.target, kind = kinds[to], t = g.p[to];
+    var armSel0 = selArmy();
+    var rd0 = armSel0 && G.armyPlan(g, f, from, to, armSel0).raid;
+    if (rd0) kind = 'land';
     if (!kind) return '';
     var armSel = selArmy(), send = armSel ? Math.min(armSel.n, g.p[from].t - 1) : G.sendCount(g, from, ui.ratio);
     if (armSel) h += '<p class="mline"><b>' + esc(armSel.nm) + '</b> 整支出動（' + armSel.n + ' 人）' + (armSel.gen ? '，由 <b>' + esc(armSel.gen) + '</b> 統率' : '') + '</p>';
+    if (armSel) { var pl2 = G.armyPlan(g, f, from, to, armSel); if (pl2.ok && pl2.raid) h += '<p class="mline">⚡ <b>騎兵突襲</b>：越過「' + esc(G.placeName(pl2.mid)) + '」，直取目標。戰力 −10%；失敗時撤回的兵力只剩約七成；奪下後該地和己方領地不相連，補給較差。</p>'; }
     if (armSel) { var pl1 = G.armyPlan(g, f, from, to, armSel); h += pl1.ok ? '<p class="muted small">' + (pl1.total > 0 ? '路程消耗 ' + pl1.total + ' 點移動力（本回合剩 ' + pl1.rem + '）。' : '') + (pl1.now.arrived ? (pl1.attack ? (pl1.now.canAtk ? '本回合即可發動攻擊。' : '本回合抵達邊境，下回合進攻。') : '本回合可抵達。') : '需 ' + pl1.turns + ' 回合，之後每回合自動前進。') + '</p>' : '<p class="muted small">' + esc(pl1.msg) + '</p>'; }
     else h += '<div class="seg" role="group" aria-label="派出兵力"><button data-act="ratio" data-v="half" class="' + (ui.ratio === 'half' ? 'on' : '') + '">派出半數</button><button data-act="ratio" data-v="all" class="' + (ui.ratio === 'all' ? 'on' : '') + '">全軍（留 1 人）</button></div>';
     if (t.o !== f) h += '<p class="muted small">⚠ 直接出兵是倉促出擊：戰力 −8%、沒有將領。編成軍團可帶將領、用軍團自己的兵種組成。</p>';
