@@ -231,6 +231,15 @@ button{font:inherit;color:inherit}
 .panel::after{content:'';position:sticky;bottom:0;display:block;height:0;pointer-events:none}
 .panel.more::after{content:'▼ 往下滑，還有更多';height:44px;margin:-44px 0 -24px;padding-top:20px;box-sizing:border-box;text-align:center;font-weight:900;font-size:calc(14px * var(--fs,1));color:#f1d48c;text-shadow:0 1px 3px #000;background:linear-gradient(rgba(18,32,39,0),rgba(18,32,39,.96) 55%);animation:mhint 1.4s ease-in-out infinite}
 @keyframes mhint{0%,100%{opacity:.75}50%{opacity:1}}
+.panel::after{content:'';position:sticky;bottom:0;display:block;height:0;pointer-events:none}
+.panel.more::after{content:'▼ 往下滑，還有更多';height:44px;margin:-44px 0 -24px;padding-top:20px;box-sizing:border-box;text-align:center;font-weight:900;font-size:calc(14px * var(--fs,1));color:#f1d48c;text-shadow:0 1px 3px #000;background:linear-gradient(rgba(18,32,39,0),rgba(18,32,39,.96) 55%);animation:mhint 1.4s ease-in-out infinite}
+@keyframes mhint{0%,100%{opacity:.75}50%{opacity:1}}
+.panel::after{content:'';position:sticky;bottom:0;display:block;height:0;pointer-events:none}
+.panel.more::after{content:'▼ 往下滑，還有更多';height:44px;margin:-44px 0 -24px;padding-top:20px;box-sizing:border-box;text-align:center;font-weight:900;font-size:calc(14px * var(--fs,1));color:#f1d48c;text-shadow:0 1px 3px #000;background:linear-gradient(rgba(18,32,39,0),rgba(18,32,39,.96) 55%);animation:mhint 1.4s ease-in-out infinite}
+@keyframes mhint{0%,100%{opacity:.75}50%{opacity:1}}
+.panel::after{content:'';position:sticky;bottom:0;display:block;height:0;pointer-events:none}
+.panel.more::after{content:'▼ 往下滑，還有更多';height:44px;margin:-44px 0 -24px;padding-top:20px;box-sizing:border-box;text-align:center;font-weight:900;font-size:calc(14px * var(--fs,1));color:#f1d48c;text-shadow:0 1px 3px #000;background:linear-gradient(rgba(18,32,39,0),rgba(18,32,39,.96) 55%);animation:mhint 1.4s ease-in-out infinite}
+@keyframes mhint{0%,100%{opacity:.75}50%{opacity:1}}
 .panel{contain:paint;flex:none;max-height:40vh;max-height:44dvh;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;touch-action:pan-y;padding-block:10px 24px;background:linear-gradient(#1a2e35,#122027);border-top:2px solid var(--gold)}
 @media (min-width:900px){.panel{width:340px;max-height:none;border-top:0;border-left:2px solid var(--gold);padding-block:14px}}
 .ph{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
@@ -424,8 +433,8 @@ button{font:inherit;color:inherit}
 
 /* 橫式（手機橫放）：地圖在左、面板在右，上下列縮小 */
 @media (min-height:561px),(orientation:portrait){
-  .ap{min-height:44px;padding-right:128px;margin-bottom:4px;font-size:calc(12px * var(--fs,1));gap:8px;white-space:nowrap}
-  .acts .cmd.primary{position:absolute;right:8px;top:6px;width:118px;height:42px;padding:2px 6px;justify-content:center}
+  .ap{min-height:44px;padding-right:calc(124px * var(--fs,1) + 12px);margin-bottom:4px;font-size:calc(12px * var(--fs,1));gap:8px;white-space:nowrap;overflow:hidden}
+  .acts .cmd.primary{position:absolute;right:8px;top:6px;width:calc(118px * var(--fs,1));min-height:42px;height:auto;padding:2px 6px;justify-content:center}
   .acts .cmd.primary .ic{display:none}
   .zoom{top:46px;max-height:calc(100% - 56px)}
   .zb{width:38px;height:38px}
@@ -449,6 +458,7 @@ button{font:inherit;color:inherit}
   .legend span{white-space:nowrap}
   .keyl{display:none}
 }
+#tutbar.tutfloat{position:fixed;left:8px;right:8px;z-index:9000;margin:0!important;max-height:40vh;overflow:auto;box-shadow:0 6px 20px rgba(0,0,0,.6)}
 </style>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
@@ -485,7 +495,7 @@ button{font:inherit;color:inherit}
     <div class="startmap" id="startmap" aria-hidden="true"></div>
     <div class="sc-in gx">
       <p class="eyebrow">MEDIEVAL: WORLD DOMINATION · 1096 AD</p>
-      <p class="muted small" id="verline">版本 v188 · 2026-11-01 · 新手引導：第一次出兵保證打下來、按鈕金框加說明泡泡；新增教學選單（科技、外交、商隊、商船、海戰、慶典間諜）；引導開著時只能選每課都做得到的國家</p>
+      <p class="muted small" id="verline">版本 v189 · 2026-11-01 · 按「大」放大地圖時也看得到新手引導；引導中可以用地圖旁的按鈕；下方「可動」字不再被結束回合按鈕擋住</p>
       <h1>中世紀：世界霸權</h1>
       <p class="lead">1095 年，教宗在克萊蒙發出號召，整個歐洲動了起來。選一個勢力（共 121 個），再從該文明歷史上的君主裡挑一位登基；在四千多個六角格地塊的世界裡，與基督教世界、伊斯蘭世界與即將到來的蒙古鐵騎周旋。可以結盟借道、派商隊與商船貿易、派密探、遠征遠方、研究科技升級時代、替自己的城市取名。沒有回合上限，直到有人稱霸，或你失去一切。</p>
       <div id="startopts"></div>
@@ -7716,19 +7726,24 @@ if (typeof module !== 'undefined') module.exports = G;
     try { r = tutStep(); } catch (e) { r = null; }
     var gb = document.getElementById('goalbar');
     try { tutHand(r); } catch (e) {}
-    if (!r) { if (tb) tb.hidden = true; if (gb) gb.style.display = ''; return; }
+    if (!r) { if (tb) { tb.hidden = true; if (tb.parentNode === document.body) { tb.classList.remove('tutfloat'); var an0 = document.getElementById('goalbar') || document.getElementById('msnbar') || $('#hint'); if (an0) an0.insertAdjacentElement('afterend', tb); } } if (gb) gb.style.display = ''; return; }
     var anchor = document.getElementById('goalbar') || document.getElementById('msnbar') || $('#hint');
-    if (!tb) { tb = document.createElement('div'); tb.id = 'tutbar'; tb.style.cssText = 'margin:6px 0 0;padding:8px 10px;border-radius:10px;background:#3a2a52;border:1px solid #c9a24b;color:#fff;font-size:13.5px;line-height:1.5'; anchor.insertAdjacentElement('afterend', tb); }
+    if (!tb) { tb = document.createElement('div'); tb.id = 'tutbar'; tb.style.cssText = 'margin:6px 0 0;padding:8px 10px;border-radius:10px;background:#3a2a52;border:1px solid #c9a24b;color:#fff;font-size:calc(13.5px * var(--fs,1));line-height:1.5'; anchor.insertAdjacentElement('afterend', tb); }
     tb.hidden = false; if (gb) gb.style.display = 'none';
     var html = '<b style="color:#ffd97a">' + (r.lab ? '課程：' + r.lab : '新手引導 ' + (r.done ? '' : r.n + '/6 ')) + '</b> ' + r.text + ' ' + (r.ack ? '<button data-act="tutack" style="margin-left:6px;padding:3px 10px;border-radius:8px;border:1px solid #ffd97a;background:#ffd97a;color:#3a2a52;font-size:13px;font-weight:700">下一步</button>' : '') + (r.les ? '<button data-act="tutquit" style="margin-left:6px;padding:2px 8px;border-radius:8px;border:1px solid #c9a24b;background:transparent;color:#ffd97a;font-size:12px">結束這課</button>' : '') + '<button data-act="tutskip" style="margin-left:6px;padding:2px 8px;border-radius:8px;border:1px solid #c9a24b;background:transparent;color:#ffd97a;font-size:12px">' + (r.done ? '不用了，我自己玩' : '跳過引導') + '</button>';
     if (tb.getAttribute('data-h') !== html) { tb.innerHTML = html; tb.setAttribute('data-h', html); }
+    /* 「大」地圖模式時上方資訊列被收起來，引導列改成浮在地圖下緣，才看得到 */
+    var big = document.documentElement.classList.contains('bigmap');
+    if (big && tb.parentNode !== document.body) { document.body.appendChild(tb); tb.classList.add('tutfloat'); }
+    else if (!big && tb.parentNode === document.body) { tb.classList.remove('tutfloat'); tb.style.bottom = ''; anchor.insertAdjacentElement('afterend', tb); }
+    if (big) { var ft = document.querySelector('footer.bar'), ftop = ft ? ft.getBoundingClientRect().top : window.innerHeight; tb.style.bottom = Math.max(8, Math.round(window.innerHeight - ftop + 8)) + 'px'; }
   }
   /* 強制：引導中只准點指定的地方（拖曳、縮放地圖不受影響） */
   document.addEventListener('click', function (e) {
     var r = null; try { r = tutStep(); } catch (x) { r = null; }
     if (!r || r.done || !r.spec || r.ack) return;
     var t = e.target; if (!t || !t.closest) return;
-    if (t.closest('#modal,#start,#tutbar,#toast,#tuttip')) return;
+    if (t.closest('#modal,#start,#tutbar,#toast,#tuttip,.zoom')) return;
     var el = tutEl(r.spec); if (!el) return;
     var ok = r.spec.hex != null ? (t.closest('[data-hex]') && +t.closest('[data-hex]').getAttribute('data-hex') === r.spec.hex) : !!t.closest(r.spec.sel);
     if (!ok && !(t.closest('#map') || t.closest('.mapwrap') || t.closest('.hx')) && !t.closest('button,[data-act]')) return;
@@ -8783,7 +8798,7 @@ if (typeof module !== 'undefined') module.exports = G;
   /* 面板可以往下滑：還有內容沒看到時，底部顯示淡出與提示 */
   (function () {
     var pn = document.getElementById('panel'); if (!pn) return;
-    function upd() { try { pn.classList.toggle('more', pn.scrollHeight > pn.clientHeight + 8 && pn.scrollTop + pn.clientHeight < pn.scrollHeight - 10); } catch (e) {} }
+    function upd() { try { pn.classList.toggle('more', pn.clientHeight > 110 && pn.scrollHeight > pn.clientHeight + 8 && pn.scrollTop + pn.clientHeight < pn.scrollHeight - 10); } catch (e) {} }
     pn.addEventListener('scroll', upd, { passive: true });
     window.addEventListener('resize', upd);
     if (window.MutationObserver) new MutationObserver(function () { setTimeout(upd, 30); }).observe(pn, { childList: true });
