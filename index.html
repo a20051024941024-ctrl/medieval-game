@@ -243,6 +243,15 @@ button{font:inherit;color:inherit}
 .panel::after{content:'';position:sticky;bottom:0;display:block;height:0;pointer-events:none}
 .panel.more::after{content:'▼ 往下滑，還有更多';height:44px;margin:-44px 0 -24px;padding-top:20px;box-sizing:border-box;text-align:center;font-weight:900;font-size:calc(14px * var(--fs,1));color:#f1d48c;text-shadow:0 1px 3px #000;background:linear-gradient(rgba(18,32,39,0),rgba(18,32,39,.96) 55%);animation:mhint 1.4s ease-in-out infinite}
 @keyframes mhint{0%,100%{opacity:.75}50%{opacity:1}}
+.panel::after{content:'';position:sticky;bottom:0;display:block;height:0;pointer-events:none}
+.panel.more::after{content:'▼ 往下滑，還有更多';height:44px;margin:-44px 0 -24px;padding-top:20px;box-sizing:border-box;text-align:center;font-weight:900;font-size:calc(14px * var(--fs,1));color:#f1d48c;text-shadow:0 1px 3px #000;background:linear-gradient(rgba(18,32,39,0),rgba(18,32,39,.96) 55%);animation:mhint 1.4s ease-in-out infinite}
+@keyframes mhint{0%,100%{opacity:.75}50%{opacity:1}}
+.panel::after{content:'';position:sticky;bottom:0;display:block;height:0;pointer-events:none}
+.panel.more::after{content:'▼ 往下滑，還有更多';height:44px;margin:-44px 0 -24px;padding-top:20px;box-sizing:border-box;text-align:center;font-weight:900;font-size:calc(14px * var(--fs,1));color:#f1d48c;text-shadow:0 1px 3px #000;background:linear-gradient(rgba(18,32,39,0),rgba(18,32,39,.96) 55%);animation:mhint 1.4s ease-in-out infinite}
+@keyframes mhint{0%,100%{opacity:.75}50%{opacity:1}}
+.panel::after{content:'';position:sticky;bottom:0;display:block;height:0;pointer-events:none}
+.panel.more::after{content:'▼ 往下滑，還有更多';height:44px;margin:-44px 0 -24px;padding-top:20px;box-sizing:border-box;text-align:center;font-weight:900;font-size:calc(14px * var(--fs,1));color:#f1d48c;text-shadow:0 1px 3px #000;background:linear-gradient(rgba(18,32,39,0),rgba(18,32,39,.96) 55%);animation:mhint 1.4s ease-in-out infinite}
+@keyframes mhint{0%,100%{opacity:.75}50%{opacity:1}}
 .panel{contain:paint;flex:none;max-height:40vh;max-height:44dvh;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;touch-action:pan-y;padding-block:10px 24px;background:linear-gradient(#1a2e35,#122027);border-top:2px solid var(--gold)}
 @media (min-width:900px){.panel{width:340px;max-height:none;border-top:0;border-left:2px solid var(--gold);padding-block:14px}}
 .ph{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
@@ -371,6 +380,7 @@ button{font:inherit;color:inherit}
 .bigmap .zoom{top:92px;max-height:calc(100% - 102px)}
 .bigmap:not(.bigsel) .panel{display:none}
 .bigmap.bigsel .stage{position:relative}
+.bigmap.bigsel .zoom{max-height:calc(100% - 38vh - 110px);max-height:calc(100% - 38dvh - 110px)}
 .bigmap.bigsel .panel{position:absolute;left:0;right:0;bottom:0;z-index:6;max-height:38vh;max-height:38dvh;box-shadow:0 -6px 18px rgba(0,0,0,.5)}
 .bigmap .mapwrap{min-height:0}
 @keyframes dash{to{stroke-dashoffset:-24}}
@@ -498,7 +508,7 @@ button{font:inherit;color:inherit}
     <div class="startmap" id="startmap" aria-hidden="true"></div>
     <div class="sc-in gx">
       <p class="eyebrow">MEDIEVAL: WORLD DOMINATION · 1096 AD</p>
-      <p class="muted small" id="verline">版本 v190 · 2026-11-01 · 建好新城不再跳出取名視窗（想取名可在面板按「✎ 改名」）</p>
+      <p class="muted small" id="verline">版本 v191 · 2026-11-01 · 新手引導加一步教「大」按鈕（共 7 步）；放大地圖時選了地塊，右邊按鈕不再被面板蓋住</p>
       <h1>中世紀：世界霸權</h1>
       <p class="lead">1095 年，教宗在克萊蒙發出號召，整個歐洲動了起來。選一個勢力（共 121 個），再從該文明歷史上的君主裡挑一位登基；在四千多個六角格地塊的世界裡，與基督教世界、伊斯蘭世界與即將到來的蒙古鐵騎周旋。可以結盟借道、派商隊與商船貿易、派密探、遠征遠方、研究科技升級時代、替自己的城市取名。沒有回合上限，直到有人稱霸，或你失去一切。</p>
       <div id="startopts"></div>
@@ -6604,7 +6614,7 @@ if (typeof module !== 'undefined') module.exports = G;
     '<li><b>附庸</b>：實力比接壤的對手強 1.4 倍以上時，可在外交選單「要求臣服」。附庸每回合把約三成盈餘進貢給宗主、跟著宗主參戰，附庸的地塊也算進宗主的霸權地塊；附庸若覺得宗主太弱，可能宣布獨立。</li>' +
     '<li><b>補給線</b>：部隊離己方城市（沿己方領土）超過 4 格就會「遠離補給線」，多耗糧、每回合損耗兵力、攻擊力 −10%；占領城市可以延伸補給線。草原民族（蒙古等）不受此限。地圖上這類地塊的徽章會出現紅框。</li>' +
     '<li><b>聚落</b>：空地可以便宜地蓋「村莊」（山地、森林、丘陵叫「山寨」），不能蓋在沙漠、也不能緊鄰別的聚落；費用隨你的聚落數增加。村莊／山寨每回合只能徵 6 人、只能徵步兵和弓兵，補給範圍只有城市的一半。駐軍滿 6 人、離其他 2 級以上聚落至少隔 2 格，才能升成「市鎮／城堡」，再升成「城市／堡壘」。地圖上原本的名城不受這些限制。</li>' +
-    '<li><b>新手引導</b>：開始畫面的「新手引導」選「開」，前 12 回合會有手指一步步帶你操作（選地塊、取消選取、補兵、出兵、結束回合），跟難度無關。基本步驟學完後會出現「接下來想學什麼？」選單，可以學科技樹、外交、商隊貿易、商船、戰船與海戰、慶典與間諜；之後也能在說明頁按「打開教學選單」再叫出來。開著引導時只能選每一課都做得到的國家——開局旁邊有中立地或交戰中的敵人，而且有港口；其他國家要把引導關掉才能選。老手可以關掉引導、照樣玩簡單難度。</li>' +
+    '<li><b>新手引導</b>：開始畫面的「新手引導」選「開」，前 12 回合會有手指一步步帶你操作（選地塊、取消選取、用「大」放大地圖、補兵、出兵、結束回合），跟難度無關。基本步驟學完後會出現「接下來想學什麼？」選單，可以學科技樹、外交、商隊貿易、商船、戰船與海戰、慶典與間諜；之後也能在說明頁按「打開教學選單」再叫出來。開著引導時只能選每一課都做得到的國家——開局旁邊有中立地或交戰中的敵人，而且有港口；其他國家要把引導關掉才能選。老手可以關掉引導、照樣玩簡單難度。</li>' +
     '<li><b>一次徵滿</b>：城市面板有「一次徵滿（步兵）」，連續徵兵到本回合上限或錢糧用完。</li>' +
     '<li><b>徵兵</b>只能在聚落進行；城市等級越高，每回合可徵兵數、產出與防禦都更高；駐軍沒有硬上限，但超過軟上限（城市規模的兩倍）每回合會損耗並多耗糧。</li>' +
     '<li><b>特產</b>：山區有鐵礦、草原有戰馬、東方有絲綢、南洋有香料、西非有黃金；占有愈多，進攻力或金幣收入愈高（點地塊可看到特產）。</li>' +
@@ -7638,7 +7648,9 @@ if (typeof module !== 'undefined') module.exports = G;
       adv = false;
       if (T.step === 0 && !T.d && own && sp.L > 0) { T.d = 1; adv = true; }
       else if (T.step === 0 && T.d === 1 && ui.sel == null) { T.d = 2; adv = true; }
-      else if (T.step === 0 && T.d === 2 && own && sp.L > 0) { T.step = 1; T.gold = fs.gold; T.ack = false; adv = true; }
+      else if (T.step === 0 && T.d === 2 && own && sp.L > 0) { T.d = 3; adv = true; }
+      else if (T.step === 0 && T.d === 3 && document.documentElement.classList.contains('bigmap')) { T.d = 4; adv = true; }
+      else if (T.step === 0 && T.d === 4 && !document.documentElement.classList.contains('bigmap')) { T.step = 1; T.gold = fs.gold; T.ack = false; adv = true; }
       else if (T.step === 1 && (fs.gold < T.gold || (fs.gold < G.recruitCost(f).gold && T.ack))) { T.step = 2; T.s2 = ui.sel; T.ack = false; adv = true; }
       else if (T.step === 2 && ((best == null && T.ack) || (best != null && own && sp.t >= 3 && tutFit(f, ui.sel, best) && (ui.sel !== T.s2 || T.ack)))) { T.step = 3; T.ap = g.ap; T.ack = false; adv = true; }
       else if (T.step === 3 && (g.ap < T.ap || g.ap <= 0 || best == null)) { T.step = 4; T.turn = g.turn; T.ack = false; adv = true; }
@@ -7647,23 +7659,25 @@ if (typeof module !== 'undefined') module.exports = G;
     var cp = G.placeName(G.CAPITAL[f]), spec = null, tx, ackBtn = false;
     if (T.step === 0) { tx = '第 1 步：這是新手引導，跟著 👆 手指做就好。先點地圖上手指指的首都「' + cp + '」。'; spec = { hex: G.CAPITAL[f] };
       if (T.d === 1) { tx = '第 2 步：選到了！被選的地塊會有金框，下面面板顯示它的資料。點錯時要「取消選取」：按面板右上角的 ✕，或再點一次同一格。現在試試看把它取消。'; spec = ui.sel != null ? { sel: '[data-act=desel]' } : null; }
-      else if (T.d === 2) { tx = '第 2 步：取消成功，金框不見了！要選哪塊地就直接點它。現在再點一次首都「' + cp + '」把它選回來。'; } }
-    else if (T.step === 1 && fs.gold < G.recruitCost(f).gold) { tx = '第 3 步：補兵要花金幣，你現在錢不夠，這步先跳過。之後有錢時，點城按「徵…」就能補兵。'; ackBtn = true; }
-    else if (T.step === 1) { tx = own && sp.L > 0 ? '第 3 步：點得好！現在按下面面板裡的「徵…」補兵（不耗行動點；錢不夠會自動跳過）。' : '第 3 步：先點手指指的首都「' + cp + '」，再按面板裡的「徵…」補兵。'; spec = own && sp.L > 0 ? { sel: '[data-act=recruit]' } : { hex: G.CAPITAL[f] }; }
-    else if (T.step === 2 && best == null) { tx = '第 4～5 步（出兵）：你的部隊現在沒有可以出發的地方，這兩步先跳過。'; ackBtn = true; }
-    else if (T.step === 2 && own && sp.t >= 3 && tutFit(f, ui.sel, best) && ui.sel === T.s2) { tx = '第 4 步：這塊地的兵最多，要從這裡出兵，已經幫你選好了。看清楚後按「下一步」。'; ackBtn = true; }
-    else if (T.step === 2) { tx = '第 4 步：點手指指的那一格（你兵最多的地塊），準備從這裡出兵。'; spec = { hex: best }; }
+      else if (T.d === 2) { tx = '第 2 步：取消成功，金框不見了！要選哪塊地就直接點它。現在再點一次首都「' + cp + '」把它選回來。'; }
+      else if (T.d === 3) { tx = '第 3 步：地圖右邊的「大」很重要！按一下，地圖會放大到整個畫面，看得更清楚、更好點。現在按「大」試試看。'; spec = { sel: '[data-act=bigmap]' }; }
+      else if (T.d === 4) { tx = '第 3 步：這就是放大的樣子！上面的資訊和下面的按鈕會先收起來，點了地塊面板會再出現。玩的時候隨時可以切換。現在再按一次「大」還原。'; spec = { sel: '[data-act=bigmap]' }; } }
+    else if (T.step === 1 && fs.gold < G.recruitCost(f).gold) { tx = '第 4 步：補兵要花金幣，你現在錢不夠，這步先跳過。之後有錢時，點城按「徵…」就能補兵。'; ackBtn = true; }
+    else if (T.step === 1) { tx = own && sp.L > 0 ? '第 4 步：點得好！現在按下面面板裡的「徵…」補兵（不耗行動點；錢不夠會自動跳過）。' : '第 4 步：先點手指指的首都「' + cp + '」，再按面板裡的「徵…」補兵。'; spec = own && sp.L > 0 ? { sel: '[data-act=recruit]' } : { hex: G.CAPITAL[f] }; }
+    else if (T.step === 2 && best == null) { tx = '第 5～6 步（出兵）：你的部隊現在沒有可以出發的地方，這兩步先跳過。'; ackBtn = true; }
+    else if (T.step === 2 && own && sp.t >= 3 && tutFit(f, ui.sel, best) && ui.sel === T.s2) { tx = '第 5 步：這塊地的兵最多，要從這裡出兵，已經幫你選好了。看清楚後按「下一步」。'; ackBtn = true; }
+    else if (T.step === 2) { tx = '第 5 步：點手指指的那一格（你兵最多的地塊），準備從這裡出兵。'; spec = { hex: best }; }
     else if (T.step === 3) {
-      if (own && tutFit(f, ui.sel, best)) { if (ui.target != null && !tutOk(f, ui.sel, ui.target)) { tx = '第 5 步：這一格現在去不了（剛移動過的部隊只能進攻，不能往自己領地退）。改點手指指的格子當目標。'; spec = { hex: tutFoe(f, ui.sel) }; } else if (ui.target != null) { tx = '第 5 步：按下面「確認」，讓部隊真的出發（用 1 點行動）。'; spec = { sel: '[data-act=go]' }; } else { tx = '第 5 步：點手指指的鄰格，把它選成出兵目標（沒有國家的中立地，或正在跟你打仗的敵人）。'; spec = { hex: tutFoe(f, ui.sel) }; } }
-      else { tx = '第 4 步：先點手指指的那一格（你兵最多的地塊）。'; spec = { hex: best }; }
+      if (own && tutFit(f, ui.sel, best)) { if (ui.target != null && !tutOk(f, ui.sel, ui.target)) { tx = '第 6 步：這一格現在去不了（剛移動過的部隊只能進攻，不能往自己領地退）。改點手指指的格子當目標。'; spec = { hex: tutFoe(f, ui.sel) }; } else if (ui.target != null) { tx = '第 6 步：按下面「確認」，讓部隊真的出發（用 1 點行動）。'; spec = { sel: '[data-act=go]' }; } else { tx = '第 6 步：點手指指的鄰格，把它選成出兵目標（沒有國家的中立地，或正在跟你打仗的敵人）。'; spec = { hex: tutFoe(f, ui.sel) }; } }
+      else { tx = '第 5 步：先點手指指的那一格（你兵最多的地塊）。'; spec = { hex: best }; }
     }
-    else if (T.step === 4) { tx = '第 6 步：這一年做完了，按「結束回合」進入下一年。'; spec = { sel: '[data-act=end]' }; }
+    else if (T.step === 4) { tx = '第 7 步：這一年做完了，按「結束回合」進入下一年。'; spec = { sel: '[data-act=end]' }; }
     else { var ld = T.ld || {}; tx = '🎉 基本操作學會了！接下來想學什麼？（點一個）<div class="tutmenu">' + TLES.map(function (L) { var ok = !L.need || L.need(f); return '<button data-act="tutles" data-l="' + L.id + '"' + (ok ? '' : ' disabled') + '>' + (ld[L.id] ? '✓ ' : '') + L.name + (ok ? '' : '（' + L.why + '）') + '</button>'; }).join('') + '</div>'; }
     var tip = null;
-    if (spec && spec.sel) tip = /desel/.test(spec.sel) ? '按這個 ✕ 取消選取' : /recruit/.test(spec.sel) ? '按這裡補兵' : /=go/.test(spec.sel) ? '按這裡確認出兵' : /=end/.test(spec.sel) ? '按這裡結束這一年' : null;
+    if (spec && spec.sel) tip = /bigmap/.test(spec.sel) ? (T.d === 4 ? '再按一次「大」還原' : '按這裡放大地圖') : /desel/.test(spec.sel) ? '按這個 ✕ 取消選取' : /recruit/.test(spec.sel) ? '按這裡補兵' : /=go/.test(spec.sel) ? '按這裡確認出兵' : /=end/.test(spec.sel) ? '按這裡結束這一年' : null;
     else if (spec && spec.hex != null) tip = spec.hex === G.CAPITAL[f] ? '點這裡：你的首都' : spec.hex === best ? '點這裡：兵最多的地' : '點這裡當出兵目標' + (g.p[spec.hex].o ? '' : '（中立地）');
     if (T.step === 3 && ui.target != null && spec && spec.sel && /=go/.test(spec.sel)) tx += ' 這一仗有引導幫忙，一定打得下來。';
-    return { tip: tip, n: T.step === 0 ? (T.d ? 2 : 1) : T.step + 2, text: tx, done: T.step === 5, spec: T.step === 5 ? null : spec, ack: ackBtn };
+    return { tip: tip, n: T.step === 0 ? (T.d >= 3 ? 3 : T.d ? 2 : 1) : T.step + 3, text: tx, done: T.step === 5, spec: T.step === 5 ? null : spec, ack: ackBtn };
   }
   function tutEl(spec) {
     if (!spec) return null;
@@ -7733,7 +7747,7 @@ if (typeof module !== 'undefined') module.exports = G;
     var anchor = document.getElementById('goalbar') || document.getElementById('msnbar') || $('#hint');
     if (!tb) { tb = document.createElement('div'); tb.id = 'tutbar'; tb.style.cssText = 'margin:6px 0 0;padding:8px 10px;border-radius:10px;background:#3a2a52;border:1px solid #c9a24b;color:#fff;font-size:calc(13.5px * var(--fs,1));line-height:1.5'; anchor.insertAdjacentElement('afterend', tb); }
     tb.hidden = false; if (gb) gb.style.display = 'none';
-    var html = '<b style="color:#ffd97a">' + (r.lab ? '課程：' + r.lab : '新手引導 ' + (r.done ? '' : r.n + '/6 ')) + '</b> ' + r.text + ' ' + (r.ack ? '<button data-act="tutack" style="margin-left:6px;padding:3px 10px;border-radius:8px;border:1px solid #ffd97a;background:#ffd97a;color:#3a2a52;font-size:13px;font-weight:700">下一步</button>' : '') + (r.les ? '<button data-act="tutquit" style="margin-left:6px;padding:2px 8px;border-radius:8px;border:1px solid #c9a24b;background:transparent;color:#ffd97a;font-size:12px">結束這課</button>' : '') + '<button data-act="tutskip" style="margin-left:6px;padding:2px 8px;border-radius:8px;border:1px solid #c9a24b;background:transparent;color:#ffd97a;font-size:12px">' + (r.done ? '不用了，我自己玩' : '跳過引導') + '</button>';
+    var html = '<b style="color:#ffd97a">' + (r.lab ? '課程：' + r.lab : '新手引導 ' + (r.done ? '' : r.n + '/7 ')) + '</b> ' + r.text + ' ' + (r.ack ? '<button data-act="tutack" style="margin-left:6px;padding:3px 10px;border-radius:8px;border:1px solid #ffd97a;background:#ffd97a;color:#3a2a52;font-size:13px;font-weight:700">下一步</button>' : '') + (r.les ? '<button data-act="tutquit" style="margin-left:6px;padding:2px 8px;border-radius:8px;border:1px solid #c9a24b;background:transparent;color:#ffd97a;font-size:12px">結束這課</button>' : '') + '<button data-act="tutskip" style="margin-left:6px;padding:2px 8px;border-radius:8px;border:1px solid #c9a24b;background:transparent;color:#ffd97a;font-size:12px">' + (r.done ? '不用了，我自己玩' : '跳過引導') + '</button>';
     if (tb.getAttribute('data-h') !== html) { tb.innerHTML = html; tb.setAttribute('data-h', html); }
     /* 「大」地圖模式時上方資訊列被收起來，引導列改成浮在地圖下緣，才看得到 */
     var big = document.documentElement.classList.contains('bigmap');
