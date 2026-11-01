@@ -159,6 +159,12 @@ button{font:inherit;color:inherit}
 .panel::after{content:'';position:sticky;bottom:0;display:block;height:0;pointer-events:none}
 .panel.more::after{content:'▼ 往下滑，還有更多';height:44px;margin:-44px 0 -24px;padding-top:20px;box-sizing:border-box;text-align:center;font-weight:900;font-size:calc(14px * var(--fs,1));color:#f1d48c;text-shadow:0 1px 3px #000;background:linear-gradient(rgba(18,32,39,0),rgba(18,32,39,.96) 55%);animation:mhint 1.4s ease-in-out infinite}
 @keyframes mhint{0%,100%{opacity:.75}50%{opacity:1}}
+.panel::after{content:'';position:sticky;bottom:0;display:block;height:0;pointer-events:none}
+.panel.more::after{content:'▼ 往下滑，還有更多';height:44px;margin:-44px 0 -24px;padding-top:20px;box-sizing:border-box;text-align:center;font-weight:900;font-size:calc(14px * var(--fs,1));color:#f1d48c;text-shadow:0 1px 3px #000;background:linear-gradient(rgba(18,32,39,0),rgba(18,32,39,.96) 55%);animation:mhint 1.4s ease-in-out infinite}
+@keyframes mhint{0%,100%{opacity:.75}50%{opacity:1}}
+.panel::after{content:'';position:sticky;bottom:0;display:block;height:0;pointer-events:none}
+.panel.more::after{content:'▼ 往下滑，還有更多';height:44px;margin:-44px 0 -24px;padding-top:20px;box-sizing:border-box;text-align:center;font-weight:900;font-size:calc(14px * var(--fs,1));color:#f1d48c;text-shadow:0 1px 3px #000;background:linear-gradient(rgba(18,32,39,0),rgba(18,32,39,.96) 55%);animation:mhint 1.4s ease-in-out infinite}
+@keyframes mhint{0%,100%{opacity:.75}50%{opacity:1}}
 .panel{contain:paint;flex:none;max-height:40vh;max-height:44dvh;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;touch-action:pan-y;padding-block:10px 24px;background:linear-gradient(#1a2e35,#122027);border-top:2px solid var(--gold)}
 @media (min-width:900px){.panel{width:340px;max-height:none;border-top:0;border-left:2px solid var(--gold);padding-block:14px}}
 .ph{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
@@ -413,7 +419,7 @@ button{font:inherit;color:inherit}
     <div class="startmap" id="startmap" aria-hidden="true"></div>
     <div class="sc-in gx">
       <p class="eyebrow">MEDIEVAL: WORLD DOMINATION · 1096 AD</p>
-      <p class="muted small" id="verline">版本 v184 · 2026-11-01 · 新手引導加一步：教你怎麼選地塊、怎麼取消選取（共 6 步）</p>
+      <p class="muted small" id="verline">版本 v185 · 2026-11-01 · 修正新手引導：不會再叫剛移動過的部隊往後退而卡住；選錯目標會提示改點</p>
       <h1>中世紀：世界霸權</h1>
       <p class="lead">1095 年，教宗在克萊蒙發出號召，整個歐洲動了起來。選一個勢力（共 121 個），再從該文明歷史上的君主裡挑一位登基；在四千多個六角格地塊的世界裡，與基督教世界、伊斯蘭世界與即將到來的蒙古鐵騎周旋。可以結盟借道、派商隊與商船貿易、派密探、遠征遠方、研究科技升級時代、替自己的城市取名。沒有回合上限，直到有人稱霸，或你失去一切。</p>
       <div id="startopts"></div>
@@ -7418,7 +7424,8 @@ if (typeof module !== 'undefined') module.exports = G;
   }
   /* ---------- 簡單模式：強制式新手引導（手指指給你看，只能點指定的地方） ---------- */
   function tutAtk(f, n) { var o = g.p[n].o; return o !== f && (!o || G.rel(g, f, o).state === 'war'); }
-  function tutHostile(f, id) { return G.NB[id].some(function (n) { return g.p[n].o === f || tutAtk(f, n); }); }
+  function tutOk(f, id, n) { var p = g.p[id], q = g.p[n]; if (!p || !q || p.acted) return false; if (q.o === f) return !p.arr; return tutAtk(f, n); }
+  function tutHostile(f, id) { return !g.p[id].acted && G.NB[id].some(function (n) { return tutOk(f, id, n); }); }
   function tutBest(f) {
     var best = null, bs = 0;
     G.owned(g, f).forEach(function (id) { var p = g.p[id]; if (p.t < 3 || !tutHostile(f, id)) return; var sc = p.t + (G.NB[id].some(function (n) { return tutAtk(f, n); }) ? 1000 : 0); if (sc > bs) { bs = sc; best = id; } });
@@ -7426,9 +7433,9 @@ if (typeof module !== 'undefined') module.exports = G;
   }
   function tutFoe(f, id) {
     var best = null, bt = 1e9;
-    G.NB[id].forEach(function (n) { var q = g.p[n]; if (tutAtk(f, n) && q.t < bt) { bt = q.t; best = n; } });
+    G.NB[id].forEach(function (n) { var q = g.p[n]; if (tutOk(f, id, n) && q.o !== f && q.t < bt) { bt = q.t; best = n; } });
     if (best != null) return best;
-    G.NB[id].forEach(function (n) { var q = g.p[n]; if (q.o === f && q.t < bt) { bt = q.t; best = n; } });
+    G.NB[id].forEach(function (n) { var q = g.p[n]; if (q.o === f && tutOk(f, id, n) && q.t < bt) { bt = q.t; best = n; } });
     return best;
   }
   function tutStep() {
@@ -7466,12 +7473,12 @@ if (typeof module !== 'undefined') module.exports = G;
       if (T.d === 1) { tx = '第 2 步：選到了！被選的地塊會有金框，下面面板顯示它的資料。點錯時要「取消選取」：按面板右上角的 ✕，或再點一次同一格。現在試試看把它取消。'; spec = ui.sel != null ? { sel: '[data-act=desel]' } : null; }
       else if (T.d === 2) { tx = '第 2 步：取消成功，金框不見了！要選哪塊地就直接點它。現在再點一次首都「' + cp + '」把它選回來。'; } }
     else if (T.step === 1 && fs.gold < G.recruitCost(f).gold) { tx = '第 3 步：補兵要花金幣，你現在錢不夠，這步先跳過。之後有錢時，點城按「徵…」就能補兵。'; ackBtn = true; }
-    else if (T.step === 1) { tx = '第 3 步：點得好！現在按下面面板裡的「徵…」補兵（不耗行動點；錢不夠會自動跳過）。'; spec = own && sp.L > 0 ? { sel: '[data-act=recruit]' } : { hex: G.CAPITAL[f] }; }
+    else if (T.step === 1) { tx = own && sp.L > 0 ? '第 3 步：點得好！現在按下面面板裡的「徵…」補兵（不耗行動點；錢不夠會自動跳過）。' : '第 3 步：先點手指指的首都「' + cp + '」，再按面板裡的「徵…」補兵。'; spec = own && sp.L > 0 ? { sel: '[data-act=recruit]' } : { hex: G.CAPITAL[f] }; }
     else if (T.step === 2 && best == null) { tx = '第 4～5 步（出兵）：你的部隊現在沒有可以出發的地方，這兩步先跳過。'; ackBtn = true; }
     else if (T.step === 2 && own && sp.t >= 3 && tutHostile(f, ui.sel) && ui.sel === T.s2) { tx = '第 4 步：這塊地的兵最多，要從這裡出兵，已經幫你選好了。看清楚後按「下一步」。'; ackBtn = true; }
     else if (T.step === 2) { tx = '第 4 步：點手指指的那一格（你兵最多的地塊），準備從這裡出兵。'; spec = { hex: best }; }
     else if (T.step === 3) {
-      if (own && tutHostile(f, ui.sel)) { if (ui.target != null) { tx = '第 5 步：按下面「確認」，讓部隊真的出發（用 1 點行動）。'; spec = { sel: '[data-act=go]' }; } else { tx = '第 5 步：點手指指的鄰格，把它選成出兵目標（攻擊敵人或調兵都可以）。'; spec = { hex: tutFoe(f, ui.sel) }; } }
+      if (own && tutHostile(f, ui.sel)) { if (ui.target != null && !tutOk(f, ui.sel, ui.target)) { tx = '第 5 步：這一格現在去不了（剛移動過的部隊只能進攻，不能往自己領地退）。改點手指指的格子當目標。'; spec = { hex: tutFoe(f, ui.sel) }; } else if (ui.target != null) { tx = '第 5 步：按下面「確認」，讓部隊真的出發（用 1 點行動）。'; spec = { sel: '[data-act=go]' }; } else { tx = '第 5 步：點手指指的鄰格，把它選成出兵目標（攻擊敵人或調兵都可以）。'; spec = { hex: tutFoe(f, ui.sel) }; } }
       else { tx = '第 4 步：先點手指指的那一格（你兵最多的地塊）。'; spec = { hex: best }; }
     }
     else if (T.step === 4) { tx = '第 6 步：這一年做完了，按「結束回合」進入下一年。'; spec = { sel: '[data-act=end]' }; }
