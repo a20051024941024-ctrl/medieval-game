@@ -289,6 +289,15 @@ button{font:inherit;color:inherit}
 .panel::after{content:'';position:sticky;bottom:0;display:block;height:0;pointer-events:none}
 .panel.more::after{content:'▼ 往下滑，還有更多';height:44px;margin:-44px 0 -24px;padding-top:20px;box-sizing:border-box;text-align:center;font-weight:900;font-size:calc(14px * var(--fs,1));color:#f1d48c;text-shadow:0 1px 3px #000;background:linear-gradient(rgba(18,32,39,0),rgba(18,32,39,.96) 55%);animation:mhint 1.4s ease-in-out infinite}
 @keyframes mhint{0%,100%{opacity:.75}50%{opacity:1}}
+.panel::after{content:'';position:sticky;bottom:0;display:block;height:0;pointer-events:none}
+.panel.more::after{content:'▼ 往下滑，還有更多';height:44px;margin:-44px 0 -24px;padding-top:20px;box-sizing:border-box;text-align:center;font-weight:900;font-size:calc(14px * var(--fs,1));color:#f1d48c;text-shadow:0 1px 3px #000;background:linear-gradient(rgba(18,32,39,0),rgba(18,32,39,.96) 55%);animation:mhint 1.4s ease-in-out infinite}
+@keyframes mhint{0%,100%{opacity:.75}50%{opacity:1}}
+.panel::after{content:'';position:sticky;bottom:0;display:block;height:0;pointer-events:none}
+.panel.more::after{content:'▼ 往下滑，還有更多';height:44px;margin:-44px 0 -24px;padding-top:20px;box-sizing:border-box;text-align:center;font-weight:900;font-size:calc(14px * var(--fs,1));color:#f1d48c;text-shadow:0 1px 3px #000;background:linear-gradient(rgba(18,32,39,0),rgba(18,32,39,.96) 55%);animation:mhint 1.4s ease-in-out infinite}
+@keyframes mhint{0%,100%{opacity:.75}50%{opacity:1}}
+.panel::after{content:'';position:sticky;bottom:0;display:block;height:0;pointer-events:none}
+.panel.more::after{content:'▼ 往下滑，還有更多';height:44px;margin:-44px 0 -24px;padding-top:20px;box-sizing:border-box;text-align:center;font-weight:900;font-size:calc(14px * var(--fs,1));color:#f1d48c;text-shadow:0 1px 3px #000;background:linear-gradient(rgba(18,32,39,0),rgba(18,32,39,.96) 55%);animation:mhint 1.4s ease-in-out infinite}
+@keyframes mhint{0%,100%{opacity:.75}50%{opacity:1}}
 .panel{contain:paint;flex:none;max-height:40vh;max-height:44dvh;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;touch-action:pan-y;padding-block:10px 24px;background:linear-gradient(#1a2e35,#122027);border-top:2px solid var(--gold)}
 @media (min-width:900px){.panel{width:340px;max-height:none;border-top:0;border-left:2px solid var(--gold);padding-block:14px}}
 .ph{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
@@ -545,7 +554,7 @@ button{font:inherit;color:inherit}
     <div class="startmap" id="startmap" aria-hidden="true"></div>
     <div class="sc-in gx">
       <p class="eyebrow">MEDIEVAL: WORLD DOMINATION · 1096 AD</p>
-      <p class="muted small" id="verline">版本 v194 · 2026-11-01 · 戰報改成浮在畫面上，選了地塊時不會只剩一行</p>
+      <p class="muted small" id="verline">版本 v195 · 2026-11-01 · 間諜成功率會隨對方狀況變動（打仗、民心、天災內亂、跟你交戰、你的聲望），按鈕寫出原因</p>
       <h1>中世紀：世界霸權</h1>
       <p class="lead">1095 年，教宗在克萊蒙發出號召，整個歐洲動了起來。選一個勢力（共 121 個），再從該文明歷史上的君主裡挑一位登基；在四千多個六角格地塊的世界裡，與基督教世界、伊斯蘭世界與即將到來的蒙古鐵騎周旋。可以結盟借道、派商隊與商船貿易、派密探、遠征遠方、研究科技升級時代、替自己的城市取名。沒有回合上限，直到有人稱霸，或你失去一切。</p>
       <div id="startopts"></div>
@@ -4935,7 +4944,7 @@ function rulerTick(g) {
     if (g.rulPend && g.rulPend[f]) return;
     var old = RULERS[f][g.rul[f]][0];
     if (isHum(g, f)) { (g.rulPend || (g.rulPend = {}))[f] = true; return; }
-    var ch = rulerChoices(g, f); setRuler(g, f, ch[Math.floor(Math.random() * ch.length)]);
+    var ch = rulerChoices(g, f); setRuler(g, f, ch[Math.floor(Math.random() * ch.length)]); markChaos(g, f);
     if (g.player && g.fac[g.player] && g.fac[f] && rel(g, g.player, f).state === 'war') logMsg(g, nm(f) + '的君主' + old + '駕崩，由' + RULERS[f][g.rul[f]][0] + '繼位。', 'info');
   });
 }
@@ -5332,6 +5341,19 @@ function aiExtras(g, f) {
 }
 /* ---------- 間諜：偵查、煽動叛亂、暗殺將領（只花金幣，每回合只能行動一次） ---------- */
 var SPY = { scout: { n: '偵查', gold: 40, p: 0.8 }, incite: { n: '煽動叛亂', gold: 120, p: 0.5 }, kill: { n: '暗殺將領', gold: 150, p: 0.35 } };
+function markChaos(g, f) { (g.chaos || (g.chaos = {}))[f] = g.turn; }
+function spyMods(g, f, x, k) {
+  var K = SPY[k], p = K.p, why = [], e = eraNum(f) - eraNum(x);
+  if (e) { p += 0.02 * e; why.push((e > 0 ? '時代領先 +' : '時代落後 ') + (2 * e) + '%'); }
+  var busy = FIDS.some(function (y) { return y !== x && y !== f && g.fac[y] && g.fac[y].alive && rel(g, x, y).state === 'war'; });
+  if (busy) { p += 0.10; why.push('對方忙著打仗 +10%'); }
+  if (rel(g, f, x).state === 'war') { p -= 0.10; why.push('對方正提防你 −10%'); }
+  if (k === 'incite' && g.fac[x] && g.fac[x].morale < 40) { p += 0.10; why.push('對方民心低 +10%'); }
+  if (g.chaos && g.chaos[x] != null && g.turn - g.chaos[x] <= 3) { p += 0.10; why.push('對方剛遭天災或內亂 +10%'); }
+  var rp = g.rep ? g.rep[f] : 0;
+  if (rp >= 80) { p += 0.05; why.push('你聲望高 +5%'); } else if (rp >= 65) { p += 0.03; why.push('你聲望不錯 +3%'); }
+  return { p: Math.min(0.9, Math.max(0.15, p)), why: why };
+}
 function spyLeft(g, f) { return (g.spyT && g.spyT[f] === g.turn) ? 0 : 1; }
 function actSpy(g, f, x, k) {
   var K = SPY[k]; if (!K) return fail('沒有這種任務。');
@@ -5339,8 +5361,8 @@ function actSpy(g, f, x, k) {
   if (!spyLeft(g, f)) return fail('密探本回合已經出動過了。');
   if (!canPay(g, f, { gold: K.gold })) return fail('金幣不足（需要 ' + K.gold + '）。');
   pay(g, f, { gold: K.gold }); (g.spyT || (g.spyT = {}))[f] = g.turn;
-  var p = K.p + 0.02 * (eraNum(f) - eraNum(x));
-  if (Math.random() > Math.min(0.9, Math.max(0.15, p))) {
+  var p = spyMods(g, f, x, k).p;
+  if (Math.random() > p) {
     g.rep[f] = clamp(g.rep[f] - 4, 0, 100);
     if (x === g.player || (g.hs && g.hs[x])) logMsg(g, nm(f) + '的密探在你的領地被抓獲（' + K.n + '）。', 'bad');
     return good('密探被' + nm(x) + '抓住了，聲望 -4。', { spy: 0 });
@@ -5444,7 +5466,7 @@ function aiWall(g, f, fd) {
 }
 function portOpen(g, id) { return !(g.blk && g.blk[id]); }
 function portsOpen(g, f) { return owned(g, f).filter(function (id) { return CITY[id] && CITY[id].port && g.p[id].L > 0 && portOpen(g, id); }).length; }
-function plagueHit(g, f, sev) {
+function plagueHit(g, f, sev) { markChaos(g, f);
   var fs = g.fac[f], q = fs.quar > 0 ? 0.4 : 1, lost = 0, regs = owned(g, f).filter(function (id) { return g.p[id].L > 0; });
   if (!regs.length) regs = owned(g, f);
   var k = Math.min(regs.length, 2 + rint(3));
@@ -5455,7 +5477,7 @@ function plagueHit(g, f, sev) {
   fs.morale = clamp(fs.morale - Math.round(3 * sev * q), 0, 100);
   return lost;
 }
-function famineHit(g, f) {
+function famineHit(g, f) { markChaos(g, f);
   var fs = g.fac[f], l = Math.floor(fs.food * 0.35);
   fs.food -= l; fs.morale = clamp(fs.morale - 5, 0, 100);
   var lost = 0;
@@ -5473,7 +5495,7 @@ var DISASTER = [
   { y: 1316, n: '歐洲大饑荒', k: 'famine', fs: EURO, sev: 1 },
   { y: 1317, n: '歐洲大饑荒', k: 'famine', fs: EURO, sev: 1 }
 ];
-function quakeHit(g, f, sev) {
+function quakeHit(g, f, sev) { markChaos(g, f);
   var lost = 0, regs = owned(g, f), k = Math.min(regs.length, 2 + rint(3));
   for (var i = 0; i < k; i++) {
     var p = g.p[regs[rint(regs.length)]], l = Math.floor(p.t * 0.2 * sev);
@@ -5500,7 +5522,7 @@ function histDisaster(g) {
     });
   });
 }
-function breakAway(g, f, n) {
+function breakAway(g, f, n) { markChaos(g, f);
   var c = owned(g, f).filter(function (id) { return !isCapital(id); }), out = [];
   for (var i = 0; i < n && c.length; i++) {
     var j = rint(c.length), id = c.splice(j, 1)[0];
@@ -5508,7 +5530,7 @@ function breakAway(g, f, n) {
   }
   return out;
 }
-function successionHit(g, f, sevB) {
+function successionHit(g, f, sevB) { markChaos(g, f);
   var fs = g.fac[f];
   fs.morale = clamp(fs.morale - 12, 0, 100); fs.gold = Math.floor(fs.gold * 0.9);
   if (ownedN(g, f) > 4 && Math.random() < 0.4 + (sevB || 0)) return breakAway(g, f, 1);
@@ -5790,7 +5812,7 @@ var G = {
   hid: hid, hr: hr, hc: hc,
   newGame: newGame, owned: owned, season: season, year: year, capOf: capOf, income: income, provYield: provYield,
   codex: codex, recruitCost: recruitCost, unitCost: unitCost, mercCost: mercCost, mixOf: mixOf, mercOf: mercOf, unitName: unitName, mercName: mercName, unitAllowed: unitAllowed, SPECIAL: SPECIAL, UNIT_NAMES: UNIT_NAMES, DEFMIX: DEFMIX, buildCost: buildCost, tradeGain: tradeGain, ritualCost: ritualCost, ritualGain: ritualGain,
-  TAX_N: TAX_N, TAX_D: TAX_D, taxOf: taxOf, softCap: softCap, recLeft: recLeft, recLimit: recLimit, isMarried: isMarried, marryCost: marryCost, marryChance: marryChance, tributeCost: tributeCost, RESH: RESH, RES_N: RES_N, RES_D: RES_D, resCount: resCount, resFx: resFx, armySwap: armySwap, chainAdd: chainAdd, CHAIN: CHAIN, matchupHint: matchupHint, riverEdge: riverEdge, RIV_E: RIV_E, RIVERS: RIVERS, canPay: canPay, P: P, sendCount: sendCount, battleOdds: battleOdds, moveTargets: moveTargets, wallCost: wallCost, TECH: TECH, RUNIT: RUNIT, RSP: RSP, rulerGift: rulerGift, SPY: SPY, spyLeft: spyLeft, needRuler: needRuler, rulerChoices: rulerChoices, HIST_REL: HIST_REL, RULERS: RULERS, rulerOf: rulerOf, setRuler: setRuler, carOptions: carOptions, carActive: carActive, carMax: carMax, CAR_COST: CAR_COST, festLeft: festLeft, ROAD: ROAD, ROADSEG: ROADSEG, PASS: PASS, CAMEL: CAMEL, BLOCKED: BLOCKED, terrAtk: terrAtk, eraSync: eraSync, eraNum: eraNum, eraInfo: eraInfo, eraOf: eraOf, ERA_NAME: ERA_NAME, TECHS: TECHS, TBR: TBR, TECH_BY: TECH_BY, techLv: techLv, techState: techState, techHas: techHas, techFx: techFx, techCost: techCost, techWhy: techWhy, BLD: BLD, BLD_KEYS: BLD_KEYS, bldCount: bldCount, wallLv: wallLv, portOpen: portOpen, portsOpen: portsOpen, moveTroops: moveTroops,
+  TAX_N: TAX_N, TAX_D: TAX_D, taxOf: taxOf, softCap: softCap, recLeft: recLeft, recLimit: recLimit, isMarried: isMarried, marryCost: marryCost, marryChance: marryChance, tributeCost: tributeCost, RESH: RESH, RES_N: RES_N, RES_D: RES_D, resCount: resCount, resFx: resFx, armySwap: armySwap, chainAdd: chainAdd, CHAIN: CHAIN, matchupHint: matchupHint, riverEdge: riverEdge, RIV_E: RIV_E, RIVERS: RIVERS, canPay: canPay, P: P, sendCount: sendCount, battleOdds: battleOdds, moveTargets: moveTargets, wallCost: wallCost, TECH: TECH, RUNIT: RUNIT, RSP: RSP, rulerGift: rulerGift, SPY: SPY, spyMods: spyMods, spyLeft: spyLeft, needRuler: needRuler, rulerChoices: rulerChoices, HIST_REL: HIST_REL, RULERS: RULERS, rulerOf: rulerOf, setRuler: setRuler, carOptions: carOptions, carActive: carActive, carMax: carMax, CAR_COST: CAR_COST, festLeft: festLeft, ROAD: ROAD, ROADSEG: ROADSEG, PASS: PASS, CAMEL: CAMEL, BLOCKED: BLOCKED, terrAtk: terrAtk, eraSync: eraSync, eraNum: eraNum, eraInfo: eraInfo, eraOf: eraOf, ERA_NAME: ERA_NAME, TECHS: TECHS, TBR: TBR, TECH_BY: TECH_BY, techLv: techLv, techState: techState, techHas: techHas, techFx: techFx, techCost: techCost, techWhy: techWhy, BLD: BLD, BLD_KEYS: BLD_KEYS, bldCount: bldCount, wallLv: wallLv, portOpen: portOpen, portsOpen: portsOpen, moveTroops: moveTroops,
   endTurn: endTurn, pickEvent: pickEvent, eventView: eventView, applyChoice: applyChoice, scoreOf: scoreOf,
   lordsOf: lordsOf, FIEF_PER: FIEF_PER, fiefMax: fiefMax, fiefList: fiefList, cityN: cityN, FIEF_COST: FIEF_COST, FIEF_REWARD: FIEF_REWARD, isCapital: isCapital, msOf: msOf, NOHORSE: NOHORSE, deepOK: deepOK, msCap: msCap, MS_COST: MS_COST, nm: nm, aiTurn: aiTurn, portsOf: portsOf, genAt: genAt, resolveBattle: resolveBattle, citySiteBlock: citySiteBlock, buildCostG: buildCostG, settleName: settleName, isVillage: isVillage, RELICS: RELICS, REL_TXT: REL_TXT, relAt: relAt, gensOf: gensOf, genLv: genLv, genChoose: genChoose, genCandidates: genCandidates, LANDMARKS: LANDMARKS, LM_AT: LM_AT, lmInfo: lmInfo, lmBonus: lmBonus, callWarInfo: callWarInfo, culOf: culOf, culGain: culGain, CUL_WIN: CUL_WIN, msnTick: msnTick, surInfo: surInfo, moveCapCost: moveCapCost, syncCap: syncCap, xRate: xRate, xQuota: xQuota, genAvail: genAvail, genCost: genCost, GEN_MAX: GEN_MAX, GEN_TYPE: GEN_TYPE, GEN_TXT: GEN_TXT, GENS: GENS, shipsOf: shipsOf, fleets: fleets, fleetReach: seaReach, fleetStr: fleetStr, seaCapAt: seaCapAt, FLEET_MOVE: FLEET_MOVE, shipCap: shipCap, seaCapLeft: seaCapLeft, shipName: shipName, SHIP_COST: SHIP_COST, SHIP_CARRY: SHIP_CARRY, moraleMult: moraleMult, placeName: placeName, terrDef: terrDef,
   EVENTS: EVENTS, HIST: HIST, checkEnd: checkEnd, finish: finish, settle: settle, TERR_Y: TERR_Y,
@@ -6658,7 +6680,7 @@ if (typeof module !== 'undefined') module.exports = G;
     '<li><b>河流</b>：渡河進攻時守軍防禦 +8%，軍團渡河多耗 1 點移動力。</li>' +
     '<li><b>兵種專長</b>：草原與突厥勢力的騎兵是<b>弓騎兵</b>，對步兵與平原有利，但攻城吃虧、近戰防守較弱；宋、義大利、拜占庭、法蘭西等的弓兵是<b>弩兵</b>，專剋騎兵，攻守兩端都有效；印度與東南亞的騎兵是<b>戰象</b>，在平原衝鋒猛、在山林吃虧、怕弓兵；天主教勢力的特色兵是<b>修會騎士</b>，守城時很強、攻伊斯蘭城市有加成；研究軍事線的「火藥配方」後（宋、金、蒙古在城堡時代就有火器）弓兵升級為<b>火銃手</b>，攻守都更強，並明顯壓制騎兵（含重騎兵與騎士）；研究「火砲鑄造」後攻城器械成為<b>火砲</b>，攻城加成更高、城牆幾乎失效；研究「火繩槍」後火銃手升級為<b>火繩槍手</b>，更剋騎兵。駐軍裡的遠程兵（弓、弩、火銃、投石機）也會射擊靠岸的敵船。</li>' +
     '<li><b>君主</b>：開局從你文明歷史上的君主（含傳說人物）中挑一位，各帶不同加成；金色★的名君還有專屬戰鬥能力或專屬兵種。君主在位約等於歷史年數，駕崩後從名單選繼任者。</li>' +
-    '<li><b>間諜</b>：下方「間諜」按鈕，花金幣（不耗行動點、每回合一次）偵查、煽動叛亂或暗殺將領，失敗聲望 −4。</li>' +
+    '<li><b>間諜</b>：下方「間諜」按鈕，花金幣（不耗行動點、每回合一次）偵查、煽動叛亂或暗殺將領，失敗聲望 −4。成功率會隨對方狀況變動：對方正在跟別國打仗 +10%、民心低於 40 時煽動 +10%、三回合內剛遭天災、內亂或君主駕崩 +10%、對方正在跟你打仗 −10%、你的聲望 65 以上 +3%（80 以上 +5%）、時代每領先一個 +2%；最低 15%、最高 90%。按鈕下面會寫出加減的原因。</li>' +
     '<li><b>地圖按鈕</b>：「大」把地圖放到最大（再按還原）；「我」回到你最後行動的位置；「下一」跳到下一個還能行動的地塊；結束回合後地圖會自動移到那裡。</li>' +
     '<li><b>同盟</b>：盟友的領地可以「借道」通過（只能路過，不能停留）；你進攻的目標旁若有盟友的部隊（4 人以上）、且盟友也在和同一個敵人交戰，你的攻擊 +8%（最多兩位盟友 +16%）。你被進攻時，旁邊的盟友同樣會幫你守，防禦 +8%。</li>' +
     '<li><b>海岸防禦</b>：敵人的艦隊停在你海岸領地旁時，每回合結算時你的遠程兵種（弓兵、投石機等）會射擊船隻，每約 14 點遠程戰力擊沉一艘；步兵與騎兵沒有作用，有港口的城市更準。沒有遠程兵種的海岸擋不住船。</li>' +
@@ -8252,12 +8274,12 @@ if (typeof module !== 'undefined') module.exports = G;
     var bord = {}; G.P && g.p.forEach(function (q, id) { if (q && q.o === f) G.NB[id].forEach(function (n) { var o = g.p[n]; if (o && o.o && o.o !== f) bord[o.o] = 1; }); });
     list.sort(function (a, c) { var sa = (G.rel(g, f, a).state === 'war' ? 2 : 0) + (bord[a] ? 1 : 0), sc = (G.rel(g, f, c).state === 'war' ? 2 : 0) + (bord[c] ? 1 : 0); return sc - sa; });
     var h = '<button data-act="closemodal" aria-label="關閉" style="position:sticky;top:0;float:right;z-index:5;width:40px;height:40px;margin:-4px -4px 0 8px;border-radius:50%;border:1px solid #f1d48c;background:#1b2a36;color:#f1d48c;font-size:22px;line-height:1;cursor:pointer">✕</button>';
-    h += '<h2 id="mtitle" style="margin:0 0 4px">間諜與密探</h2><p class="muted small">只花金幣、不耗行動點，每回合只能派一次。偵查看對方底細；煽動叛亂讓對方一處駐軍損失約 25%；暗殺幹掉對方最強的將領。失敗會被抓，聲望 -4。</p>';
+    h += '<h2 id="mtitle" style="margin:0 0 4px">間諜與密探</h2><p class="muted small">只花金幣、不耗行動點，每回合只能派一次。偵查看對方底細；煽動叛亂讓對方一處駐軍損失約 25%；暗殺幹掉對方最強的將領。失敗會被抓，聲望 -4。成功率會變：對方忙著打仗、民心低（煽動）、剛遭天災或內亂都比較容易；對方正在跟你打仗會特別提防；你的聲望高也有幫助。</p>';
     if (note) h += '<p class="mtext"><b>' + esc(note) + '</b></p>';
     list.slice(0, 12).forEach(function (x) {
       var st = G.rel(g, f, x).state;
       h += '<div class="gh" style="margin:10px 0 4px">' + esc(G.FACTIONS[x].name) + (st === 'war' ? '（交戰中）' : bord[x] ? '（鄰國）' : '') + '</div><div style="display:flex;gap:6px;flex-wrap:wrap">';
-      ['scout', 'incite', 'kill'].forEach(function (k) { var K = G.SPY[k]; h += '<button class="btn" data-act="spygo" data-x="' + x + '" data-k="' + k + '"' + (!left || fs.gold < K.gold ? ' disabled' : '') + '>' + K.n + ' ' + K.gold + '金・成功率約 ' + Math.round(K.p * 100) + '%</button>'; });
+      ['scout', 'incite', 'kill'].forEach(function (k) { var K = G.SPY[k], sm = G.spyMods(g, f, x, k); h += '<button class="btn" data-act="spygo" data-x="' + x + '" data-k="' + k + '"' + (!left || fs.gold < K.gold ? ' disabled' : '') + ' style="display:block;text-align:left;width:100%"><span style="display:block">' + K.n + ' ' + K.gold + '金・成功率約 <b>' + Math.round(sm.p * 100) + '%</b></span>' + (sm.why.length ? '<small class="muted" style="display:block;margin-top:2px">' + sm.why.join('、') + '</small>' : '') + '</button>'; });
       h += '</div>';
     });
     h += '<button class="btn primary" data-act="closemodal" style="margin-top:10px;width:100%">關閉</button>';
