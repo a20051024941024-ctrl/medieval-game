@@ -405,7 +405,7 @@ button{font:inherit;color:inherit}
     <div class="startmap" id="startmap" aria-hidden="true"></div>
     <div class="sc-in gx">
       <p class="eyebrow">MEDIEVAL: WORLD DOMINATION · 1096 AD</p>
-      <p class="muted small" id="verline">版本 v204 · 2026-11-01 · 放大地圖或滾輪拉近後，兵力數字和地形有時沒出現的問題</p>
+      <p class="muted small" id="verline">版本 v205 · 2026-11-01 · 電腦會守首都（調兵回防、優先補兵、緊急徵召民兵）、匯出／匯入存檔換手機</p>
       <h1>中世紀：世界霸權</h1>
       <p class="lead">1095 年，教宗在克萊蒙發出號召，整個歐洲動了起來。選一個勢力（共 121 個），再從該文明歷史上的君主裡挑一位登基；在四千多個六角格地塊的世界裡，與基督教世界、伊斯蘭世界與即將到來的蒙古鐵騎周旋。可以結盟借道、派商隊與商船貿易、派密探、遠征遠方、研究科技升級時代、替自己的城市取名。沒有回合上限，直到有人稱霸，或你失去一切。</p>
       <div id="startopts"></div>
@@ -3499,7 +3499,7 @@ function aiMoves(g, f) {
   order.forEach(function (from) {
     var s = g.p[from];
     if (s.o !== f || s.acted || s.t < 3) return;
-    var keep = isCapital(from) ? 4 : (s.L > 0 ? 3 : 1), avail = s.t - keep;
+    var keep = Math.max(isCapital(from) ? 4 : (s.L > 0 ? 3 : 1), AIDANG[from] || 0), avail = s.t - keep;
     var best = null, bs = 0, thr = 1.55 - A.aggr * 0.55;
     var kinds = moveTargets(g, f, from);
     Object.keys(kinds).forEach(function (k) {
@@ -3532,7 +3532,7 @@ function aiMoves(g, f) {
     }
     if (best && Math.random() < 0.55 + A.aggr * 0.45) { moveTroops(g, f, from, best.to, best.send); return; }
     /* 內陸部隊向前線集結 */
-    if (fd[from] > 0 && s.t > 5) {
+    if (fd[from] > 0 && s.t > 5 && !AIDANG[from]) {
       var nxt = null, nd = fd[from];
       NB[from].forEach(function (n) { if (g.p[n].o === f && fd[n] !== undefined && fd[n] < nd && g.p[n].t < capOf(g.p[n], n) - 2) { nd = fd[n]; nxt = n; } });
       if (nxt !== null) moveTroops(g, f, from, nxt, s.t - Math.max(3, Math.floor(s.t / 3)));
@@ -3599,7 +3599,7 @@ function aiAssault(g, f) {
     var at = [], sum = 0;
     NB[to].forEach(function (n) {
       var s = g.p[n]; if (s.o !== f || s.acted || s.t < 4) return;
-      var keep = isCapital(n) ? 4 : (s.L > 0 ? 3 : 1), av = s.t - keep;
+      var keep = Math.max(isCapital(n) ? 4 : (s.L > 0 ? 3 : 1), AIDANG[n] || 0), av = s.t - keep;
       if (av >= 2) { at.push({ from: n, av: av }); sum += av; }
     });
     if (at.length < 2) return;
@@ -3621,8 +3621,66 @@ function aiAssault(g, f) {
     }
   });
 }
+/* 守城：首都或大城被兵臨城下時，從附近調兵回防、優先補兵，首都必要時緊急徵召民兵 */
+var AIDANG = {};
+function aiEnemyNear(g, f, id) { var E = 0; NB[id].forEach(function (n) { var q = g.p[n]; if (q.o && q.o !== f && rel(g, f, q.o).state === 'war') E += q.t; }); return E; }
+function aiDefend(g, f) {
+  AIDANG = {};
+  var fs = g.fac[f], dif = g.diff === undefined ? 1 : g.diff, list = [];
+  owned(g, f).forEach(function (id) {
+    var p = g.p[id], cap = CAPITAL[f] === id; if (!(p.L > 0 || cap)) return;
+    var E = aiEnemyNear(g, f, id); if (!E) return;
+    var D = p.t * terrDef(g, id, f), need = E * 1.2 - D;
+    if (need <= 0 && E < p.t * 0.7) return;
+    list.push({ id: id, E: E, need: Math.max(need, E * 0.3), v: (cap ? 4 : 1) + p.L * 0.6 });
+  });
+  list.sort(function (a, b) { return b.v - a.v; });
+  list.slice(0, 2).forEach(function (d) {
+    var id = d.id, p = g.p[id], got = 0, goal = d.need * 1.25 + 2, cap = CAPITAL[f] === id;
+    AIDANG[id] = Math.min(p.t, Math.ceil(d.E * 0.9));
+    /* 1. 鄰近部隊回防（自己也被威脅的地只抽一部分） */
+    var nb = NB[id].filter(function (n) { var q = g.p[n]; return q.o === f && !q.acted && q.t >= 3; });
+    nb.sort(function (a, b) { return g.p[b].t - g.p[a].t; });
+    nb.forEach(function (n) {
+      if (got >= goal) return;
+      var q = g.p[n], En = aiEnemyNear(g, f, n), keep = En ? Math.ceil(En * 0.45) + 1 : (q.L > 0 ? 2 : 1), send = Math.min(q.t - keep, Math.ceil(goal - got) + 2);
+      if (send >= 2 && moveTroops(g, f, n, id, send).ok) got += send;
+    });
+    /* 2. 兩格外的部隊往首都旁邊集結，下回合就能進城 */
+    if (got < goal && (cap || p.L >= 2)) {
+      var ring = NB[id].filter(function (n) { return g.p[n].o === f; });
+      ring.forEach(function (r) {
+        NB[r].forEach(function (n) {
+          if (got >= goal || n === id || ring.indexOf(n) >= 0) return;
+          var q = g.p[n]; if (q.o !== f || q.acted || q.t < 5 || aiEnemyNear(g, f, n)) return;
+          var send = q.t - (q.L > 0 ? 3 : 1);
+          if (send >= 3 && moveTroops(g, f, n, r, send).ok) got += send * 0.6;
+        });
+      });
+    }
+    /* 3. 就地補兵 */
+    var tries = dif === 0 ? 1 : dif === 1 ? 2 : 3;
+    for (var i = 0; i < tries && got < goal; i++) {
+      var t0 = p.t, ty = pickUnitType(g, f, id); if (!canPay(g, f, unitCost(f, ty))) ty = 0;
+      if (!actRecruit(g, f, id, ty).ok) break; got += p.t - t0;
+    }
+    /* 4. 首都告急：緊急徵召民兵（每 4 回合一次，民心 −4、糧 −6） */
+    if (cap && got < goal && dif >= 1) {
+      var lv = g.lvy || (g.lvy = {});
+      if (!lv[f] || g.turn - lv[f] >= 4) {
+        lv[f] = g.turn;
+        var add = (dif >= 2 ? 4 : 3) + p.L * 2;
+        setMix(p, blendMix(mixOf(g, id), p.t, [1, 0, 0, 0, 0], add)); p.t += add;
+        fs.morale = Math.max(0, fs.morale - 4); fs.food = Math.max(0, fs.food - 6);
+        var hu = false; NB[id].forEach(function (n) { var q = g.p[n]; if (q.o && isHum(g, q.o)) hu = true; });
+        if (hu) logMsg(g, nm(f) + '在首都' + placeName(id) + '緊急徵召了 ' + add + ' 名民兵死守！', 'war');
+      }
+    }
+  });
+}
 function aiTurn(g, f) {
   aiHoly(g, f);
+  aiDefend(g, f);
   aiEconomy(g, f);
   aiAssault(g, f);
   aiMoves(g, f);
@@ -7340,6 +7398,8 @@ if (typeof module !== 'undefined') module.exports = G;
     '<li><b>城市命名與名冊</b>：選城市後按面板上的「✎ 改名」可以隨時替城市取名；下面那排按鈕往左滑，有「國庫」（買賣糧食、稅率）、「城市名冊」（你所有城市）和「戰績」。外交選單會顯示各國消滅過哪些國家。</li>' +
     '<li><b>新手提示</b>：畫面上方綠字的 💡 會依目前狀況告訴你下一步可以做什麼，點一下可以關掉。</li>' +
     '<li><b>地圖</b>：拖曳移動，滾輪或雙指縮放。只看得到相鄰地塊的確切守軍，遠處只有約數。</li>' +
+    '<li><b>換手機／電腦</b>：開始畫面按「匯出存檔」，選一個存檔做成小檔案，用 LINE、Email 或雲端硬碟傳到另一台裝置；在那台按「匯入存檔」選這個檔案，再選要放進哪個欄位，就能接著玩。多人存檔也能這樣搬。兩台裝置的遊戲版本要一樣（或匯入那台比較新）。</li>' +
+    '<li><b>電腦會守首都</b>：首都或大城被你的大軍逼近時，電腦會從附近調兵回防、優先在那裡補兵；普通和困難難度下，首都告急還會緊急徵召民兵（每 4 回合一次），所以最好先削弱它周圍的部隊再攻城。</li>' +
     '<li><b>多人選勢力</b>：房間裡先按地區（歐洲、東亞、美洲……），下拉選單就只列那一區的國家，比較好找。</li>' +
     '<li><b>5 碼房間代碼（測試版）</b>：房主開房後會看到一組 5 個英文字母，朋友按「多人連線 → 我是朋友」輸入這 5 個字就能加入，遊戲中斷線也能用同一組代碼回來。這個功能要借用網路上的免費連線服務，連不上時畫面會說明，請改用下面的長邀請碼。</li>' +
     '<li><b>手機比較順</b>：地圖拉得很遠時，不畫地形圖案，兵力數字只顯示自己的地和選到的地附近；放大後細節就會出現。</li>' +
@@ -7880,6 +7940,82 @@ if (typeof module !== 'undefined') module.exports = G;
   var GUIDE = true; try { GUIDE = localStorage.getItem('crusade-guide') !== '0'; } catch (e) {}
   function slotHas(n) { try { return localStorage.getItem(SK(n)) !== null; } catch (e) { return false; } }
   function slotSum(n) { var sv = loadSave(n); return sv && sv.player && !sv.over ? G.FACTIONS[sv.player].name + ' · ' + dateLong(G.year(sv)) + ' · ' + DIFF_NAME[sv.diff === undefined ? 1 : sv.diff] : null; }
+  /* ---------- 匯出／匯入存檔（換裝置用） ---------- */
+  var XP = { code: '', name: '', pend: null };
+  function xpItems() {
+    var a = [];
+    for (var n = 1; n <= 3; n++) { var sm = slotSum(n); if (sm) a.push({ t: 'sp', k: String(n), label: '欄位 ' + n + '：' + sm }); }
+    try { mpSavedAll().forEach(function (x) { a.push({ t: 'mp', k: x.k, label: '多人：' + mpSavedLine(x.s) }); }); } catch (e) {}
+    return a;
+  }
+  function xpModal(h) { $('#mbody').innerHTML = '<div class="mtag">換手機／電腦</div>' + h + '<button class="btn" style="margin-top:10px" data-act="closemodal">關閉</button>'; $('#modal').hidden = false; }
+  function xpExportMenu() {
+    var it = xpItems();
+    xpModal('<h2 id="mtitle">匯出存檔</h2>' + (it.length ? '<p class="mtext">選一個存檔，會做成一個小檔案。用 LINE、Email 或雲端硬碟傳到另一台裝置，在那邊按「匯入存檔」選這個檔案就能接著玩。</p><div class="choices">' + it.map(function (x) { return '<button class="choice" data-act="xpmake" data-t="' + x.t + '" data-k="' + x.k + '"><span class="cl">' + esc(x.label) + '</span></button>'; }).join('') + '</div>' : '<p class="mtext">這台裝置還沒有存檔。</p>'));
+  }
+  function xpMake(t, k) {
+    var raw = null, name = '';
+    try { if (t === 'sp') { raw = localStorage.getItem(SK(+k)); name = (slotSum(+k) || '').split(' · ')[0]; } else { raw = localStorage.getItem(mpSlotKey(k === 'L' ? 'L' : +k)); name = '多人'; } } catch (e) {}
+    if (!raw) return xpModal('<p class="warn">找不到這個存檔。</p>');
+    xpModal('<h2 id="mtitle">匯出存檔</h2><p class="mtext">正在打包…</p>');
+    mpPack(JSON.stringify({ v: 1, t: t, ver: PVER, d: raw })).then(function (ch) {
+      XP.code = 'MWD1:' + ch.join(''); var dd = new Date(); XP.name = 'medieval-save-' + (t === 'sp' ? 'slot' + k : 'multi') + '-' + dd.getFullYear() + ('0' + (dd.getMonth() + 1)).slice(-2) + ('0' + dd.getDate()).slice(-2) + '.txt';
+      var canShare = false; try { canShare = !!(navigator.canShare && navigator.canShare({ files: [new File(['x'], 'a.txt', { type: 'text/plain' })] })); } catch (e) {}
+      xpModal('<h2 id="mtitle">存檔已打包好</h2><p class="mtext">大小約 ' + Math.round(XP.code.length / 1000) + ' KB。選一種方式傳到另一台裝置：</p><div class="choices">' +
+        (canShare ? '<button class="choice" data-act="xpshare"><span class="cl">📤 分享檔案</span><span class="ch">直接傳到 LINE、Email、雲端硬碟…（推薦）</span></button>' : '') +
+        '<button class="choice" data-act="xpdl"><span class="cl">💾 存成檔案</span><span class="ch">下載到這台裝置，再自己傳過去</span></button>' +
+        '<button class="choice" data-act="xpcopy"><span class="cl">📋 複製文字</span><span class="ch">貼到 Email 或記事本（文字很長，LINE 可能塞不下）</span></button></div>');
+    }, function () { xpModal('<p class="warn">這個瀏覽器不支援打包存檔，請更新瀏覽器。</p>'); });
+  }
+  function xpDownload() {
+    try { var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([XP.code], { type: 'text/plain' })); a.download = XP.name; document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 3000); toast('已存成檔案：' + XP.name); }
+    catch (e) { toast('這裡不能下載檔案，請改用「複製文字」。'); }
+  }
+  function xpShare() {
+    try { navigator.share({ files: [new File([XP.code], XP.name, { type: 'text/plain' })], title: '中世紀：世界霸權 存檔' }).catch(function () {}); } catch (e) { xpDownload(); }
+  }
+  function xpCopy() {
+    var done = function () { toast('已複製存檔文字，貼到另一台裝置的「匯入存檔」。'); };
+    try { navigator.clipboard.writeText(XP.code).then(done, function () { xpCopyOld(); }); } catch (e) { xpCopyOld(); }
+  }
+  function xpCopyOld() { var ta = document.createElement('textarea'); ta.value = XP.code; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); toast('已複製存檔文字。'); } catch (e) { toast('複製失敗，請改用「存成檔案」。'); } ta.remove(); }
+  function xpImportMenu(msg) {
+    xpModal('<h2 id="mtitle">匯入存檔</h2>' + (msg ? '<p class="warn">' + esc(msg) + '</p>' : '') + '<p class="mtext">選擇從另一台裝置傳過來的存檔檔案（.txt），或把存檔文字貼在下面。</p>' +
+      '<input type="file" id="xpfile" accept=".txt,text/plain" style="margin:6px 0 10px;max-width:100%">' +
+      '<textarea id="xptxt" style="width:100%;min-height:70px;padding:8px;border-radius:8px;border:1px solid var(--line);background:rgba(0,0,0,.3);color:inherit;font:12px/1.3 monospace;word-break:break-all" placeholder="或貼上存檔文字（MWD1: 開頭）"></textarea>' +
+      '<button class="btn primary" data-act="xpread">讀取</button>');
+    var fi = $('#xpfile'); if (fi) fi.addEventListener('change', function () { var f = fi.files && fi.files[0]; if (!f) return; var rd = new FileReader(); rd.onload = function () { xpParse(String(rd.result || '')); }; rd.onerror = function () { xpImportMenu('讀不到這個檔案。'); }; rd.readAsText(f); });
+  }
+  function xpParse(txt) {
+    txt = String(txt || '').replace(/\s+/g, '');
+    var i = txt.indexOf('MWD1:'); if (i < 0) return xpImportMenu('這不是本遊戲的存檔（要 MWD1: 開頭）。');
+    mpUnpack([txt.slice(i + 5)]).then(function (j) {
+      var o; try { o = JSON.parse(j); } catch (e) { return xpImportMenu('存檔內容壞掉了，請重新匯出一次。'); }
+      if (!o || !o.d || (o.t !== 'sp' && o.t !== 'mp')) return xpImportMenu('存檔內容壞掉了，請重新匯出一次。');
+      XP.pend = o;
+      if (o.t === 'mp') return xpPutMp();
+      var h = '<h2 id="mtitle">要放到哪個欄位？</h2><p class="mtext">選一個欄位放這個存檔。</p><div class="choices">';
+      for (var n = 1; n <= 3; n++) { var sm = slotSum(n); h += '<button class="choice" data-act="xpput" data-n="' + n + '"><span class="cl">欄位 ' + n + (sm ? '（會蓋掉）' : '（空的）') + '</span><span class="ch">' + esc(sm || '沒有存檔') + '</span></button>'; }
+      xpModal(h + '</div>');
+    }, function () { xpImportMenu('存檔內容不完整，可能沒有複製到全部文字。'); });
+  }
+  function xpPutSp(n, b) {
+    var o = XP.pend; if (!o || o.t !== 'sp') return;
+    if (slotSum(n) && b.getAttribute('data-sure') !== '1') { b.setAttribute('data-sure', '1'); b.querySelector('.cl').textContent = '再按一次：確定蓋掉欄位 ' + n; return; }
+    var old = null; try { old = localStorage.getItem(SK(n)); } catch (e) {}
+    try { localStorage.setItem(SK(n), o.d); } catch (e) { return xpModal('<p class="warn">這台裝置的瀏覽器空間不夠，存不進去。可以先刪掉不用的存檔。</p>'); }
+    if (!loadSave(n)) {
+      var why = LOADWHY; try { if (old !== null) localStorage.setItem(SK(n), old); else localStorage.removeItem(SK(n)); } catch (e) {}
+      return xpImportMenu(why === 'new' ? '這個存檔來自比較新的版本，請先重新整理網頁更新遊戲，再匯入一次。' : '這個存檔跟目前的遊戲版本不合，沒辦法讀。');
+    }
+    tsSet(n, Date.now()); SLOT = n; try { localStorage.setItem('crusade-slot', SLOT); } catch (e) {}
+    XP.pend = null; $('#modal').hidden = true; renderOpts(); toast('已匯入到欄位 ' + n + '：' + (slotSum(n) || '') + '。按「繼續欄位 ' + n + '」就能接著玩。');
+  }
+  function xpPutMp() {
+    var o = XP.pend; var pk = mpPickSlot();
+    try { localStorage.setItem(mpSlotKey(pk.k), o.d); } catch (e) { return xpModal('<p class="warn">這台裝置的瀏覽器空間不夠，存不進去。</p>'); }
+    XP.pend = null; toast('已匯入多人存檔。打開「多人連線」就能看到並繼續這一局。'); $('#modal').hidden = true;
+  }
   function renderOpts() {
     var el = $('#startopts'); if (!el) return;
     var h = '<div class="opts"><div class="row">' + fsChips() + '<span class="muted small">全部文字一起放大，隨時可改</span></div><div class="row"><b>難度</b>';
@@ -7888,6 +8024,7 @@ if (typeof module !== 'undefined') module.exports = G;
     for (var n = 1; n <= 3; n++) h += '<button class="chip' + (SLOT === n ? ' on' : '') + '" data-act="slot" data-v="' + n + '">欄位 ' + n + (slotHas(n) ? ' ●' : ' ○') + '</button>';
     h += '<span class="muted small">' + (slotHas(SLOT) ? '<b style="color:var(--bad,#e0675a)">⚠ 欄位 ' + SLOT + ' 已有存檔，開新遊戲會蓋掉它</b>（● 有存檔 ○ 空的，想保留請換一個空欄位）' : '欄位 ' + SLOT + ' 是空的，新遊戲會存在這裡（● 有存檔 ○ 空的）') + '</span></div>';
     for (var k = 1; k <= 3; k++) { var sm = slotSum(k); if (sm) h += '<div class="row"><button class="btn primary" data-act="continue" data-slot="' + k + '">繼續欄位 ' + k + '</button><span class="muted small">' + esc(sm) + '</span></div>'; else if (LOADWHY === 'map') h += '<div class="row"><span class="muted small">欄位 ' + k + '：舊版地圖的存檔，無法繼續（地圖已更新）</span></div>'; }
+    h += '<div class="row"><b>換手機／電腦</b><button class="chip" data-act="xpexp">匯出存檔</button><button class="chip" data-act="xpimp">匯入存檔</button><span class="muted small">把存檔存成小檔案，傳到另一台裝置再匯入</span></div>';
     if (CLOUD.avail) {
       h += '<div class="row"><b>雲端存檔</b>';
       if (CLOUD.code) h += '<span class="muted small">代碼 ' + esc(CLOUD.code) + '</span><button class="chip" data-act="syncnow">立即同步</button><button class="chip" data-act="syncoff">關閉</button>';
@@ -9312,6 +9449,14 @@ if (typeof module !== 'undefined') module.exports = G;
     if (a === 'rgtab') { ui.rg = b.getAttribute('data-r'); try { localStorage.setItem('crusade-rg2', ui.rg); } catch (e) {} rgShow(); try { var t0 = document.querySelector('.rgtabs'); if (t0 && t0.getBoundingClientRect().top < 0) t0.scrollIntoView({ block: 'start' }); } catch (e) {} return; }
     if (a === 'guide') { GUIDE = b.getAttribute('data-v') === '1'; try { localStorage.setItem('crusade-guide', GUIDE ? '1' : '0'); } catch (e) {} renderOpts(); return markCards(); }
     if (a === 'diff') { DIFF = +b.getAttribute('data-v'); try { localStorage.setItem('crusade-diff', DIFF); } catch (e) {} renderOpts(); return markCards(); }
+    if (a === 'xpexp') return xpExportMenu();
+    if (a === 'xpimp') return xpImportMenu();
+    if (a === 'xpmake') return xpMake(b.getAttribute('data-t'), b.getAttribute('data-k'));
+    if (a === 'xpdl') return xpDownload();
+    if (a === 'xpshare') return xpShare();
+    if (a === 'xpcopy') return xpCopy();
+    if (a === 'xpread') { var xt = $('#xptxt'); return xpParse(xt ? xt.value : ''); }
+    if (a === 'xpput') return xpPutSp(+b.getAttribute('data-n'), b);
     if (a === 'slot') { SLOT = +b.getAttribute('data-v'); try { localStorage.setItem('crusade-slot', SLOT); } catch (e) {} return renderOpts(); }
     if (a === 'continue') { var cs = +b.getAttribute('data-slot'); if (cs) { SLOT = cs; try { localStorage.setItem('crusade-slot', SLOT); } catch (e) {} } return continueGame(); }
     if (a === 'restart' && MP.on) { location.reload(); return; }
