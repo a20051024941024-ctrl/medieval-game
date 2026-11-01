@@ -121,7 +121,7 @@ button{font:inherit;color:inherit}
 .zb{width:40px;height:40px;display:flex;align-items:center;justify-content:center;background:rgba(8,18,22,.85);border:1px solid rgba(214,173,85,.5);border-radius:8px;cursor:pointer;font-size:calc(22px * var(--fs,1));font-weight:700;color:var(--gold2);line-height:1}
 .zb:hover{border-color:var(--gold2)}
 .zb .ic{width:18px;height:18px}
-.logbox{position:absolute;left:10px;right:10px;bottom:10px;z-index:4;max-height:62%;overflow:auto;background:rgba(9,20,25,.96);border:1px solid var(--gold);border-radius:10px;padding:8px 14px 12px}
+.logbox{position:fixed;left:10px;right:10px;bottom:150px;z-index:40;max-height:min(72vh,680px);box-shadow:0 8px 28px rgba(0,0,0,.6);overflow:auto;background:rgba(9,20,25,.96);border:1px solid var(--gold);border-radius:10px;padding:8px 14px 12px}
 .logbox .lh{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
 .logbox h2{font-size:calc(15px * var(--fs,1));letter-spacing:.12em}
 .xbtn{width:34px;height:34px;display:flex;align-items:center;justify-content:center;background:none;border:1px solid var(--line);border-radius:8px;cursor:pointer}
@@ -130,6 +130,12 @@ button{font:inherit;color:inherit}
 .log li{display:grid;grid-template-columns:62px minmax(0,1fr);gap:8px;padding:6px 0;border-bottom:1px solid var(--line);font-size:calc(14px * var(--fs,1))}
 .log .when{font-size:calc(12px * var(--fs,1));color:var(--muted);padding-top:2px}
 .log .k-good span:last-child{color:var(--good)} .log .k-bad span:last-child{color:var(--bad)}
+.panel::after{content:'';position:sticky;bottom:0;display:block;height:0;pointer-events:none}
+.panel.more::after{content:'▼ 往下滑，還有更多';height:44px;margin:-44px 0 -24px;padding-top:20px;box-sizing:border-box;text-align:center;font-weight:900;font-size:calc(14px * var(--fs,1));color:#f1d48c;text-shadow:0 1px 3px #000;background:linear-gradient(rgba(18,32,39,0),rgba(18,32,39,.96) 55%);animation:mhint 1.4s ease-in-out infinite}
+@keyframes mhint{0%,100%{opacity:.75}50%{opacity:1}}
+.panel::after{content:'';position:sticky;bottom:0;display:block;height:0;pointer-events:none}
+.panel.more::after{content:'▼ 往下滑，還有更多';height:44px;margin:-44px 0 -24px;padding-top:20px;box-sizing:border-box;text-align:center;font-weight:900;font-size:calc(14px * var(--fs,1));color:#f1d48c;text-shadow:0 1px 3px #000;background:linear-gradient(rgba(18,32,39,0),rgba(18,32,39,.96) 55%);animation:mhint 1.4s ease-in-out infinite}
+@keyframes mhint{0%,100%{opacity:.75}50%{opacity:1}}
 .panel::after{content:'';position:sticky;bottom:0;display:block;height:0;pointer-events:none}
 .panel.more::after{content:'▼ 往下滑，還有更多';height:44px;margin:-44px 0 -24px;padding-top:20px;box-sizing:border-box;text-align:center;font-weight:900;font-size:calc(14px * var(--fs,1));color:#f1d48c;text-shadow:0 1px 3px #000;background:linear-gradient(rgba(18,32,39,0),rgba(18,32,39,.96) 55%);animation:mhint 1.4s ease-in-out infinite}
 @keyframes mhint{0%,100%{opacity:.75}50%{opacity:1}}
@@ -539,7 +545,7 @@ button{font:inherit;color:inherit}
     <div class="startmap" id="startmap" aria-hidden="true"></div>
     <div class="sc-in gx">
       <p class="eyebrow">MEDIEVAL: WORLD DOMINATION · 1096 AD</p>
-      <p class="muted small" id="verline">版本 v193 · 2026-11-01 · 下排加入調兵、國庫、城市名冊、戰績；新手引導只在簡單難度；規則說明更新；畫面簡化</p>
+      <p class="muted small" id="verline">版本 v194 · 2026-11-01 · 戰報改成浮在畫面上，選了地塊時不會只剩一行</p>
       <h1>中世紀：世界霸權</h1>
       <p class="lead">1095 年，教宗在克萊蒙發出號召，整個歐洲動了起來。選一個勢力（共 121 個），再從該文明歷史上的君主裡挑一位登基；在四千多個六角格地塊的世界裡，與基督教世界、伊斯蘭世界與即將到來的蒙古鐵騎周旋。可以結盟借道、派商隊與商船貿易、派密探、遠征遠方、研究科技升級時代、替自己的城市取名。沒有回合上限，直到有人稱霸，或你失去一切。</p>
       <div id="startopts"></div>
@@ -8355,6 +8361,7 @@ if (typeof module !== 'undefined') module.exports = G;
 
   function renderLog() {
     $('#logbox').hidden = !ui.log;
+    try { if (ui.log) { var lb9 = $('#logbox'), ft9 = document.querySelector('footer.bar'), fb9 = ft9 ? ft9.getBoundingClientRect().top : window.innerHeight; lb9.style.bottom = Math.max(8, Math.round(window.innerHeight - fb9 + 8)) + 'px'; } } catch (e) {}
     $('#log').innerHTML = g.log.slice(-14).reverse().map(function (e) {
       return '<li class="k-' + e.kind + '"><span class="when num">' + e.y + '</span><span>' + esc(e.text) + '</span></li>';
     }).join('') + '<li><button class="btn" data-act="treasury">國庫（買賣糧食・稅率・遠征補給）</button></li><li><button class="btn" data-act="cities">城市名冊</button></li><li><button class="btn" data-act="stats">戰績與勢力曲線</button></li>' + (g.over ? '' : '<li><button class="btn" data-act="settle">' + (ui.confirmSettle ? '確定結算？再按一次' : '結算本局成績') + '</button></li>');
