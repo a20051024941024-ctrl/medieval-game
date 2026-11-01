@@ -405,7 +405,7 @@ button{font:inherit;color:inherit}
     <div class="startmap" id="startmap" aria-hidden="true"></div>
     <div class="sc-in gx">
       <p class="eyebrow">MEDIEVAL: WORLD DOMINATION · 1096 AD</p>
-      <p class="muted small" id="verline">版本 v203 · 2026-11-01 · 5 碼代碼連線卡在「正在連到房間」的問題、多人選勢力按地區分、多人存檔最多 5 局</p>
+      <p class="muted small" id="verline">版本 v204 · 2026-11-01 · 放大地圖或滾輪拉近後，兵力數字和地形有時沒出現的問題</p>
       <h1>中世紀：世界霸權</h1>
       <p class="lead">1095 年，教宗在克萊蒙發出號召，整個歐洲動了起來。選一個勢力（共 121 個），再從該文明歷史上的君主裡挑一位登基；在四千多個六角格地塊的世界裡，與基督教世界、伊斯蘭世界與即將到來的蒙古鐵騎周旋。可以結盟借道、派商隊與商船貿易、派密探、遠征遠方、研究科技升級時代、替自己的城市取名。沒有回合上限，直到有人稱霸，或你失去一切。</p>
       <div id="startopts"></div>
@@ -7430,7 +7430,7 @@ if (typeof module !== 'undefined') module.exports = G;
     if (!g || !rb) return;
     var v = viewRect(), mx = v.w * 0.12, my = v.h * 0.12;
     var inside = v.x0 - mx >= rb.x0 && v.x1 + mx <= rb.x1 && v.y0 - my >= rb.y0 && v.y1 + my <= rb.y1;
-    if (inside && rbZ === zcls()) return;
+    if (inside && rbZ === zcls() + (ui.view && ui.view.s < 7 ? 'L' : '')) return;
     var now = Date.now();
     if (now - cullLast < 90) { if (!cullT) cullT = setTimeout(function () { cullT = null; checkCull(); }, 100); return; }
     cullLast = now; renderMapOnly();
@@ -7689,7 +7689,7 @@ if (typeof module !== 'undefined') module.exports = G;
     var vis = function () { return true; }, z1 = !o.demo && zcls() === 'z1', LITE = !o.demo && ui.view && ui.view.s < 7;
     if (!o.demo) {
       var vr = viewRect(), mgx = vr.w * 0.3, mgy = vr.h * 0.3;
-      rb = { x0: vr.x0 - mgx, y0: vr.y0 - mgy, x1: vr.x1 + mgx, y1: vr.y1 + mgy }; rbZ = zcls();
+      rb = { x0: vr.x0 - mgx, y0: vr.y0 - mgy, x1: vr.x1 + mgx, y1: vr.y1 + mgy }; rbZ = zcls() + (ui.view && ui.view.s < 7 ? 'L' : '');
       vis = function (id) { return HX[id] >= rb.x0 - DX && HX[id] <= rb.x1 + DX && HY[id] >= rb.y0 - S * 2 && HY[id] <= rb.y1 + S * 2; };
     }
     var LIDS = G.LANDIDS.filter(vis);
