@@ -126,9 +126,19 @@ button{font:inherit;color:inherit}
 .logbox h2{font-size:calc(15px * var(--fs,1));letter-spacing:.12em}
 .xbtn{width:34px;height:34px;display:flex;align-items:center;justify-content:center;background:none;border:1px solid var(--line);border-radius:8px;cursor:pointer}
 .log{list-style:none;margin:0;padding:0;border-top:1px solid var(--line)}
+.log li>.btn,.log li>details{grid-column:1/-1}
 .log li{display:grid;grid-template-columns:62px minmax(0,1fr);gap:8px;padding:6px 0;border-bottom:1px solid var(--line);font-size:calc(14px * var(--fs,1))}
 .log .when{font-size:calc(12px * var(--fs,1));color:var(--muted);padding-top:2px}
 .log .k-good span:last-child{color:var(--good)} .log .k-bad span:last-child{color:var(--bad)}
+.panel::after{content:'';position:sticky;bottom:0;display:block;height:0;pointer-events:none}
+.panel.more::after{content:'▼ 往下滑，還有更多';height:44px;margin:-44px 0 -24px;padding-top:20px;box-sizing:border-box;text-align:center;font-weight:900;font-size:calc(14px * var(--fs,1));color:#f1d48c;text-shadow:0 1px 3px #000;background:linear-gradient(rgba(18,32,39,0),rgba(18,32,39,.96) 55%);animation:mhint 1.4s ease-in-out infinite}
+@keyframes mhint{0%,100%{opacity:.75}50%{opacity:1}}
+.panel::after{content:'';position:sticky;bottom:0;display:block;height:0;pointer-events:none}
+.panel.more::after{content:'▼ 往下滑，還有更多';height:44px;margin:-44px 0 -24px;padding-top:20px;box-sizing:border-box;text-align:center;font-weight:900;font-size:calc(14px * var(--fs,1));color:#f1d48c;text-shadow:0 1px 3px #000;background:linear-gradient(rgba(18,32,39,0),rgba(18,32,39,.96) 55%);animation:mhint 1.4s ease-in-out infinite}
+@keyframes mhint{0%,100%{opacity:.75}50%{opacity:1}}
+.panel::after{content:'';position:sticky;bottom:0;display:block;height:0;pointer-events:none}
+.panel.more::after{content:'▼ 往下滑，還有更多';height:44px;margin:-44px 0 -24px;padding-top:20px;box-sizing:border-box;text-align:center;font-weight:900;font-size:calc(14px * var(--fs,1));color:#f1d48c;text-shadow:0 1px 3px #000;background:linear-gradient(rgba(18,32,39,0),rgba(18,32,39,.96) 55%);animation:mhint 1.4s ease-in-out infinite}
+@keyframes mhint{0%,100%{opacity:.75}50%{opacity:1}}
 .panel::after{content:'';position:sticky;bottom:0;display:block;height:0;pointer-events:none}
 .panel.more::after{content:'▼ 往下滑，還有更多';height:44px;margin:-44px 0 -24px;padding-top:20px;box-sizing:border-box;text-align:center;font-weight:900;font-size:calc(14px * var(--fs,1));color:#f1d48c;text-shadow:0 1px 3px #000;background:linear-gradient(rgba(18,32,39,0),rgba(18,32,39,.96) 55%);animation:mhint 1.4s ease-in-out infinite}
 @keyframes mhint{0%,100%{opacity:.75}50%{opacity:1}}
@@ -508,7 +518,7 @@ button{font:inherit;color:inherit}
     <div class="startmap" id="startmap" aria-hidden="true"></div>
     <div class="sc-in gx">
       <p class="eyebrow">MEDIEVAL: WORLD DOMINATION · 1096 AD</p>
-      <p class="muted small" id="verline">版本 v191 · 2026-11-01 · 新手引導加一步教「大」按鈕（共 7 步）；放大地圖時選了地塊，右邊按鈕不再被面板蓋住</p>
+      <p class="muted small" id="verline">版本 v192 · 2026-11-01 · 海戰課實際教裝兵上船、開到對岸登陸（引導中登陸保證成功）；修正戰報選單按鈕擠成一條；教學進行中自動還原「大」地圖</p>
       <h1>中世紀：世界霸權</h1>
       <p class="lead">1095 年，教宗在克萊蒙發出號召，整個歐洲動了起來。選一個勢力（共 121 個），再從該文明歷史上的君主裡挑一位登基；在四千多個六角格地塊的世界裡，與基督教世界、伊斯蘭世界與即將到來的蒙古鐵騎周旋。可以結盟借道、派商隊與商船貿易、派密探、遠征遠方、研究科技升級時代、替自己的城市取名。沒有回合上限，直到有人稱霸，或你失去一切。</p>
       <div id="startopts"></div>
@@ -7574,19 +7584,20 @@ if (typeof module !== 'undefined') module.exports = G;
   function tutMod(w) { var m = document.getElementById('modal'), t = document.getElementById('mtitle'); return !!(m && !m.hidden && t && t.textContent.indexOf(w) >= 0); }
   function tutModOpen() { var m = document.getElementById('modal'); return !!(m && !m.hidden); }
   function tutPort(f) { var r = null; G.owned(g, f).forEach(function (id) { if (r == null && G.CITY[id] && G.CITY[id].port && g.p[id].L > 0) r = id; }); return r; }
+  function tutCargo(f) { var c = 0; try { G.fleets(g).forEach(function (x) { if (x.f === f) c += x.c || 0; }); } catch (e) {} return c; }
   function tutMyFleet(f) { var r = null; try { G.fleets(g).forEach(function (x) { if (r == null && x.f === f) r = x.i; }); } catch (e) {} return r; }
   var TLES = [
     { id: 'tech', name: '📜 科技樹', steps: [
-      { tx: '科技樹：研究科技讓國家變強、解鎖新兵種和建築。先按下面這排的「科技樹」。', tip: '按這裡打開科技樹', spec: function () { return { sel: '[data-act=tech]' }; }, adv: function () { return tutMod('科技'); } },
+      { tx: '科技樹：研究科技讓國家變強、解鎖新兵種和建築。先按下面這排的「科技樹」。', tip: '按這裡打開科技樹', spec: function () { return { sel: '.actscroll [data-act=tech]' }; }, adv: function () { return tutMod('科技'); } },
       { tx: '這裡列出所有科技。能研究的會有「研究」按鈕（要花金幣，不耗行動點）。按一個試試看。', tip: '按「研究」學這項科技', spec: function () { return { sel: '[data-act=dotech]' }; }, adv: function (T, f) { return G.techState(g, f).n > T.v0; }, init: function (T, f) { T.v0 = G.techState(g, f).n; }, ackIfNone: '現在金幣不夠研究，之後有錢再來。' },
       { tx: '研究好的科技會立刻生效。科技越多，時代會往前推進，兵種和建築也會變強。按右上角的 ✕ 關掉視窗。', tip: '按 ✕ 關閉', spec: function () { return { sel: '#modal [data-act=closemodal]' }; }, adv: function () { return !tutModOpen(); } } ] },
     { id: 'dip', name: '🤝 外交', steps: [
-      { tx: '外交：宣戰、停戰、結盟、簽貿易協定都在這裡。按下面這排的「外交」。', tip: '按這裡打開外交', spec: function () { return { sel: '[data-act=dip]' }; }, adv: function () { return tutMod('外交'); } },
+      { tx: '外交：宣戰、停戰、結盟、簽貿易協定都在這裡。按下面這排的「外交」。', tip: '按這裡打開外交', spec: function () { return { sel: '.actscroll [data-act=dip]' }; }, adv: function () { return tutMod('外交'); } },
       { tx: '每張卡片是一個國家，上面寫你們現在的關係（和平、交戰、同盟）和好感。好感越高，提議越容易成功。', tip: '這是一個國家的卡片', spec: function () { return { sel: '#modal .dcard' }; }, ack: true },
       { tx: '要打和平的國家得先「宣戰」；打累了可以「停戰」；「互不侵犯」「結盟」能讓鄰居變朋友；「貿易協定」兩邊都多賺錢。每項用 1 點行動。', tip: '這些按鈕就是外交動作', spec: function () { return { sel: '#modal [data-act=dp]' }; }, ack: true },
       { tx: '看完了，按右上角的 ✕ 關掉。', tip: '按 ✕ 關閉', spec: function () { return { sel: '#modal [data-act=closemodal]' }; }, adv: function () { return !tutModOpen(); } } ] },
     { id: 'car', name: '🐫 商隊貿易', steps: [
-      { tx: '商隊走陸路去別國城市做生意，每回合自動帶金幣回來。按下面這排的「貿易」。', tip: '按這裡打開貿易', spec: function () { return { sel: '[data-act=trade]' }; }, adv: function () { return tutMod('商隊'); } },
+      { tx: '商隊走陸路去別國城市做生意，每回合自動帶金幣回來。按下面這排的「貿易」。', tip: '按這裡打開貿易', spec: function () { return { sel: '.actscroll [data-act=trade]' }; }, adv: function () { return tutMod('商隊'); } },
       { tx: '每一行是一條商路，寫著每回合能賺多少。按一個「派出」試試。', tip: '按這裡派出商隊', spec: function () { return { sel: '#modal [data-act=car]' }; }, adv: function (T, f) { return G.carActive(g, f).length > T.v0; }, init: function (T, f) { T.v0 = G.carActive(g, f).length; }, ackIfNone: '現在沒有能派的商路（可能錢不夠或已達上限），之後再試。' },
       { tx: '派出去的商隊每回合會自動賺錢，不用再管它。按 ✕ 關掉。', tip: '按 ✕ 關閉', spec: function () { return { sel: '#modal [data-act=closemodal]' }; }, adv: function () { return !tutModOpen(); } } ] },
     { id: 'ms', name: '⛵ 商船', need: function (f) { return tutPort(f) != null; }, why: '要有港口城市', steps: [
@@ -7597,12 +7608,19 @@ if (typeof module !== 'undefined') module.exports = G;
       { tx: '戰船用來海戰和運兵渡海。先點手指指的港口城市。', tip: '點這裡：你的港口', spec: function (T, f) { return { hex: tutPort(f) }; }, adv: function (T, f) { return ui.sel === tutPort(f) || tutMyFleet(f) != null; } },
       { tx: '在下面面板按「造戰船」（用 1 點行動）。', tip: '按這裡造戰船', spec: function () { return { sel: '[data-act=ship]' }; }, adv: function (T, f) { return tutMyFleet(f) != null; }, ackIfNone: '現在不能造戰船（錢或行動點不夠），之後再試。' },
       { tx: '戰船停在港口外的海面。點一下你的艦隊把它選起來。', tip: '點這裡：你的艦隊', spec: function (T, f) { var i = tutMyFleet(f); return i == null ? null : { sel: '[data-fleet="' + i + '"]' }; }, adv: function () { return ui.fleet != null; }, ackIfNone: '目前地圖上看不到你的艦隊，下面直接說明。' },
-      { tx: '選了艦隊後，點附近的海面就能開過去（每回合一次）。開到敵艦旁邊點它就是海戰，兵力多的贏。', ack: true },
-      { tx: '運兵渡海：在港口城市按「裝載」把兵放上船，開到對岸再按「登陸」。敵艦停在你港口外會封鎖港口（紅色「封」），把艦隊開過去趕走它就好。', ack: true } ] },
+      { tx: '選了艦隊後，點附近的藍色海面就能開過去（每回合一次）。開到敵艦旁邊點它就是海戰，兵力多的贏。', ack: true },
+      { tx: '① 裝兵上船：下面面板列出艦隊旁邊有兵的己方陸地，按「全裝」把兵搬上船。（如果寫「先開到有駐軍的海岸」，就按那一行的按鈕，船會自己開過去，再按「全裝」。）', tip: '按這裡把兵裝上船',
+        spec: function (T, f) { if (ui.fleet == null) { var i = tutMyFleet(f); return i == null ? null : { sel: '[data-fleet="' + i + '"]' }; } return { sel: '#panel [data-act=fload][data-m=all], #panel [data-act=fsl2]' }; },
+        adv: function (T, f) { return tutCargo(f) > 0; }, ackIfNone: '這艘船旁邊現在沒有能裝的兵（或行動點不夠），之後再試：先選艦隊，面板會教你裝兵。' },
+      { tx: '② 到對岸放兵下來：面板會列出能登陸的地方。旁邊就有陸地，按「全部登陸」；要去遠一點的海岸，按那一行的按鈕，艦隊會自己開過去，開到後再按「全部登陸」。登陸敵人或中立的地就是進攻。', tip: '按這裡開過去／登陸',
+        spec: function (T, f) { if (ui.fleet == null) { var i = tutMyFleet(f); return i == null ? null : { sel: '[data-fleet="' + i + '"]' }; } return { sel: '#panel [data-act=funload][data-m=all], #panel [data-act=fsl]' }; },
+        adv: function (T, f) { return T.v1 > 0 && tutCargo(f) === 0; }, init: function (T, f) { T.v1 = tutCargo(f); }, ackIfNone: '船這回合開不動了（或行動點用完），下回合選艦隊再按「全部登陸」就能放兵下去。' },
+      { tx: '登陸成功，這塊地是你的了！（這次有引導幫忙；平常要帶夠兵，守軍多的地方很難打。）', ack: true, skipIf: function (T) { return !T.landOk; } },
+      { tx: '學會了！敵艦停在你港口外會封鎖港口（紅色「封」）：沒有貿易收入，也不能從那裡運兵。把艦隊開過去打贏它就解圍。', ack: true } ] },
     { id: 'misc', name: '🎉 慶典、間諜和小按鈕', steps: [
-      { tx: '「慶典」：花金幣讓民心和文化上升，辦完要等幾回合才能再辦。', tip: '慶典在這裡', spec: function () { return { sel: '[data-act=ritual]' }; }, ack: true },
-      { tx: '「間諜」：每回合能派一次，去偷看、破壞或煽動別國。', tip: '間諜在這裡', spec: function () { return { sel: '[data-act=spy]' }; }, ack: true },
-      { tx: '「戰報」：看最近發生的事和戰鬥結果。', tip: '戰報在這裡', spec: function () { return { sel: '[data-act=log]' }; }, ack: true },
+      { tx: '「慶典」：花金幣讓民心和文化上升，辦完要等幾回合才能再辦。', tip: '慶典在這裡', spec: function () { return { sel: '.actscroll [data-act=ritual]' }; }, ack: true },
+      { tx: '「間諜」：每回合能派一次，去偷看、破壞或煽動別國。', tip: '間諜在這裡', spec: function () { return { sel: '.actscroll [data-act=spy]' }; }, ack: true },
+      { tx: '「戰報」：看最近發生的事和戰鬥結果。', tip: '戰報在這裡', spec: function () { return { sel: '.actscroll [data-act=log]' }; }, ack: true },
       { tx: '地圖右邊的「我」會跳回你的國家；「下」會跳到下一支還能動的部隊，很好用。', tip: '「我」在這裡', spec: function () { return { sel: '[data-act=locate]' }; }, ack: true } ] }
   ];
   function tutLesson(T, f) {
@@ -7612,6 +7630,7 @@ if (typeof module !== 'undefined') module.exports = G;
     while (guard++ < 12) {
       var st = L.steps[T.li];
       if (!st) { T.ld = T.ld || {}; T.ld[L.id] = 1; T.L = null; T.ack = false; return tutStep(); }
+      if (st.skipIf && st.skipIf(T, f)) { T.li++; continue; }
       if (T.liInit !== T.li) { T.liInit = T.li; T.ack = false; T.none = false; if (st.init) st.init(T, f); }
       var sp0 = st.spec ? st.spec(T, f) : null, el0 = sp0 ? tutEl(sp0) : null;
       if (st.adv && st.adv(T, f)) { T.li++; continue; }
@@ -7722,7 +7741,7 @@ if (typeof module !== 'undefined') module.exports = G;
     var tp = document.getElementById('tuttip');
     if (ui.tutHi && ui.tutHi !== el) { try { ui.tutHi.classList.remove('tutfocus'); } catch (x) {} ui.tutHi = null; }
     if (el && el.tagName !== 'polygon' && el.classList && !el.closest('svg')) { el.classList.add('tutfocus'); ui.tutHi = el; }
-    var txt = r && !r.done ? (r.les ? r.text : r.tip) : null;
+    var txt = r && !r.done ? (r.les && (tutModOpen() || !r.tip) ? r.text : r.tip) : null;
     if (!txt) { if (tp) tp.hidden = true; return; }
     if (!tp) { tp = document.createElement('div'); tp.id = 'tuttip'; document.body.appendChild(tp); }
     var html = esc(txt) + (r.ack ? '<button data-act="tutack">下一步 ›</button>' : '');
@@ -7741,6 +7760,12 @@ if (typeof module !== 'undefined') module.exports = G;
   function tutBar() {
     var tb = document.getElementById('tutbar'), r = null;
     try { r = tutStep(); } catch (e) { r = null; }
+    if (r && !r.done && ui.tut && !(ui.tut.step === 0 && ui.tut.d >= 3) && document.documentElement.classList.contains('bigmap')) {
+      document.documentElement.classList.remove('bigmap'); document.documentElement.classList.remove('bigsel');
+      try { if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(function () {}); } catch (e) {}
+      setTimeout(function () { window.dispatchEvent(new Event('resize')); applyView(); }, 80);
+      toast('教學進行中，先把地圖還原成一般大小');
+    }
     var gb = document.getElementById('goalbar');
     try { tutHand(r); } catch (e) {}
     if (!r) { if (tb) { tb.hidden = true; if (tb.parentNode === document.body) { tb.classList.remove('tutfloat'); var an0 = document.getElementById('goalbar') || document.getElementById('msnbar') || $('#hint'); if (an0) an0.insertAdjacentElement('afterend', tb); } } if (gb) gb.style.display = ''; return; }
@@ -8576,8 +8601,11 @@ if (typeof module !== 'undefined') module.exports = G;
     if (a === 'funload') {
       var uh = +b.getAttribute('data-h'), ufl = null; G.fleets(g).forEach(function (x) { if (x.i === ui.fleet) ufl = x; });
       var uc = (ufl && b.getAttribute('data-m') === 'half') ? Math.max(1, Math.ceil(ufl.c / 2)) : 9999;
+      /* 海戰課第一次登陸有引導幫忙：守軍只剩 1 人、船上至少 3 人，一定登陸成功 */
+      if (ui.tut && ui.tut.g === g && ui.tut.L === 'navy' && ufl && g.p[uh] && g.p[uh].o !== g.player) { g.p[uh].t = Math.min(g.p[uh].t, 1); ufl.c = Math.max(ufl.c || 0, 3); uc = 9999; }
       var ur = G.P.unload(g, ui.fleet, uh, uc);
       if (ur.ok && ur.battle) ui.fx = { id: uh, win: !!ur.win };
+      if (ui.tut && ui.tut.L === 'navy' && ur.ok) ui.tut.landOk = !!(ur.win || !ur.battle) && g.p[uh].o === g.player && ufl && true;
       return afterAction(ur);
     }
     if (a === 'fleetload') { var lh = +b.getAttribute('data-h'); ui.fleet = null; selectHex(lh); toast('已選取 ' + G.placeName(lh) + '：點選對岸的紅色目標即可渡海（由相鄰艦隊運送）。'); return; }
