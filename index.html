@@ -207,6 +207,12 @@ button{font:inherit;color:inherit}
 .panel::after{content:'';position:sticky;bottom:0;display:block;height:0;pointer-events:none}
 .panel.more::after{content:'▼ 往下滑，還有更多';height:44px;margin:-44px 0 -24px;padding-top:20px;box-sizing:border-box;text-align:center;font-weight:900;font-size:calc(14px * var(--fs,1));color:#f1d48c;text-shadow:0 1px 3px #000;background:linear-gradient(rgba(18,32,39,0),rgba(18,32,39,.96) 55%);animation:mhint 1.4s ease-in-out infinite}
 @keyframes mhint{0%,100%{opacity:.75}50%{opacity:1}}
+.panel::after{content:'';position:sticky;bottom:0;display:block;height:0;pointer-events:none}
+.panel.more::after{content:'▼ 往下滑，還有更多';height:44px;margin:-44px 0 -24px;padding-top:20px;box-sizing:border-box;text-align:center;font-weight:900;font-size:calc(14px * var(--fs,1));color:#f1d48c;text-shadow:0 1px 3px #000;background:linear-gradient(rgba(18,32,39,0),rgba(18,32,39,.96) 55%);animation:mhint 1.4s ease-in-out infinite}
+@keyframes mhint{0%,100%{opacity:.75}50%{opacity:1}}
+.panel::after{content:'';position:sticky;bottom:0;display:block;height:0;pointer-events:none}
+.panel.more::after{content:'▼ 往下滑，還有更多';height:44px;margin:-44px 0 -24px;padding-top:20px;box-sizing:border-box;text-align:center;font-weight:900;font-size:calc(14px * var(--fs,1));color:#f1d48c;text-shadow:0 1px 3px #000;background:linear-gradient(rgba(18,32,39,0),rgba(18,32,39,.96) 55%);animation:mhint 1.4s ease-in-out infinite}
+@keyframes mhint{0%,100%{opacity:.75}50%{opacity:1}}
 .panel{contain:paint;flex:none;max-height:40vh;max-height:44dvh;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;touch-action:pan-y;padding-block:10px 24px;background:linear-gradient(#1a2e35,#122027);border-top:2px solid var(--gold)}
 @media (min-width:900px){.panel{width:340px;max-height:none;border-top:0;border-left:2px solid var(--gold);padding-block:14px}}
 .ph{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
@@ -461,7 +467,7 @@ button{font:inherit;color:inherit}
     <div class="startmap" id="startmap" aria-hidden="true"></div>
     <div class="sc-in gx">
       <p class="eyebrow">MEDIEVAL: WORLD DOMINATION · 1096 AD</p>
-      <p class="muted small" id="verline">版本 v186 · 2026-11-01 · 選國畫面改成地區分頁、121 國都能選；修正 v183 起其他國家地圖顏色消失；簡單模式只能選開局有仗可打的國家；新手引導教打中立地</p>
+      <p class="muted small" id="verline">版本 v187 · 2026-11-01 · 新手引導改成獨立開關：老手可以玩簡單難度但關掉引導、所有國家都能選；引導也能搭配普通、困難難度</p>
       <h1>中世紀：世界霸權</h1>
       <p class="lead">1095 年，教宗在克萊蒙發出號召，整個歐洲動了起來。選一個勢力（共 121 個），再從該文明歷史上的君主裡挑一位登基；在四千多個六角格地塊的世界裡，與基督教世界、伊斯蘭世界與即將到來的蒙古鐵騎周旋。可以結盟借道、派商隊與商船貿易、派密探、遠征遠方、研究科技升級時代、替自己的城市取名。沒有回合上限，直到有人稱霸，或你失去一切。</p>
       <div id="startopts"></div>
@@ -6567,7 +6573,7 @@ if (typeof module !== 'undefined') module.exports = G;
     '<li><b>附庸</b>：實力比接壤的對手強 1.4 倍以上時，可在外交選單「要求臣服」。附庸每回合把約三成盈餘進貢給宗主、跟著宗主參戰，附庸的地塊也算進宗主的霸權地塊；附庸若覺得宗主太弱，可能宣布獨立。</li>' +
     '<li><b>補給線</b>：部隊離己方城市（沿己方領土）超過 4 格就會「遠離補給線」，多耗糧、每回合損耗兵力、攻擊力 −10%；占領城市可以延伸補給線。草原民族（蒙古等）不受此限。地圖上這類地塊的徽章會出現紅框。</li>' +
     '<li><b>聚落</b>：空地可以便宜地蓋「村莊」（山地、森林、丘陵叫「山寨」），不能蓋在沙漠、也不能緊鄰別的聚落；費用隨你的聚落數增加。村莊／山寨每回合只能徵 6 人、只能徵步兵和弓兵，補給範圍只有城市的一半。駐軍滿 6 人、離其他 2 級以上聚落至少隔 2 格，才能升成「市鎮／城堡」，再升成「城市／堡壘」。地圖上原本的名城不受這些限制。</li>' +
-    '<li><b>新手教學</b>：只有難度選「簡單」時，前 12 回合會有手指一步步帶你操作（選地塊、取消選取、補兵、出兵、結束回合）；普通與困難沒有。簡單模式只能選開局就有事可做的國家——旁邊有沒人管的中立地，或已經在跟人打仗；英格蘭、丹麥、朱羅這種開局只能主動宣戰的國家，要選「普通」以上才能玩。</li>' +
+    '<li><b>新手引導</b>：開始畫面的「新手引導」選「開」，前 12 回合會有手指一步步帶你操作（選地塊、取消選取、補兵、出兵、結束回合），跟難度無關。開著引導時只能選開局就有事可做的國家——旁邊有沒人管的中立地，或已經在跟人打仗；英格蘭、丹麥、朱羅這種開局只能主動宣戰的國家，要把引導關掉才能選。老手可以關掉引導、照樣玩簡單難度。</li>' +
     '<li><b>一次徵滿</b>：城市面板有「一次徵滿（步兵）」，連續徵兵到本回合上限或錢糧用完。</li>' +
     '<li><b>徵兵</b>只能在聚落進行；城市等級越高，每回合可徵兵數、產出與防禦都更高；駐軍沒有硬上限，但超過軟上限（城市規模的兩倍）每回合會損耗並多耗糧。</li>' +
     '<li><b>特產</b>：山區有鐵礦、草原有戰馬、東方有絲綢、南洋有香料、西非有黃金；占有愈多，進攻力或金幣收入愈高（點地塊可看到特產）。</li>' +
@@ -7125,14 +7131,15 @@ if (typeof module !== 'undefined') module.exports = G;
   }
 
   /* ---------- 開始畫面 ---------- */
-  var DIFF_NAME = ['簡單', '普通', '困難'], DIFF_TXT = ['你的收入 +20%，AI 收入 −8%。只有「簡單」有新手教學：開局有手指一步步帶你操作', '標準（沒有新手教學；想要教學請選「簡單」）', '你的收入 −12%，AI 收入 +10%（沒有新手教學）'];
+  var DIFF_NAME = ['簡單', '普通', '困難'], DIFF_TXT = ['你的收入 +20%，AI 收入 −8%', '標準', '你的收入 −12%，AI 收入 +10%'];
+  var GUIDE = true; try { GUIDE = localStorage.getItem('crusade-guide') !== '0'; } catch (e) {}
   function slotHas(n) { try { return localStorage.getItem(SK(n)) !== null; } catch (e) { return false; } }
   function slotSum(n) { var sv = loadSave(n); return sv && sv.player && !sv.over ? G.FACTIONS[sv.player].name + ' · ' + dateLong(G.year(sv)) + ' · ' + DIFF_NAME[sv.diff === undefined ? 1 : sv.diff] : null; }
   function renderOpts() {
     var el = $('#startopts'); if (!el) return;
     var h = '<div class="opts"><div class="row">' + fsChips() + '<span class="muted small">全部文字一起放大，隨時可改</span></div><div class="row"><b>難度</b>';
     for (var d = 0; d < 3; d++) h += '<button class="chip' + (DIFF === d ? ' on' : '') + '" data-act="diff" data-v="' + d + '">' + DIFF_NAME[d] + '</button>';
-    h += '<span class="muted small">' + DIFF_TXT[DIFF] + '</span></div><div class="row"><b>文化勝利</b><button class="chip' + (CULON ? ' on' : '') + '" data-act="culopt" data-v="1">開</button><button class="chip' + (!CULON ? ' on' : '') + '" data-act="culopt" data-v="0">關</button><span class="muted small">' + (CULON ? '文化累積到 3000 就提前結束遊戲' : '關閉後文化只當成就，不會結束遊戲（想玩很久選這個）') + '</span></div><div class="row"><b>存檔欄位</b>';
+    h += '<span class="muted small">' + DIFF_TXT[DIFF] + '</span></div><div class="row"><b>新手引導</b><button class="chip' + (GUIDE ? ' on' : '') + '" data-act="guide" data-v="1">開</button><button class="chip' + (!GUIDE ? ' on' : '') + '" data-act="guide" data-v="0">關</button><span class="muted small">' + (GUIDE ? '前 12 回合有手指一步步帶你玩（任何難度都可以開）；只能選開局有仗可打的國家' : '沒有引導，所有國家都能選') + '</span></div><div class="row"><b>文化勝利</b><button class="chip' + (CULON ? ' on' : '') + '" data-act="culopt" data-v="1">開</button><button class="chip' + (!CULON ? ' on' : '') + '" data-act="culopt" data-v="0">關</button><span class="muted small">' + (CULON ? '文化累積到 3000 就提前結束遊戲' : '關閉後文化只當成就，不會結束遊戲（想玩很久選這個）') + '</span></div><div class="row"><b>存檔欄位</b>';
     for (var n = 1; n <= 3; n++) h += '<button class="chip' + (SLOT === n ? ' on' : '') + '" data-act="slot" data-v="' + n + '">欄位 ' + n + (slotHas(n) ? ' ●' : ' ○') + '</button>';
     h += '<span class="muted small">' + (slotHas(SLOT) ? '<b style="color:var(--bad,#e0675a)">⚠ 欄位 ' + SLOT + ' 已有存檔，開新遊戲會蓋掉它</b>（● 有存檔 ○ 空的，想保留請換一個空欄位）' : '欄位 ' + SLOT + ' 是空的，新遊戲會存在這裡（● 有存檔 ○ 空的）') + '</span></div>';
     for (var k = 1; k <= 3; k++) { var sm = slotSum(k); if (sm) h += '<div class="row"><button class="btn primary" data-act="continue" data-slot="' + k + '">繼續欄位 ' + k + '</button><span class="muted small">' + esc(sm) + '</span></div>'; else if (LOADWHY === 'map') h += '<div class="row"><span class="muted small">欄位 ' + k + '：舊版地圖的存檔，無法繼續（地圖已更新）</span></div>'; }
@@ -7182,16 +7189,16 @@ if (typeof module !== 'undefined') module.exports = G;
     document.querySelectorAll('[data-act=rgtab]').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-r') === r); });
   }
   function markCards() {
-    var via = ui.via || {}, easy = DIFF === 0, any = false;
+    var via = ui.via || {}, easy = GUIDE, any = false;
     document.querySelectorAll('.fcard[data-f]').forEach(function (c) {
       var no = easy && via[c.getAttribute('data-f')] === false; if (no) any = true;
       c.classList.toggle('fno', no);
       var nt = c.querySelector('.fnot');
-      if (no && !nt) c.insertAdjacentHTML('afterbegin', '<span class="fnot">簡單模式不能選：開局旁邊沒有中立地、也沒有敵人，只能主動宣戰</span>');
+      if (no && !nt) c.insertAdjacentHTML('afterbegin', '<span class="fnot">開新手引導時不能選：開局旁邊沒有中立地、也沒有敵人，只能主動宣戰</span>');
       if (!no && nt) nt.remove();
     });
     var fc = $('#fcards'), tn = document.getElementById('tutnote');
-    if (any && !tn && fc) fc.insertAdjacentHTML('beforebegin', '<p id="tutnote" class="tutnote">📘 簡單模式有一步一步的新手引導，所以只能選一開始就有仗可打的國家（旁邊有中立地，或已經在交戰）。灰色的國家要換成「普通」以上難度才能玩。</p>');
+    if (any && !tn && fc) fc.insertAdjacentHTML('beforebegin', '<p id="tutnote" class="tutnote">📘 新手引導開著時，只能選一開始就有仗可打的國家（旁邊有中立地，或已經在交戰）。老手想玩灰色的國家，把上面的「新手引導」關掉就行，難度照樣可以選簡單。</p>');
     if (!any && tn) tn.remove();
   }
   function renderStart() {
@@ -7240,10 +7247,10 @@ if (typeof module !== 'undefined') module.exports = G;
   }
   function startGame(pid) {
     clearSave(); MUSIC.auto();
-    ui.moved = false; g = G.newGame(pid, DIFF); g.noCul = !CULON;
+    ui.moved = false; g = G.newGame(pid, DIFF); g.noCul = !CULON; g.guide = GUIDE ? 1 : 0;
     enterGame();
     /* 新遊戲一開始要拉近到首都：簡單模式先關掉「大」模式，並在畫面排版完成後重算尺寸再對焦 */
-    if (g.diff === 0) { try { document.documentElement.classList.remove('bigmap'); document.documentElement.classList.remove('bigsel'); } catch (e) {} }
+    if (g.guide) { try { document.documentElement.classList.remove('bigmap'); document.documentElement.classList.remove('bigsel'); } catch (e) {} }
     [60, 250, 600, 1100, 1900].forEach(function (ms) { setTimeout(function () { try { if (!g || ui.tut && ui.tut.step > 0 || (ui.moved && ms > 600)) return; MVS = null; initView(); applyView(); renderMap(); } catch (e) {} }, ms); });
     return showRulerPick(pid);
   }
@@ -7518,7 +7525,7 @@ if (typeof module !== 'undefined') module.exports = G;
     return best;
   }
   function tutStep() {
-    if (!g || g.over || !g.player || g.diff !== 0 || g.turn > 12) return null;
+    if (!g || g.over || !g.player || (g.guide != null ? !g.guide : g.diff !== 0) || g.turn > 12) return null;
     /* 君主、將領、開局事件等視窗還開著時，先不出現引導 */
     var md0 = document.getElementById('modal'); if (md0 && !md0.hidden) return null;
     if (!g.evResolved) return null;
@@ -7608,7 +7615,7 @@ if (typeof module !== 'undefined') module.exports = G;
     var anchor = document.getElementById('goalbar') || document.getElementById('msnbar') || $('#hint');
     if (!tb) { tb = document.createElement('div'); tb.id = 'tutbar'; tb.style.cssText = 'margin:6px 0 0;padding:8px 10px;border-radius:10px;background:#3a2a52;border:1px solid #c9a24b;color:#fff;font-size:13.5px;line-height:1.5'; anchor.insertAdjacentElement('afterend', tb); }
     tb.hidden = false; if (gb) gb.style.display = 'none';
-    var html = '<b style="color:#ffd97a">簡單模式引導 ' + (r.done ? '' : r.n + '/6 ') + '</b> ' + r.text + ' ' + (r.ack ? '<button data-act="tutack" style="margin-left:6px;padding:3px 10px;border-radius:8px;border:1px solid #ffd97a;background:#ffd97a;color:#3a2a52;font-size:13px;font-weight:700">下一步</button>' : '') + '<button data-act="tutskip" style="margin-left:6px;padding:2px 8px;border-radius:8px;border:1px solid #c9a24b;background:transparent;color:#ffd97a;font-size:12px">' + (r.done ? '知道了' : '跳過引導') + '</button>';
+    var html = '<b style="color:#ffd97a">新手引導 ' + (r.done ? '' : r.n + '/6 ') + '</b> ' + r.text + ' ' + (r.ack ? '<button data-act="tutack" style="margin-left:6px;padding:3px 10px;border-radius:8px;border:1px solid #ffd97a;background:#ffd97a;color:#3a2a52;font-size:13px;font-weight:700">下一步</button>' : '') + '<button data-act="tutskip" style="margin-left:6px;padding:2px 8px;border-radius:8px;border:1px solid #c9a24b;background:transparent;color:#ffd97a;font-size:12px">' + (r.done ? '知道了' : '跳過引導') + '</button>';
     if (tb.getAttribute('data-h') !== html) { tb.innerHTML = html; tb.setAttribute('data-h', html); }
   }
   /* 強制：引導中只准點指定的地方（拖曳、縮放地圖不受影響） */
@@ -8317,7 +8324,7 @@ if (typeof module !== 'undefined') module.exports = G;
     if (a === 'locate') { autoFocus(); applyView(); return toast('已回到你的位置'); }
     if (a === 'fallnowok') { $('#modal').hidden = true; fallNow(); return; }
     if (a === 'start') {
-      if (DIFF === 0 && ui.via && ui.via[b.getAttribute('data-f')] === false) { toast('簡單模式不能選這個國家：開局沒有中立地可開發、也沒有敵人。請選別的國家，或把難度改成「普通」。'); return; }
+      if (GUIDE && ui.via && ui.via[b.getAttribute('data-f')] === false) { toast('開著新手引導時不能選這個國家：開局沒有中立地可開發、也沒有敵人。請選別的國家，或把「新手引導」關掉。'); return; }
       if (slotHas(SLOT)) {
         var sm0 = slotSum(SLOT), ok0 = true;
         try { ok0 = confirm('欄位 ' + SLOT + ' 已經有存檔' + (sm0 ? '（' + sm0 + '）' : '') + '。\n開新遊戲會把它蓋掉，確定要開始嗎？\n\n按「取消」可以回去換一個空的欄位。'); } catch (e) { ok0 = true; }
@@ -8331,6 +8338,7 @@ if (typeof module !== 'undefined') module.exports = G;
     if (a === 'culopt') { CULON = b.getAttribute('data-v') === '1'; try { localStorage.setItem('crusade-cul', CULON ? '1' : '0'); } catch (e) {} return renderOpts(); }
     if (a === 'fs') { FS = +b.getAttribute('data-v'); try { localStorage.setItem('crusade-fs', String(FS)); } catch (e) {} applyFS(); MVS = null; try { renderOpts(); var r1 = document.getElementById('fsrow'), r2 = document.getElementById('fsrow2'); if (r1) r1.innerHTML = fsChips(); if (r2) r2.innerHTML = fsChips(); } catch (e) {} try { renderBar(); renderPanel(); applyView(); } catch (e) {} return toast('文字大小已更新'); }
     if (a === 'rgtab') { ui.rg = b.getAttribute('data-r'); try { localStorage.setItem('crusade-rg2', ui.rg); } catch (e) {} rgShow(); try { var t0 = document.querySelector('.rgtabs'); if (t0 && t0.getBoundingClientRect().top < 0) t0.scrollIntoView({ block: 'start' }); } catch (e) {} return; }
+    if (a === 'guide') { GUIDE = b.getAttribute('data-v') === '1'; try { localStorage.setItem('crusade-guide', GUIDE ? '1' : '0'); } catch (e) {} renderOpts(); return markCards(); }
     if (a === 'diff') { DIFF = +b.getAttribute('data-v'); try { localStorage.setItem('crusade-diff', DIFF); } catch (e) {} renderOpts(); return markCards(); }
     if (a === 'slot') { SLOT = +b.getAttribute('data-v'); try { localStorage.setItem('crusade-slot', SLOT); } catch (e) {} return renderOpts(); }
     if (a === 'continue') { var cs = +b.getAttribute('data-slot'); if (cs) { SLOT = cs; try { localStorage.setItem('crusade-slot', SLOT); } catch (e) {} } return continueGame(); }
