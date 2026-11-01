@@ -369,6 +369,20 @@ button{font:inherit;color:inherit}
 .zoom{pointer-events:none}.zoom>*{pointer-events:auto}.zoom.tutdim{opacity:.25}.zoom.tutdim>*{pointer-events:none}
 /*panelpad*/.panel{padding-bottom:72px!important}
 /*tutshort*/@media (max-height:720px){#tutbar{max-height:96px;overflow-y:auto;font-size:calc(12.5px * var(--fs,1))!important;line-height:1.4!important;padding:6px 8px!important}body:has(#tutbar:not([hidden])) #msnbar{display:none}}
+/*polish1*/#verline{display:none}
+.zb{backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);transition:transform .1s,background .15s}
+.zb:active{transform:scale(.92)}
+.rc{border-color:rgba(214,173,85,.22)!important;background:rgba(0,0,0,.26)!important;border-radius:12px!important}
+.mcard{border-radius:16px;border-top-width:3px;box-shadow:0 16px 48px rgba(0,0,0,.55)}
+.panel{box-shadow:0 -10px 28px rgba(0,0,0,.35)}
+.panel.more::after{content:'▼ 往下滑看更多'!important;display:block!important;width:max-content!important;height:auto!important;margin:-34px 10px -24px auto!important;padding:4px 12px!important;border-radius:999px!important;font-size:calc(12px * var(--fs,1))!important;font-weight:700!important;color:#f1d48c!important;text-shadow:none!important;background:rgba(14,26,31,.96)!important;border:1px solid rgba(214,173,85,.5)!important;box-shadow:0 2px 8px rgba(0,0,0,.4)!important;bottom:-58px!important}
+@media (max-width:700px){
+  #msnbar,#goalbar,#expbar{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px!important;font-size:calc(11.5px * var(--fs,1))!important;line-height:1.5!important}
+  .zoom{gap:6px!important}
+  .zb{width:36px!important;height:36px!important;border-radius:11px;background:rgba(10,22,27,.66);border-color:rgba(214,173,85,.32);box-shadow:0 2px 8px rgba(0,0,0,.35);font-size:calc(17px * var(--fs,1))!important}
+  .zb[data-act=nextready]{font-size:calc(11px * var(--fs,1))!important}
+  .zb[data-act=terr],.zb[data-act=locate],.zb[data-act=bigmap]{font-size:calc(14px * var(--fs,1))!important}
+}
 </style>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
@@ -405,7 +419,7 @@ button{font:inherit;color:inherit}
     <div class="startmap" id="startmap" aria-hidden="true"></div>
     <div class="sc-in gx">
       <p class="eyebrow">MEDIEVAL: WORLD DOMINATION · 1096 AD</p>
-      <p class="muted small" id="verline">版本 v206 · 2026-11-01 · 點地只查看、不再自動出兵或自動調兵扣行動點</p>
+      <p class="muted small" id="verline">版本 v207 · 2026-11-02 · 介面整理：開始畫面拿掉版本說明、手機上方三行提示縮成一行、地圖按鈕變小變透明、往下滑提示不再壓字</p>
       <h1>中世紀：世界霸權</h1>
       <p class="lead">1095 年，教宗在克萊蒙發出號召，整個歐洲動了起來。選一個勢力（共 121 個），再從該文明歷史上的君主裡挑一位登基；在四千多個六角格地塊的世界裡，與基督教世界、伊斯蘭世界與即將到來的蒙古鐵騎周旋。可以結盟借道、派商隊與商船貿易、派密探、遠征遠方、研究科技升級時代、替自己的城市取名。沒有回合上限，直到有人稱霸，或你失去一切。</p>
       <div id="startopts"></div>
@@ -6912,6 +6926,7 @@ if (typeof module !== 'undefined') module.exports = G;
     var ua = (navigator.userAgent || '').replace(/\s+/g, ' ').slice(0, 90);
     return '這個環境缺少：' + (m.join('、') || '（無）') + '。瀏覽器：' + ua + '。';
   }
+  try { var vm0 = /v(\d+)/.exec((document.getElementById('verline') || {}).textContent || ''); if (vm0) [].forEach.call(document.querySelectorAll('details.rules > summary'), function (s) { if (/規則說明/.test(s.textContent) && !s.querySelector('.vtag')) s.insertAdjacentHTML('beforeend', ' <span class="vtag" style="font-size:.8em;opacity:.55;font-weight:400">（版本 v' + vm0[1] + '）</span>'); }); } catch (e) {}
   var PVER = (function () { var m = /v(\d+)/.exec((document.getElementById('verline') || {}).textContent || ''); return (m ? 'v' + m[1] : 'v?') + '/' + G.MAPSIG; })();
   function p2pOk() { return typeof RTCPeerConnection !== 'undefined' && typeof CompressionStream !== 'undefined'; }
   function p2pGathered(pc) {
