@@ -363,6 +363,8 @@ button{font:inherit;color:inherit}
 #hint{display:none!important}
 .actscroll{cursor:grab}
 @media (pointer:fine){.actscroll{scrollbar-width:thin;scrollbar-color:#c9a24b transparent;padding-bottom:4px}.actscroll::-webkit-scrollbar{display:block;height:8px}.actscroll::-webkit-scrollbar-thumb{background:#c9a24b;border-radius:4px}}
+.zoom{pointer-events:none}.zoom>*{pointer-events:auto}.zoom.tutdim{opacity:.25}.zoom.tutdim>*{pointer-events:none}
+/*panelpad*/.panel{padding-bottom:72px!important}
 </style>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
@@ -399,7 +401,7 @@ button{font:inherit;color:inherit}
     <div class="startmap" id="startmap" aria-hidden="true"></div>
     <div class="sc-in gx">
       <p class="eyebrow">MEDIEVAL: WORLD DOMINATION · 1096 AD</p>
-      <p class="muted small" id="verline">版本 v198 · 2026-11-01 · 電腦用滑鼠也能左右捲動下面那排（滾輪、拖曳、捲軸）</p>
+      <p class="muted small" id="verline">版本 v199 · 2026-11-01 · 多人連線：真人盟友拒絕出兵不再解盟、房主可存檔並繼續上次的多人遊戲；電腦宣戰寫出原因、宋遼澶淵之盟；新手引導在小螢幕與挪威等國指錯位置的問題；封地在地圖上有標記；出兵時寫出目標屬於誰</p>
       <h1>中世紀：世界霸權</h1>
       <p class="lead">1095 年，教宗在克萊蒙發出號召，整個歐洲動了起來。選一個勢力（共 121 個），再從該文明歷史上的君主裡挑一位登基；在四千多個六角格地塊的世界裡，與基督教世界、伊斯蘭世界與即將到來的蒙古鐵騎周旋。可以結盟借道、派商隊與商船貿易、派密探、遠征遠方、研究科技升級時代、替自己的城市取名。沒有回合上限，直到有人稱霸，或你失去一切。</p>
       <div id="startopts"></div>
@@ -3711,6 +3713,17 @@ function joinWar(g, c, x) {
   logRel(g, c, x, nm(c) + '履行盟約，向' + nm(x) + '宣戰。', 'bad');
 }
 function demandAmt(g, x) { return Math.min(260, 60 + 3 * owned(g, x).length); }
+function warWhy(g, a, b) {
+  var w = [], ratio = strength(g, a) / Math.max(1, strength(g, b));
+  if (infOf(g, b) >= 35) w.push('你的惡名太高（' + Math.round(infOf(g, b)) + '）');
+  if (succWeak(g, b) > 1) w.push('你剛換君主、國內不穩');
+  if ((isChristian(a) && FACTIONS[b].rel === 'isl') || (FACTIONS[a].rel === 'isl' && isChristian(b))) w.push('宗教對立');
+  if (ratio >= 1.3) w.push('他覺得兵力比你強');
+  else if (ratio < 0.8 && FIDS.some(function (y) { return y !== a && y !== b && g.fac[y].alive && rel(g, b, y).state === 'war'; })) w.push('你正忙著跟別國打仗');
+  if (FACTIONS[a].aggr >= 0.65) w.push(nm(a) + '本來就好戰');
+  if (!w.length) w.push('邊境衝突與擴張野心');
+  return w.join('、');
+}
 function demandOrWar(g, a, x) {
   var amt = demandAmt(g, x);
   if (g.fac[x].gold >= amt) { pushOffer(g, { type: 'demand', from: a, gold: amt }, x); return; }
@@ -3930,6 +3943,8 @@ function aiShouldDeclare(g, f, x, r) {
   if ((ca && ib) || (ia && cb)) p *= 1.9; else if ((ca && cb) || (ia && ib)) p *= 0.75;
   if (r.truce > 0) p *= 0.12;
   p *= succWeak(g, x);
+  if (((f === 'liao' && x === 'song') || (f === 'song' && x === 'liao')) && year(g) < 1120) p *= 0.08;
+  if (f === 'dali' && x === 'song') p *= 0.2;
   p *= 1 + infOf(g, x) / 60;
   if (x === 'pap') p *= 0.15;
   return Math.random() < p;
@@ -3965,7 +3980,7 @@ function aiDiplomacy(g, f) {
       return;
     }
     if (g.turn < 3 || r.state !== 'peace') return;
-    if (aiShouldDeclare(g, f, x, r)) { if (toP) demandOrWar(g, f, x); else declareWar(g, f, x); return; }
+    if (aiShouldDeclare(g, f, x, r)) { if (toP) (g.warWhy || (g.warWhy = {}))[f + '>' + x] = warWhy(g, f, x); if (toP) demandOrWar(g, f, x); else declareWar(g, f, x); return; }
     var common = commonEnemy(g, f, x);
     if (Math.random() < (common ? 0.05 : 0.004)) {
       if (toP) pushOffer(g, { type: 'alliance', from: f }, x);
@@ -4132,13 +4147,13 @@ function offerEvent(g, o) {
     choices: [
       { label: '稱臣', hint: '停戰；每回合把約三成盈餘進貢給宗主，須跟隨宗主參戰，可隨時宣布獨立', run: function (g, f) { if (!lordOf(g, f) && g.fac[x].alive) { makeVassal(g, x, f); return '你向' + nm(x) + '稱臣。'; } return '情勢已變。'; } },
       { label: '拒絕', hint: '戰事繼續', run: function () { return '你拒絕了使節。'; } }] };
-  if (o.type === 'demand') return { title: nm(x) + '索取貢金', tag: '外交', text: nm(x) + '的使節直言：奉上 ' + o.gold + ' 金，他們就暫不出兵；否則戰爭就在眼前。',
+  if (o.type === 'demand') return { title: nm(x) + '索取貢金', tag: '外交', text: nm(x) + '的使節直言：奉上 ' + o.gold + ' 金，他們就暫不出兵；否則戰爭就在眼前。' + ((g.warWhy && g.warWhy[x + '>' + g.player]) ? '\n他們想打你的原因：' + g.warWhy[x + '>' + g.player] + '。' : ''),
     choices: [
       { label: '付 ' + o.gold + ' 金', hint: '金幣 −' + o.gold + '；八個回合內不會再對你宣戰', run: function (g, f2) {
         var fs2 = g.fac[f2]; if (fs2.gold < o.gold) { declareWar(g, x, f2); return '你湊不出 ' + o.gold + ' 金，' + nm(x) + '直接開戰。'; }
         fs2.gold -= o.gold; g.fac[x].gold += o.gold; var r2 = rel(g, f2, x); if (r2.state === 'peace') r2.truce = Math.max(r2.truce, 8); return '你交出貢金，' + nm(x) + '暫時按兵不動。'; } },
       { label: '拒絕，迎戰', hint: o.gold + ' 金省下，但戰爭立刻開始', run: function (g, f2) { declareWar(g, x, f2); return '你拒絕了勒索，' + nm(x) + '向你宣戰。'; } }] };
-  if (o.type === 'war') return { title: nm(x) + '向你宣戰', tag: '外交', text: nm(x) + '的使節遞來戰書。從下個回合起，他們的軍隊可能越過邊界。',
+  if (o.type === 'war') return { title: nm(x) + '向你宣戰', tag: '外交', text: nm(x) + '的使節遞來戰書。從下個回合起，他們的軍隊可能越過邊界。' + ((g.warWhy && g.warWhy[x + '>' + g.player]) ? '\n開戰原因：' + g.warWhy[x + '>' + g.player] + '。' : ''),
     choices: [{ label: '備戰', hint: '可在外交選單中談判停戰', run: function () { return '你下令各地加強戒備。'; } }] };
   return callAllyFix({ title: '盟友求援', tag: '外交', text: nm(o.ally) + '與' + nm(o.enemy) + '開戰，要求你履行盟約。',
     choices: [
@@ -4149,6 +4164,7 @@ function offerEvent(g, o) {
       } },
       { label: '袖手旁觀', hint: '信譽 −5，盟友可能解除同盟', run: function (g, f) {
         g.rep[f] = clamp(g.rep[f] - 5, 0, 100);
+        if (isHum(g, o.ally)) { asPlayer(g, o.ally, function () { logMsg(g, nm(f) + '婉拒了出兵對付' + nm(o.enemy) + '，但同盟還在。', 'info'); }); return '你婉拒了。' + nm(o.ally) + '是真人玩家，同盟不會因此解除。'; }
         if (Math.random() < 0.4) { rel(g, f, o.ally).state = 'peace'; return nm(o.ally) + '對你的冷淡很失望，解除了同盟。'; }
         return '盟友心有不滿，但同盟還在。';
       } }] });
@@ -4576,7 +4592,8 @@ var EVENTS = [
     prep: function (g, f) { g.evData = { id: randOwned(g, f), str: 3 + Math.floor(g.turn / 6) }; },
     choices: [
       { label: '迎戰', hint: '以當地守軍交戰；敗則損兵失金', run: function (g, f) {
-        var d = g.evData, p = g.p[d.id];
+        var d = g.evData || {}, p = g.p[d.id];
+        if (!p || p.o !== f) return '盜匪見你早有防備，自己散去了。';
         var b = resolveBattle(g, null, f, d.str, p.t, d.id, false);
         if (!b.win) { p.t = b.defLeft; addRes(g, f, { morale: 3 }); return '守軍擊退了劫掠者，民心 +3。'; }
         p.t = Math.max(1, p.t - Math.ceil(p.t * 0.5)); addRes(g, f, { gold: -15, morale: -3 });
@@ -6373,7 +6390,7 @@ if (typeof module !== 'undefined') module.exports = G;
       (msg ? '<p class="warn">' + esc(msg) + '</p>' : '') +
       '<div class="flist"><b>你的暱稱</b><input id="mpnick" maxlength="12" value="' + esc(mpNick()) + '" placeholder="暱稱" style="flex:1;min-width:0;padding:10px;border-radius:8px;border:1px solid var(--line);background:rgba(0,0,0,.25);color:inherit;font:inherit"></div>' +
       (p2pOk() ? '<div class="gh" style="margin:8px 0 4px">免登入連線（推薦，朋友不需要 Claude 帳號）</div>' : '<p class="warn">免登入直連在 Claude 的頁面裡被瀏覽器擋住了（缺少 WebRTC），目前做不到。只能用下面「登入房間」，朋友需要被你邀請並登入 Claude。</p>') +
-      (p2pOk() ? '<div class="choices"><button class="choice" data-act="p2phost"><span class="cl">我是房主</span><span class="ch">產生邀請碼，用 LINE 傳給朋友</span></button>' +
+      (p2pOk() ? '<div class="choices">' + (mpSaved() ? '<button class="choice" data-act="p2presume"><span class="cl">繼續上次的多人遊戲</span><span class="ch">' + esc(mpSavedLine()) + '。載入後再把連結傳給朋友，他們會回到原本的國家。</span></button>' : '') + '<button class="choice" data-act="p2phost"><span class="cl">我是房主</span><span class="ch">產生邀請碼，用 LINE 傳給朋友</span></button>' +
       '<button class="choice" data-act="p2pguest"><span class="cl">我是朋友</span><span class="ch">貼上房主給的邀請碼</span></button></div>' : '') +
       '<details' + (p2pOk() ? '' : ' open') + ' style="margin-top:12px"><summary class="muted small">用 Claude 登入的房間代碼（進階，朋友要被邀請並登入）</summary><div class="choices" style="margin-top:8px"><button class="choice" data-act="mpcreate"><span class="cl">建立登入房間</span><span class="ch">朋友需要登入 Claude 並有 Contributor 權限</span></button>' +
       '<div class="flist"><input id="mpcode" maxlength="8" autocapitalize="off" autocomplete="off" placeholder="房間代碼" style="flex:1;min-width:0;padding:10px;border-radius:8px;border:1px solid var(--line);background:rgba(0,0,0,.25);color:inherit;font:inherit"><button class="btn primary" data-act="mpjoin">加入</button></div></div></details>' +
@@ -6562,6 +6579,38 @@ if (typeof module !== 'undefined') module.exports = G;
     for (var i = 0; i < s.length; i++) u[i] = s.charCodeAt(i);
     return new Response(new Blob([u]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
   }
+  var MPSK = 'crusade-mpsave';
+  function mpSaveLocal() {
+    if (!MP.on || MP.role !== 'host' || !g || g.over) return;
+    if (MP.svT && Date.now() - MP.svT < 15000 && MP.svTurn === g.turn) return;
+    MP.svT = Date.now(); MP.svTurn = g.turn;
+    try {
+      var pl = {}; Object.keys(MP.players).forEach(function (u) { var q = MP.players[u]; pl[u] = { f: q.f, name: q.name, pid: q.pid || '' }; });
+      localStorage.setItem(MPSK, JSON.stringify({ t: Date.now(), y: G.year(g), players: pl, state: JSON.stringify(g) }));
+    } catch (e) { if (!MP.svWarn) { MP.svWarn = 1; toast('多人遊戲進度太大，存不進這台裝置的瀏覽器。'); } }
+  }
+  function mpSaved() { try { var s = localStorage.getItem(MPSK); return s ? JSON.parse(s) : null; } catch (e) { return null; } }
+  function mpSavedLine() {
+    var s = mpSaved(); if (!s || !s.players) return '';
+    var h = s.players.host, others = Object.keys(s.players).filter(function (u) { return u !== 'host'; }).map(function (u) { return s.players[u].name + '（' + (G.FACTIONS[s.players[u].f] || {}).name + '）'; });
+    return '西元 ' + s.y + ' 年 · 你是' + ((G.FACTIONS[h && h.f] || {}).name || '?') + (others.length ? ' · 朋友：' + others.join('、') : '');
+  }
+  function p2pResume() {
+    var s = mpSaved(); if (!s) return p2pMenu('找不到上次的多人遊戲。');
+    if (!p2pOk()) return p2pMenu(p2pWhy());
+    var st; try { st = JSON.parse(s.state); } catch (e) { return p2pMenu('上次的多人遊戲存檔壞掉了。'); }
+    var nick = mpReadNick();
+    MP.mode = 'p2p'; MP.role = 'host'; MP.uid = 'host'; MP.nick = nick; MP.shell = false;
+    P2P.slots = []; P2P.n = 0; P2P.lobbyKey = '';
+    MP.room = { emit: function (topic, data) { if (topic === 'r') p2pReply(data); return Promise.resolve(); } };
+    MP.players = {}; MP.facOf = {};
+    Object.keys(s.players).forEach(function (u) { var q = s.players[u]; MP.players[u] = { f: q.f, name: u === 'host' ? nick : q.name, pid: q.pid || '', off: u !== 'host' }; MP.facOf[u] = q.f; });
+    MP.info = { host: 'host', status: 'playing' };
+    g = st; G.mpResume(g); g.evResolved = true; MP.phase = 'play'; MP.on = true; MP.v = Date.now();
+    enterGame(); renderAll(); $('#modal').hidden = true;
+    toast('已載入上次的多人遊戲。請按上方的「＋邀請」產生連結，傳給朋友讓他們回來。');
+    setTimeout(function () { try { p2pInvite(); } catch (e) {} }, 600);
+  }
   function mpPublish(force) {
     if (!MP.on || MP.role !== 'host') return;
     MP.dirty = true;
@@ -6574,7 +6623,7 @@ if (typeof module !== 'undefined') module.exports = G;
     if (MP.busy) { MP.pubT = setTimeout(mpDoPublish, 400); return; }
     if (!MP.dirty) { if (done) done(); return; }
     MP.dirty = false; MP.busy = true;
-    if (MP.mode === 'p2p') return p2pPublish(done);
+    if (MP.mode === 'p2p') { mpSaveLocal(); return p2pPublish(done); }
     var json = JSON.stringify(g), v = Math.max(Date.now(), MP.v + 1);
     mpPack(json).then(function (chunks) {
       MP.v = v;
@@ -7131,7 +7180,9 @@ if (typeof module !== 'undefined') module.exports = G;
     '<li><b>城市命名與名冊</b>：選城市後按面板上的「✎ 改名」可以隨時替城市取名；下面那排按鈕往左滑，有「國庫」（買賣糧食、稅率）、「城市名冊」（你所有城市）和「戰績」。外交選單會顯示各國消滅過哪些國家。</li>' +
     '<li><b>新手提示</b>：畫面上方綠字的 💡 會依目前狀況告訴你下一步可以做什麼，點一下可以關掉。</li>' +
     '<li><b>地圖</b>：拖曳移動，滾輪或雙指縮放。只看得到相鄰地塊的確切守軍，遠處只有約數。</li>' +
-    '<li><b>封建</b>：點自己的城（非首都、已建成城、你至少有 4 座城），花 30 金幣可「分封」給領主：守軍 +3、之後每兩回合多長 1 人，但這座城的金幣收入少四成。封地上限是城市數的一半（最多 8 座），同一領主最多 3 座，領地越多越容易不滿。領主忠誠度看民心與首都狀況，低於 30 會警告，太低就會叛離、整批封地一起脫離。「賞賜」花 40 金幣忠誠 +20；「收回封地」免費但民心 −2。電腦勢力也會分封，也會被封臣叛變。</li>' +
+    '<li><b>多人連線存檔</b>：房主的瀏覽器會自動存下多人遊戲的進度。下次打開「多人連線」，房主會看到「繼續上次的多人遊戲」，載入後按「＋邀請」產生連結傳給朋友，朋友點開就回到原本的國家。盟友是真人玩家時，拒絕出兵不會讓同盟解除。</li>' +
+    '<li><b>電腦為什麼打你</b>：電腦向你宣戰或索取貢金時，會寫出原因，例如你的惡名太高、剛換君主國內不穩、宗教對立、他覺得兵力比你強、你正忙著跟別國打仗。宋與遼在 1120 年前有澶淵之盟，很少互相開戰；大理也很少主動打宋。</li>' +
+    '<li><b>封建</b>：點自己的城（非首都、已建成城、你至少有 4 座城），花 30 金幣可「分封」給領主：守軍 +3、之後每兩回合多長 1 人，但這座城的金幣收入少四成。封地上限是城市數的一半（最多 8 座），同一領主最多 3 座，領地越多越容易不滿。領主忠誠度看民心與首都狀況，低於 30 會警告，太低就會叛離、整批封地一起脫離。「賞賜」花 40 金幣忠誠 +20；「收回封地」免費但民心 −2。電腦勢力也會分封，也會被封臣叛變。地圖上的封地會有虛線外框和一面「封」字小旗，同一位領主的封地顏色相同。</li>' +
     '<li><b>勸降</b>：占領對方首都並處於交戰時，可以要求對方投降，成功就繼承他全部領地。電腦占領你的首都時也會寄勸降書給你，你可以拒絕或投降。成功率看實力差、士氣與剩餘領地數，同一對勢力每回合最多勸一次。</li>' +
     '<li><b>神器</b>：各地名城（耶路撒冷、君士坦丁堡、羅馬……）藏有神器，城名旁有 ◆。誰佔領那座城就擁有它；把將領派駐到那座城，在城市面板按「裝備」，每位將領只能戴 1 件，效果加在他率領的軍隊上。將領陣亡時神器掉在原地，誰佔領那座城就能撿走。</li>' +
     '</ul>';
@@ -7558,6 +7609,7 @@ if (typeof module !== 'undefined') module.exports = G;
       s += '<g class="bg' + (dim ? ' dim' : '') + (p.o ? '' : ' neu') + (sdist && p.o === g.player && sdist[id] === undefined ? ' ns' : '') + '" transform="translate(' + HX[id].toFixed(1) + ',' + HY[id].toFixed(1) + ') scale(.9)">';
       if (!o.demo && p.L > 0) s += '<circle r="25" fill="' + col2 + '" fill-opacity=".22" stroke="#ffe08a" stroke-width="2.4"/><circle r="27.5" fill="none" stroke="#0d1114" stroke-width="1.2" opacity=".8"/>';
       if (!o.demo && (p.w | 0) > 0) { var ww = p.w | 0; s += '<circle r="30" fill="none" stroke="#2a2418" stroke-width="' + (4.5 + ww * 1.6) + '" opacity=".9"/><circle r="30" fill="none" stroke="' + ['', '#b8aa8c', '#d6d2c8', '#f4f0e6'][ww] + '" stroke-width="' + (2.5 + ww * 1.6) + '" stroke-dasharray="' + (ww === 1 ? '5 3' : ww === 2 ? '9 2.5' : '14 2') + '"/>'; }
+      if (!o.demo && p.fv) { var lh = 0; for (var li = 0; li < p.fv.n.length; li++) lh = (lh * 31 + p.fv.n.charCodeAt(li)) % 360; var lc = 'hsl(' + lh + ',70%,55%)'; s += '<circle r="30" fill="none" stroke="' + lc + '" stroke-width="5" stroke-dasharray="7 4"/><g transform="translate(20,-24) scale(1.8)"><path d="M-6,8 V-10" stroke="#2a1d05" stroke-width="2"/><path d="M-6,-10 H8 L5,-5 L8,0 H-6 Z" fill="' + lc + '" stroke="#2a1d05" stroke-width="1.2"/><text x="1" y="-2.2" font-size="7.5" text-anchor="middle" fill="#fff" font-weight="900" stroke="#2a1d05" stroke-width="1.6" paint-order="stroke">封</text></g>'; }
       if (cty || p.L > 0) s += '<g transform="translate(0,-19) scale(1.25)">' + TOWER + '</g>';
       if (!o.demo && p.o === g.player && G.genAt(g, g.player, id)) s += '<g transform="translate(-17,-19)"><circle r="7" fill="#d2b04c" stroke="#2a2418" stroke-width="1.2"/><text y="3.4" font-size="9.5" text-anchor="middle" fill="#2a2418" font-weight="700">將</text></g>';
       if (g.p[id].o && G.CAPITAL[g.p[id].o] === id) s += '<circle r="33" fill="none" stroke="#ffd34d" stroke-width="3.2" stroke-dasharray="7 5" opacity=".95"/><polygon class="cap" points="' + STAR + '" transform="translate(20,-26) scale(2.3)"/>';
@@ -8211,9 +8263,17 @@ if (typeof module !== 'undefined') module.exports = G;
       var mb0 = el.getBoundingClientRect(), mv0 = document.getElementById('mapview').getBoundingClientRect();
       if (mb0.width < 26 || mb0.left < mv0.left || mb0.right > mv0.right || mb0.top < mv0.top || mb0.bottom > mv0.bottom) { try { focusOn(r.spec.hex, mvSize().w < 640 ? 5.6 : 3.3); applyView(); renderMap(); el = tutEl(r.spec) || el; } catch (x) {} }
     }
+    if (el.getAttribute && el.getAttribute('data-fleet') != null) {
+      var fb0 = el.getBoundingClientRect(), mv1 = document.getElementById('mapview').getBoundingClientRect();
+      if (fb0.left < mv1.left + 10 || fb0.right > mv1.right - 60 || fb0.top < mv1.top + 40 || fb0.bottom > mv1.bottom - 10) {
+        var fi = +el.getAttribute('data-fleet'), fh = null; try { G.fleets(g).forEach(function (x) { if (x.i === fi) fh = x.h; }); } catch (x) {}
+        if (fh != null && ui.tutFl !== r.n + ':' + fi + ':' + g.turn) { ui.tutFl = r.n + ':' + fi + ':' + g.turn; try { focusOn(fh, Math.max(ui.view && ui.view.s || 5.6, 5.6)); applyView(); renderMap(); el = tutEl(r.spec) || el; } catch (x) {} }
+      }
+    }
     var b = el.getBoundingClientRect(), ft = document.querySelector('footer.bar');
     var pn9 = el.closest && el.closest('#panel'), pr9 = pn9 ? pn9.getBoundingClientRect() : null;
     if (el.tagName !== 'polygon' && ((pr9 && (b.top < pr9.top + 2 || b.bottom > pr9.bottom - 2)) || (ft && ft.getBoundingClientRect().top < b.bottom + 6 && ft.getBoundingClientRect().top > 0))) { try { el.scrollIntoView({ block: 'center' }); } catch (x) {} b = el.getBoundingClientRect(); }
+    if (pn9 && ft) { var ftT = ft.getBoundingClientRect().top; if (ftT > 0 && b.bottom > ftT - 4) { pn9.scrollTop += b.bottom - ftT + 30; b = el.getBoundingClientRect(); } }
     if (el.closest && el.closest('.actscroll')) { var sc9 = el.closest('.actscroll'), sr9 = sc9.getBoundingClientRect(); if (b.left < sr9.left || b.right > sr9.right - 24) { sc9.scrollLeft += b.left - sr9.left - 12; b = el.getBoundingClientRect(); } }
     if (el.closest && el.closest('#modal') && (b.top < 40 || b.bottom > window.innerHeight - 40)) { try { el.scrollIntoView({ block: 'center' }); } catch (x) {} b = el.getBoundingClientRect(); }
     if (el.tagName === 'polygon' && r.spec.hex != null) {
@@ -8232,6 +8292,7 @@ if (typeof module !== 'undefined') module.exports = G;
     tutTip(r, b, el);
   }
   function tutTip(r, b, el) {
+    try { var zm = document.querySelector('.zoom'); if (zm) zm.classList.toggle('tutdim', !!(r && !r.done && r.spec && r.spec.hex != null)); } catch (x) {}
     if (!document.getElementById('tutcss2')) { var st2 = document.createElement('style'); st2.id = 'tutcss2'; st2.textContent = '#tuttip{position:fixed;z-index:99999;max-width:min(78vw,300px);padding:8px 12px;border-radius:12px;background:#ffd97a;color:#2a1d05;font-weight:800;font-size:calc(14px * var(--fs,1));line-height:1.45;box-shadow:0 4px 16px rgba(0,0,0,.55);pointer-events:auto}#tuttip button{margin:6px 0 0;display:block;width:100%;padding:6px 10px;border-radius:8px;border:0;background:#3a2a52;color:#ffd97a;font-weight:900;font-size:calc(14px * var(--fs,1))}.tutfocus{outline:3px solid #ffd97a!important;outline-offset:3px;box-shadow:0 0 0 7px rgba(255,217,122,.35)!important;animation:tutglow 1s ease-in-out infinite;position:relative;z-index:2}@keyframes tutglow{50%{outline-color:#fff6d6}}.tutmenu{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}.tutmenu button{padding:6px 10px;border-radius:9px;border:1px solid #ffd97a;background:#ffd97a;color:#3a2a52;font-weight:800;font-size:calc(13.5px * var(--fs,1))}.tutmenu button[disabled]{opacity:.5;background:transparent;color:#ffd97a}'; document.head.appendChild(st2); }
     var tp = document.getElementById('tuttip');
     if (ui.tutHi && ui.tutHi !== el) { try { ui.tutHi.classList.remove('tutfocus'); } catch (x) {} ui.tutHi = null; }
@@ -8587,7 +8648,7 @@ if (typeof module !== 'undefined') module.exports = G;
     if (armSel) { var pl1 = G.armyPlan(g, f, from, to, armSel); h += pl1.ok ? '<p class="muted small">' + (pl1.total > 0 ? '路程消耗 ' + pl1.total + ' 點移動力（本回合剩 ' + pl1.rem + '）。' : '') + (pl1.now.arrived ? (pl1.attack ? (pl1.now.canAtk ? '本回合即可發動攻擊。' : '本回合抵達邊境，下回合進攻。') : '本回合可抵達。') : '需 ' + pl1.turns + ' 回合，之後每回合自動前進。') + '</p>' : '<p class="muted small">' + esc(pl1.msg) + '</p>'; }
     else h += '<div class="seg" role="group" aria-label="派出兵力"><button data-act="ratio" data-v="half" class="' + (ui.ratio === 'half' ? 'on' : '') + '">派出半數</button><button data-act="ratio" data-v="all" class="' + (ui.ratio === 'all' ? 'on' : '') + '">全軍（留 1 人）</button></div>';
     if (t.o !== f) h += '<p class="muted small">⚠ 直接出兵是倉促出擊：戰力 −8%、沒有將領。編成軍團可帶將領、用軍團自己的兵種組成。</p>';
-    h += '<p class="mline"><b>' + esc(G.placeName(from)) + ' → ' + esc(G.placeName(to)) + '</b>，' + (kind === 'sea' ? '渡海' : '陸路') + '，派出 <span class="num">' + send + '</span> 人</p>';
+    h += '<p class="mline"><b>' + esc(G.placeName(from)) + ' → ' + esc(G.placeName(to)) + '</b><small class="muted">（目標屬於' + (g.p[to].o ? esc(g.p[to].o === g.player ? '你自己' : G.nm(g.p[to].o)) : '無主中立地') + '）</small>，' + (kind === 'sea' ? '渡海' : '陸路') + '，派出 <span class="num">' + send + '</span> 人</p>';
     if (kind === 'sea') {
       var cl = G.seaCapAt(g, f, ui.sel);
       h += '<p class="muted small">渡海：本回合剩餘運力 <b class="num">' + Math.max(0, cl) + '</b> 人' + (G.shipsOf(g, f) < 1 ? '（沒有戰船，先到港口造船）' : cl < send ? '（運力不足，實際只能運 ' + Math.max(0, cl) + ' 人）' : '') + '。' + (t.o && t.o !== f && G.shipsOf(g, t.o) > 0 ? '對方有 ' + G.shipsOf(g, t.o) + ' 艘戰船，可能攔截，海戰失敗會損失運兵。' : '') + '</p>';
@@ -9088,6 +9149,7 @@ if (typeof module !== 'undefined') module.exports = G;
     if (a === 'mpcreate') return mpCreate();
     if (a === 'mpjoin') return mpJoin();
     if (a === 'mpstart') return mpHostStart();
+    if (a === 'p2presume') return p2pResume();
     if (a === 'mpleave') return mpLeave();
     if (a === 'mpforce') return mpForce();
     if (a === 'p2pmenu') return p2pMenu();
