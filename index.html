@@ -434,7 +434,7 @@ button{font:inherit;color:inherit}
     <div class="startmap" id="startmap" aria-hidden="true"></div>
     <div class="sc-in gx">
       <p class="eyebrow">MEDIEVAL: WORLD DOMINATION · 1096 AD</p>
-      <p class="muted small" id="verline">版本 v214 · 2026-11-02 · 可以安裝到手機桌面（加入主畫面）</p>
+      <p class="muted small" id="verline">版本 v215 · 2026-11-02 · 修正事件結果標題；軍團不能解編再集結重複出擊</p>
       <h1>中世紀：世界霸權</h1>
       <p class="lead">1095 年，教宗在克萊蒙發出號召，整個歐洲動了起來。選一個勢力（共 121 個），再從該文明歷史上的君主裡挑一位登基；在四千多個六角格地塊的世界裡，與基督教世界、伊斯蘭世界與即將到來的蒙古鐵騎周旋。可以結盟借道、派商隊與商船貿易、派密探、遠征遠方、研究科技升級時代、替自己的城市取名。沒有回合上限，直到有人稱霸，或你失去一切。</p>
       <div id="startopts"></div>
@@ -3201,9 +3201,9 @@ function actArmyForm(g, f, id, cnt) {
   var gl = fs.gens || [], used = {};
   (p.ar || []).forEach(function (x) { if (x.gen) used[x.gen] = 1; });
   gl.forEach(function (q) { if (!a.gen && q.at === id && !used[q.n]) a.gen = q.n; });
-  a.mx = mixOf(g, id).slice(); a.vx = p.vx || 0;
+  a.mx = mixOf(g, id).slice(); a.vx = p.vx || 0; if (p.acted) a.ax = g.turn;
   (p.ar = p.ar || []).push(a);
-  return good('編成' + a.nm + '（' + n + ' 人）' + (a.gen ? '，由' + a.gen + '統率' : '') + '。', { army: a.id });
+  return good('編成' + a.nm + '（' + n + ' 人）' + (a.gen ? '，由' + a.gen + '統率' : '') + '。' + (p.acted ? '這些士兵本回合已經行動過，明年才能出動。' : ''), { army: a.id });
 }
 function actArmyMerge(g, f, id, aid, bid) {
   var p = g.p[id]; if (!p || p.o !== f) return fail('只能在己方領地整編。');
@@ -3211,6 +3211,7 @@ function actArmyMerge(g, f, id, aid, bid) {
   if (!a || !b || a === b) return fail('請選兩個不同的軍團。');
   a.mx = blendMix(a.mx || mixOf(g, id), a.n, b.mx || mixOf(g, id), b.n); a.vx = Math.round(((a.vx || 0) * a.n + (b.vx || 0) * b.n) / Math.max(1, a.n + b.n));
   a.n += b.n; if (!a.gen) a.gen = b.gen; a.ax = Math.max(a.ax || 0, b.ax || 0);
+  if (b.mt === g.turn) { var bu = b.mu || 0, au = a.mt === g.turn ? (a.mu || 0) : 0; a.mt = g.turn; a.mu = Math.max(au, bu); }
   p.ar = p.ar.filter(function (x) { return x !== b; });
   return good(b.nm + '併入' + a.nm + '，共 ' + a.n + ' 人。');
 }
@@ -3219,8 +3220,9 @@ function actArmyDisband(g, f, id, aid) {
   var a = armyById(g, id, aid); if (!a) return fail('找不到這個軍團。');
   var gar0 = garrisonOf(g, id) - a.n + a.n; gar0 = p.t - (p.ar || []).reduce(function (q, x) { return q + x.n; }, 0);
   if (a.mx) { setMix(p, blendMix(mixOf(g, id), Math.max(1, gar0), a.mx, a.n)); p.vx = Math.round(((p.vx || 0) * Math.max(1, gar0) + (a.vx || 0) * a.n) / Math.max(1, gar0 + a.n)); }
+  var tired = a.ax === g.turn || a.mt === g.turn; if (tired) p.acted = true;
   p.ar = p.ar.filter(function (x) { return x !== a; }); if (!p.ar.length) delete p.ar;
-  return good(a.nm + '解編，' + a.n + ' 人回歸駐軍。');
+  return good(a.nm + '解編，' + a.n + ' 人回歸駐軍。' + (tired ? '他們本回合已經行軍或打過仗，這裡的駐軍今年不能再出兵。' : ''));
 }
 function actArmyGen(g, f, id, aid, gname) {
   var p = g.p[id]; if (!p || p.o !== f) return fail('只能在己方領地任命。');
@@ -3246,8 +3248,8 @@ function actArmyFill(g, f, id, aid, cnt) {
   if (n < 1) return fail('留守駐軍不足，至少要留 1 人守城。');
   a.mx = blendMix(a.mx || mixOf(g, id), a.n, mixOf(g, id), n);
   a.vx = Math.round(((a.vx || 0) * a.n + (p.vx || 0) * n) / (a.n + n));
-  a.n += n;
-  return good(a.nm + '補入 ' + n + ' 名駐軍，現有 ' + a.n + ' 人。');
+  a.n += n; var tw = p.acted && a.ax !== g.turn; if (p.acted) a.ax = g.turn;
+  return good(a.nm + '補入 ' + n + ' 名駐軍，現有 ' + a.n + ' 人。' + (tw ? '補進來的士兵本回合已經行動過，這個軍團明年才能出動。' : ''));
 }
 function armyAtk(g, f, from, to, aid) {
   var s = g.p[from], t = g.p[to];
@@ -7583,6 +7585,7 @@ if (typeof module !== 'undefined') module.exports = G;
     '<li><b>系統公告</b>：每年一開始，地圖下方會有一條捲動的公告：商隊、商船賺了多少或被劫、你的城市被誰攻占、有科技可以研究（還沒研究的話每 3 年再提醒一次）。點公告會帶你去看被占的城市，或打開科技樹、戰報；按 ✕ 關掉。</li>' +
     '<li><b>各國有各自的說法</b>：同一類事件會依你的國家換說法，例如歐洲是「騎士比武大會」、宋朝是「大閱與武舉」、伊斯蘭國家是「騎射競技」、草原是「那達慕」；繼承危機裡的貴族也會換成朝臣、埃米爾或那顏。女真建國、遼國滅亡、靖康之變這些史實事件，要遊戲裡真的發生了才會出現。</li>' +
     '<li><b>電腦會開發中立地</b>：電腦會把後方的兵集中到邊境，夠多了就合力拿下旁邊的中立地，國庫太滿也會多徵兵。</li>' +
+    '<li><b>軍團不能重複出擊</b>：今年行軍或打過仗的軍團解編後，士兵回到駐軍，但這塊地今年不能再出兵；用已經行動過的駐軍編成或補進軍團，那個軍團也要等明年才能出動。</li>' +
     '<li><b>點地＝查看</b>：點別人的地或中立地只會顯示它的資料，不會自動出兵；面板上有「⚔ 從旁邊的某地出兵」按鈕，按了才會選好出兵。已經選了自己的地、再點旁邊的地，那塊地會變成出兵目標（箭頭）；同一塊再點一次，就改成只查看它。打不到的遠處只會提示你要先把部隊調到哪裡，不會自己幫你調兵扣行動點。</li>' +
     '<li><b>電腦會守首都</b>：首都或大城被你的大軍逼近時，電腦會從附近調兵回防、優先在那裡補兵；普通和困難難度下，首都告急還會緊急徵召民兵（每 4 回合一次），所以最好先削弱它周圍的部隊再攻城。</li>' +
     '<li><b>白手起家模式（多人連線限定）</b>：房主在多人房間裡的「開局領地」可以選「首都＋一圈」或「只有首都」。所有國家（包含電腦）一開始都只有這一點點地，其他地全部變成中立地；原本地圖上的城市變成有守軍的中立城，要自己一塊塊打下來，再蓋村莊、升級城市慢慢擴張。每國會多發 120 金、60 糧當起步資金。單人遊戲一律照歷史上的領土開局。</li>' +
@@ -8516,7 +8519,7 @@ if (typeof module !== 'undefined') module.exports = G;
     var r = G.applyChoice(g, ui.ev, i);
     if (!r.ok) { toast(r.msg); return; }
     if (ui.queue && ui.queue.length) g.evResolved = false;
-    $('#mbody').innerHTML = '<div class="mtag">結果</div><h2 id="mtitle">' + esc(ui.ev.title) + '</h2><p class="mtext">' + esc(r.msg) + '</p>' +
+    $('#mbody').innerHTML = '<div class="mtag">結果</div><h2 id="mtitle">' + esc(typeof ui.ev.title === 'function' ? ui.ev.title(g) : ui.ev.title) + '</h2><p class="mtext">' + esc(r.msg) + '</p>' +
       '<button class="btn primary" data-act="evdone">繼續</button>';
     var b = $('#mbody .btn'); if (b) b.focus();
     renderTop(); renderPanel(); renderBar(); renderLog();
