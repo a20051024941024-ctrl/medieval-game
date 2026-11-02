@@ -1,0 +1,1530 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>潮汐釣魚村</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Huninn&family=Noto+Sans+TC:wght@400;500;700&display=swap">
+<style>
+/* Layout: full-screen 3D village; HUD pinned to the four corners, one modal sheet for menus. Single committed look (sunny island), no dark variant. */
+:root{
+  --ink:#18334a;
+  --ink-soft:#4a6377;
+  --paper:#f6fcfb;
+  --paper-2:#e2f1ee;
+  --line:rgba(24,51,74,.14);
+  --coral:#f17b6d;
+  --gold:#ffd36a;
+  --sea:#2f89c7;
+  --mint:#3fbf9d;
+  --r-common:#5aa88f;
+  --r-rare:#e59a2f;
+  --r-legend:#9b5de5;
+  --danger:#e0533f;
+  --f-display:"Huninn","Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
+  --f-body:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+  --gl:max(16px, env(safe-area-inset-left, 0px));
+  --gr:max(16px, env(safe-area-inset-right, 0px));
+  --gt:calc(env(safe-area-inset-top, 0px) + 12px);
+  --gb:calc(env(safe-area-inset-bottom, 0px) + 16px);
+  color-scheme:light;
+}
+html,body{height:100%;overflow:hidden}
+body{background:#8bd8e8;color:var(--ink);font-family:var(--f-body);-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;padding-left:var(--gl);padding-right:var(--gr)}
+#c{position:fixed;inset:0;width:100vw;height:100%;display:block;touch-action:none;outline:none}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
+button:focus-visible,input:focus-visible{outline:3px solid var(--sea);outline-offset:2px}
+.panel{background:rgba(246,252,251,.92);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.7);box-shadow:0 6px 20px rgba(24,51,74,.16);border-radius:16px}
+
+/* labels */
+#labels{position:fixed;inset:0;pointer-events:none;overflow:hidden}
+.lbl{position:absolute;left:0;top:0;white-space:nowrap;font-family:var(--f-display);font-size:13px;color:var(--ink);background:rgba(255,255,255,.82);padding:3px 9px;border-radius:999px;transform:translate(-50%,-100%);box-shadow:0 2px 6px rgba(24,51,74,.15);will-change:transform}
+.lbl.spot{border:2px solid var(--c,#fff)}
+.lbl small{color:var(--ink-soft);font-family:var(--f-body);font-size:11px;margin-left:4px}
+.tag{position:absolute;left:0;top:0;display:flex;flex-direction:column;align-items:center;gap:4px;transform:translate(-50%,-100%);will-change:transform}
+.tag .nm{font-size:12px;font-weight:700;color:#fff;background:rgba(24,51,74,.78);padding:2px 8px;border-radius:999px;white-space:nowrap}
+.tag .nm.me{background:var(--coral)}
+.tag .nm.npc{background:rgba(90,120,100,.82);font-weight:500}
+.tag .bub{max-width:200px;font-size:13px;line-height:1.35;background:#fff;color:var(--ink);padding:6px 10px;border-radius:12px;box-shadow:0 3px 10px rgba(24,51,74,.2);white-space:normal;word-break:break-word;text-align:center;position:relative}
+.tag .bub::after{content:"";position:absolute;left:50%;bottom:-6px;margin-left:-6px;border:6px solid transparent;border-bottom:0;border-top-color:#fff}
+.tag .bub.emote{font-size:22px;padding:4px 10px}
+.tag .bub.alert{background:var(--gold);font-family:var(--f-display);font-size:22px;color:var(--ink)}
+.tag .bub.alert::after{border-top-color:var(--gold)}
+
+/* top bar */
+#top{position:fixed;top:var(--gt);left:var(--gl);right:var(--gr);display:flex;justify-content:space-between;align-items:flex-start;gap:10px;pointer-events:none}
+#top>*{pointer-events:auto}
+#brand{display:flex;align-items:center;gap:10px;padding:8px 12px 8px 10px}
+#brand .mark{width:34px;height:34px;border-radius:10px;background:var(--sea);display:grid;place-items:center;flex:none}
+#brand h1{font-family:var(--f-display);font-size:18px;margin:0;line-height:1.1;font-weight:400;letter-spacing:.04em}
+#online{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-soft);margin-top:2px}
+#online .dot{width:8px;height:8px;border-radius:50%;background:#9fb3bf}
+#online.live .dot{background:#38c172;box-shadow:0 0 0 3px rgba(56,193,114,.2)}
+#menu{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.mbtn{display:flex;align-items:center;gap:6px;padding:9px 13px;font-size:14px;font-weight:500}
+.mbtn svg{width:18px;height:18px;flex:none}
+@media (max-width:640px){.mbtn span{display:none}.mbtn{padding:10px}#brand h1{font-size:16px}}
+
+/* spot card */
+#spotCard{position:fixed;left:50%;top:calc(var(--gt) + 64px);transform:translateX(-50%);padding:10px 16px;text-align:center;min-width:220px;max-width:calc(100vw - 32px);pointer-events:none;transition:opacity .25s}
+#spotCard[hidden]{display:none!important}
+#spotCard .t{font-family:var(--f-display);font-size:17px}
+#spotCard .s{font-size:12px;color:var(--ink-soft);margin-top:2px}
+#spotCard .fl{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:8px}
+.chip{font-size:11px;padding:2px 8px;border-radius:999px;background:var(--paper-2);color:var(--ink);white-space:nowrap}
+.chip.r-常見{background:rgba(90,168,143,.16);color:#2f7a63}
+.chip.r-稀有{background:rgba(229,154,47,.18);color:#9a5f0c}
+.chip.r-傳說{background:rgba(155,93,229,.16);color:#6a2fb5}
+
+/* fishing HUD */
+#fishHud{position:fixed;left:50%;bottom:calc(var(--gb) + 150px);transform:translateX(-50%);width:min(340px,calc(100vw - 32px));padding:12px 14px;pointer-events:none}
+#fishHud .hdr{display:flex;justify-content:space-between;align-items:baseline;font-family:var(--f-display);font-size:16px;margin-bottom:8px}
+#fishHud .hdr small{font-family:var(--f-body);font-size:12px;color:var(--ink-soft)}
+.bar{position:relative;height:14px;border-radius:999px;background:var(--paper-2);overflow:hidden;margin-top:4px}
+.bar i{position:absolute;inset:0 auto 0 0;border-radius:999px;background:var(--sea);width:0}
+.bar .zone{position:absolute;top:0;bottom:0;left:35%;width:45%;background:rgba(63,191,157,.25);border-left:2px solid rgba(63,191,157,.7);border-right:2px solid rgba(63,191,157,.7)}
+.bar.tension i{background:var(--mint)}
+.bar.tension.hot i{background:var(--danger)}
+.bar.progress i{background:var(--gold)}
+.barlbl{display:flex;justify-content:space-between;font-size:11px;color:var(--ink-soft);margin-top:8px}
+#chargeHud{position:fixed;left:50%;bottom:calc(var(--gb) + 150px);transform:translateX(-50%);width:min(260px,calc(100vw - 32px));padding:10px 14px;pointer-events:none;text-align:center}
+#chargeHud .t{font-family:var(--f-display);font-size:15px;margin-bottom:6px}
+#chargeHud .bar i{background:linear-gradient(90deg,var(--mint),var(--gold),var(--coral))}
+#bigMsg{position:fixed;left:50%;top:38%;transform:translate(-50%,-50%);font-family:var(--f-display);font-size:clamp(30px,8vw,54px);color:#fff;text-shadow:0 3px 0 var(--ink),0 0 18px rgba(24,51,74,.5);pointer-events:none;white-space:nowrap;letter-spacing:.06em}
+#bigMsg.pop{animation:pop .5s ease-out}
+@keyframes pop{0%{transform:translate(-50%,-50%) scale(.6);opacity:0}60%{transform:translate(-50%,-50%) scale(1.12);opacity:1}100%{transform:translate(-50%,-50%) scale(1)}}
+
+/* action cluster */
+#actWrap{position:fixed;right:var(--gr);bottom:var(--gb);display:flex;flex-direction:column;align-items:flex-end;gap:12px}
+#emotes{display:flex;gap:8px}
+#emotes button{width:44px;height:44px;border-radius:50%;font-size:20px;display:grid;place-items:center}
+#act{width:112px;height:112px;border-radius:50%;background:var(--gold);color:var(--ink);font-family:var(--f-display);font-size:20px;box-shadow:0 6px 0 #d9a93a,0 10px 24px rgba(24,51,74,.25);border:4px solid #fff;transition:transform .08s,box-shadow .08s,background .2s;touch-action:none;line-height:1.15;padding:6px}
+#act small{display:block;font-family:var(--f-body);font-size:11px;color:var(--ink-soft);margin-top:2px}
+#act:active,#act.down{transform:translateY(4px);box-shadow:0 2px 0 #d9a93a,0 6px 14px rgba(24,51,74,.25)}
+#act.idle{background:#e9f1ef;box-shadow:0 6px 0 #c3d3cf,0 10px 24px rgba(24,51,74,.15);color:var(--ink-soft);font-size:14px}
+#act.bite{background:var(--coral);color:#fff;animation:pulse .4s infinite alternate}
+#act.bite small{color:#fff}
+@keyframes pulse{to{transform:scale(1.08)}}
+
+/* chat */
+#chat{position:fixed;left:var(--gl);bottom:var(--gb);width:min(360px,calc(100vw - 180px));display:flex;flex-direction:column;gap:8px;pointer-events:none}
+#log{display:flex;flex-direction:column;gap:4px;max-height:34vh;overflow:hidden;justify-content:flex-end;mask-image:linear-gradient(to bottom,transparent,#000 24px)}
+#log .m{font-size:13px;line-height:1.4;background:rgba(24,51,74,.55);color:#fff;padding:4px 10px;border-radius:10px;align-self:flex-start;max-width:100%;word-break:break-word;transition:opacity .6s}
+#log .m b{font-weight:700;margin-right:6px;color:var(--gold)}
+#log .m.sys{background:rgba(255,255,255,.75);color:var(--ink)}
+#log .m.sys b{color:var(--coral)}
+#log .m.fade{opacity:0}
+#chatForm{display:flex;gap:6px;pointer-events:auto;padding:5px}
+#chatIn{flex:1;min-width:0;border:0;background:transparent;font:inherit;font-size:14px;padding:6px 8px;color:var(--ink);-webkit-user-select:text;user-select:text}
+#chatIn::placeholder{color:var(--ink-soft)}
+#chatSend{padding:6px 12px;border-radius:10px;background:var(--sea);color:#fff;font-weight:700;font-size:13px}
+#chatSend:disabled{opacity:.4}
+
+/* joystick */
+#joy{position:fixed;left:var(--gl);bottom:var(--gb);width:128px;height:128px;border-radius:50%;background:rgba(255,255,255,.35);border:2px solid rgba(255,255,255,.7);touch-action:none;display:none}
+#joy .knob{position:absolute;left:50%;top:50%;width:54px;height:54px;margin:-27px 0 0 -27px;border-radius:50%;background:rgba(255,255,255,.9);box-shadow:0 3px 10px rgba(24,51,74,.25)}
+body.touch #joy{display:block}
+body.touch #chat{bottom:calc(var(--gb) + 140px);width:min(300px,calc(100vw - 32px))}
+body.touch #chatForm{display:none}
+body.touch.chatting #chatForm{display:flex}
+#chatToggle{display:none}
+body.touch #chatToggle{display:grid}
+
+/* toasts */
+#toasts{position:fixed;top:calc(var(--gt) + 64px);right:var(--gr);display:flex;flex-direction:column;gap:8px;align-items:flex-end;pointer-events:none;max-width:min(320px,calc(100vw - 32px))}
+.toast{padding:9px 13px;font-size:13px;line-height:1.4;animation:tin .3s ease-out}
+.toast b{font-weight:700}
+.toast.out{opacity:0;transform:translateX(20px);transition:.4s}
+@keyframes tin{from{opacity:0;transform:translateX(20px)}}
+
+/* catch card */
+#catchCard{position:fixed;inset:0;display:grid;place-items:center;background:rgba(24,51,74,.35);padding-left:var(--gl);padding-right:var(--gr);z-index:20}
+#catchCard .card{width:min(340px,100%);padding:22px 20px 18px;text-align:center;background:var(--paper);border-radius:22px;box-shadow:0 20px 50px rgba(24,51,74,.35);animation:pop2 .45s cubic-bezier(.2,1.4,.4,1)}
+@keyframes pop2{from{transform:scale(.7);opacity:0}}
+#catchCard canvas{width:220px;height:140px;max-width:100%}
+#catchCard .nm{font-family:var(--f-display);font-size:28px;margin-top:4px}
+#catchCard .w{font-family:var(--f-display);font-size:40px;color:var(--sea);font-variant-numeric:tabular-nums;line-height:1.1;margin-top:6px}
+#catchCard .w small{font-size:18px;margin-left:4px;color:var(--ink-soft)}
+#catchCard .d{font-size:13px;color:var(--ink-soft);margin:10px auto 0;max-width:28ch;line-height:1.55}
+#catchCard .badges{display:flex;gap:6px;justify-content:center;margin-top:8px;flex-wrap:wrap}
+.badge{font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;background:var(--coral);color:#fff}
+.badge.new{background:var(--sea)}
+.pbtn{margin-top:16px;width:100%;padding:12px;border-radius:14px;background:var(--ink);color:#fff;font-weight:700;font-size:15px}
+
+/* sheet */
+#sheet{position:fixed;inset:0;z-index:30;display:grid;place-items:center;background:rgba(24,51,74,.3);padding-left:var(--gl);padding-right:var(--gr);padding-block:calc(env(safe-area-inset-top,0px) + 16px) calc(env(safe-area-inset-bottom,0px) + 16px)}
+#sheet .box{width:min(620px,100%);max-height:min(640px,100%);display:flex;flex-direction:column;background:var(--paper);border-radius:22px;box-shadow:0 20px 50px rgba(24,51,74,.3);overflow:hidden}
+#sheet header{display:flex;align-items:center;gap:6px;padding:12px 12px 0 16px}
+#tabs{display:flex;gap:4px;overflow-x:auto;flex:1;min-width:0;scrollbar-width:none}
+#tabs button{padding:8px 12px;border-radius:10px;font-size:14px;white-space:nowrap;color:var(--ink-soft)}
+#tabs button[aria-selected="true"]{background:var(--ink);color:#fff}
+#closeSheet{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;flex:none}
+#closeSheet:hover{background:var(--paper-2)}
+#sheetBody{padding:14px 16px 18px;overflow:auto;min-height:0}
+.sub{font-size:12px;color:var(--ink-soft);margin:0 0 12px;line-height:1.5}
+.dex{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:10px}
+.dex .it{border:1px solid var(--line);border-radius:14px;padding:8px 10px 10px;display:flex;flex-direction:column;align-items:center;gap:3px;background:#fff}
+.dex .it canvas{width:96px;height:60px}
+.dex .it .n{font-family:var(--f-display);font-size:15px}
+.dex .it .meta{font-size:11px;color:var(--ink-soft);font-variant-numeric:tabular-nums}
+.dex .it.lock .n{color:#9fb3bf}
+.dexhead{display:flex;justify-content:space-between;align-items:baseline;margin:14px 0 8px;font-family:var(--f-display);font-size:16px}
+.dexhead:first-child{margin-top:0}
+.dexhead small{font-family:var(--f-body);font-size:12px;color:var(--ink-soft)}
+.seg{display:inline-flex;background:var(--paper-2);border-radius:10px;padding:3px;margin-bottom:12px}
+.seg button{padding:6px 12px;border-radius:8px;font-size:13px}
+.seg button[aria-pressed="true"]{background:#fff;box-shadow:0 1px 3px rgba(24,51,74,.15);font-weight:700}
+.rank{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.rank li{display:grid;grid-template-columns:30px 1fr auto;gap:10px;align-items:center;padding:8px 12px;border-radius:12px;background:#fff;border:1px solid var(--line)}
+.rank li.me{border-color:var(--coral);background:#fff5f3}
+.rank .pos{font-family:var(--f-display);font-size:17px;text-align:center;color:var(--ink-soft)}
+.rank li:nth-child(1) .pos{color:#d19a0f}
+.rank .who{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
+.rank .who small{display:block;font-weight:400;font-size:11px;color:var(--ink-soft)}
+.rank .val{font-variant-numeric:tabular-nums;font-weight:700}
+.empty{padding:20px;text-align:center;color:var(--ink-soft);font-size:13px;line-height:1.6;background:#fff;border-radius:14px;border:1px dashed var(--line)}
+.tank{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}
+.tank li{display:flex;gap:10px;align-items:center;padding:6px 10px;background:#fff;border:1px solid var(--line);border-radius:12px}
+.tank canvas{width:56px;height:36px;flex:none}
+.tank .n{font-weight:500;font-size:14px}
+.tank .meta{font-size:11px;color:var(--ink-soft);font-variant-numeric:tabular-nums}
+.people{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.people li{display:flex;align-items:center;gap:10px;padding:8px 12px;background:#fff;border:1px solid var(--line);border-radius:12px}
+.people .sw{width:14px;height:14px;border-radius:50%;flex:none}
+.people .st{margin-left:auto;font-size:12px;color:var(--ink-soft)}
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:16px}
+.field label{font-weight:700;font-size:14px}
+.swatches{display:flex;gap:8px;flex-wrap:wrap}
+.swatches button{width:36px;height:36px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 1px var(--line)}
+.swatches button[aria-pressed="true"]{box-shadow:0 0 0 3px var(--ink)}
+.txt{border:1px solid var(--line);border-radius:10px;padding:9px 12px;font:inherit;font-size:14px;background:#fff;color:var(--ink);-webkit-user-select:text;user-select:text;max-width:260px}
+.kbd{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:13px;align-items:center}
+.kbd kbd{font-family:var(--f-body);background:#fff;border:1px solid var(--line);border-bottom-width:2px;border-radius:6px;padding:1px 7px;font-size:12px;justify-self:start}
+
+#hint{position:fixed;left:50%;bottom:calc(var(--gb) + 6px);transform:translateX(-50%);padding:9px 14px;font-size:13px;display:flex;gap:10px;align-items:center;max-width:calc(100vw - 300px)}
+#hint button{font-size:12px;color:var(--ink-soft);text-decoration:underline}
+body.touch #hint{bottom:auto;top:calc(var(--gt) + 64px);max-width:calc(100vw - 32px)}
+@media (max-width:820px){body:not(.touch) #hint{display:none}}
+/* ---- landscape phone layout (short screens) ---- */
+@media (orientation:landscape) and (max-height:540px){
+  :root{--gt:calc(env(safe-area-inset-top,0px) + 8px);--gb:calc(env(safe-area-inset-bottom,0px) + 10px)}
+  #brand{padding:5px 10px 5px 6px;gap:8px}
+  #brand .mark{width:28px;height:28px;border-radius:8px}
+  #brand h1{font-size:15px}
+  #online{font-size:11px;margin-top:0}
+  .mbtn{padding:8px}
+  .mbtn span{display:none}
+  .mbtn svg{width:17px;height:17px}
+  #spotCard{top:var(--gt);padding:6px 12px;min-width:0}
+  #spotCard .t{font-size:15px}
+  #spotCard .s{display:none}
+  #spotCard .fl{margin-top:4px}
+  #toasts{top:calc(var(--gt) + 46px)}
+  #actWrap{gap:8px}
+  #emotes{gap:6px}
+  #emotes button{width:38px;height:38px;font-size:17px}
+  #act{width:88px;height:88px;font-size:17px;border-width:3px}
+  #act.idle{font-size:13px}
+  #joy{width:108px;height:108px}
+  #joy .knob{width:46px;height:46px;margin:-23px 0 0 -23px}
+  #fishHud,#chargeHud{bottom:var(--gb);width:min(300px,calc(100vw - 300px));padding:8px 12px}
+  #fishHud .hdr{font-size:14px;margin-bottom:2px}
+  .barlbl{margin-top:4px}
+  .bar{height:11px}
+  #bigMsg{top:34%}
+  body.touch #chat{bottom:calc(var(--gb) + 118px);width:min(260px,calc(50vw - 60px))}
+  #log{max-height:calc(100vh - 290px);min-height:0}
+  #log .m{font-size:12px;padding:3px 8px}
+  body.touch.chatting #chatForm{position:fixed;left:50%;top:var(--gt);transform:translateX(-50%);width:min(420px,calc(100vw - 32px));z-index:15}
+  body.touch #hint{top:auto;bottom:var(--gb);max-width:calc(100vw - 300px);font-size:12px;padding:7px 10px}
+  #catchCard .card{width:min(560px,100%);display:grid;grid-template-columns:200px 1fr;column-gap:16px;align-items:center;text-align:left;padding:16px 18px}
+  #catchCard canvas{grid-row:1 / span 5;width:200px;height:128px}
+  #catchCard .badges{justify-content:flex-start;margin-top:0}
+  #catchCard .nm{font-size:24px}
+  #catchCard .w{font-size:32px;margin-top:2px}
+  #catchCard .d{margin:6px 0 0;font-size:12px}
+  #catchCard .pbtn{margin-top:10px;padding:10px}
+  #sheet .box{max-height:100%}
+  #sheetBody{padding:10px 14px 14px}
+  .dex{grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px}
+}
+/* ---- rotate prompt (phones held upright) ---- */
+#rotate{position:fixed;inset:0;z-index:50;background:#2f89c7;color:#fff;display:none;flex-direction:column;align-items:center;justify-content:center;gap:18px;text-align:center;padding-left:var(--gl);padding-right:var(--gr)}
+body.touch.portrait:not(.allowPortrait) #rotate{display:flex}
+#rotate .ph{width:64px;height:104px;border:4px solid #fff;border-radius:14px;position:relative;animation:turn 2.4s ease-in-out infinite}
+#rotate .ph::after{content:"";position:absolute;left:50%;bottom:7px;width:14px;height:4px;margin-left:-7px;border-radius:2px;background:#fff}
+@keyframes turn{0%,20%{transform:rotate(0)}50%,80%{transform:rotate(-90deg)}100%{transform:rotate(0)}}
+#rotate h2{font-family:var(--f-display);font-weight:400;font-size:24px;margin:0;letter-spacing:.04em}
+#rotate p{margin:0;font-size:14px;opacity:.9;max-width:26ch;line-height:1.6}
+#rotate .row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+#rotate button{padding:11px 18px;border-radius:14px;font-weight:700;font-size:15px}
+#rotFull{background:var(--gold);color:var(--ink)}
+#rotSkip{background:rgba(255,255,255,.18);color:#fff}
+#fsBtn{display:none}
+body.touch #fsBtn.ok{display:flex}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<canvas id="c" tabindex="0" aria-label="潮汐釣魚村 3D 場景"></canvas>
+<div id="labels"></div>
+
+<div id="top">
+  <div id="brand" class="panel">
+    <div class="mark" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M3 16c2 1.6 4 1.6 6 0s4-1.6 6 0 4 1.6 6 0"/><path d="M15 3v8a3 3 0 1 1-3-3"/></svg></div>
+    <div><h1>潮汐釣魚村</h1><div id="online"><span class="dot"></span><span id="onlineTxt">單人模式</span></div></div>
+  </div>
+  <div id="menu">
+    <button class="mbtn panel" data-tab="dex" aria-label="圖鑑"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 19V5"/><path d="M9 8h6"/></svg><span>圖鑑</span></button>
+    <button class="mbtn panel" data-tab="rank" aria-label="排行榜"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg><span>排行榜</span></button>
+    <button class="mbtn panel" data-tab="tank" aria-label="魚缸"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M8 12c1.5-1.5 3.5-1.5 5 0-1.5 1.5-3.5 1.5-5 0zM13 12l2-1.5v3z"/></svg><span>魚缸</span></button>
+    <button class="mbtn panel" data-tab="people" aria-label="玩家"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14a5 5 0 0 1 3.5 6"/></svg><span>玩家</span></button>
+    <button class="mbtn panel" data-tab="style" aria-label="造型"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 15h18M6 15c0-4 2.7-7 6-7s6 3 6 7"/><path d="M12 8V5"/></svg><span>造型</span></button>
+    <button class="mbtn panel" id="fsBtn" aria-label="全螢幕"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+    <button class="mbtn panel" id="soundBtn" aria-label="音效開關"><svg id="soundIco" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M17 9a4 4 0 0 1 0 6"/></svg></button>
+  </div>
+</div>
+
+<div id="spotCard" class="panel" hidden><div class="t"></div><div class="s"></div><div class="fl"></div></div>
+<div id="toasts"></div>
+<div id="bigMsg" hidden></div>
+
+<div id="chargeHud" class="panel" hidden><div class="t">蓄力中，放開拋竿</div><div class="bar"><i id="chargeFill"></i></div></div>
+<div id="fishHud" class="panel" hidden>
+  <div class="hdr"><span id="fhName">有魚上鉤了！</span><small id="fhHint">按住拉線，放開卸力</small></div>
+  <div class="barlbl"><span>線的拉力</span><span id="fhT">保持在綠色區</span></div>
+  <div class="bar tension" id="tBar"><span class="zone"></span><i id="tFill"></i></div>
+  <div class="barlbl"><span>收線進度</span><span id="fhP"></span></div>
+  <div class="bar progress"><i id="pFill"></i></div>
+</div>
+
+<div id="chat">
+  <div id="log" aria-live="polite"></div>
+  <form id="chatForm" class="panel" autocomplete="off">
+    <input id="chatIn" maxlength="120" placeholder="按 Enter 跟大家聊天…" aria-label="聊天訊息">
+    <button id="chatSend" type="submit">送出</button>
+  </form>
+</div>
+<div id="joy" aria-hidden="true"><div class="knob"></div></div>
+
+<div id="actWrap">
+  <div id="emotes">
+    <button class="panel" id="chatToggle" aria-label="聊天">💬</button>
+    <button class="panel" data-emote="wave" aria-label="揮手">👋</button>
+    <button class="panel" data-emote="fish" aria-label="炫耀">🐟</button>
+    <button class="panel" data-emote="wow" aria-label="驚嘆">😮</button>
+  </div>
+  <button id="act" class="idle" aria-label="釣魚動作">走到釣點</button>
+</div>
+
+<div id="hint" class="panel"><span id="hintTxt">WASD 移動 · 拖曳滑鼠轉視角 · 走進發光圈後按住空白鍵拋竿</span><button id="hintX">知道了</button></div>
+
+<div id="catchCard" hidden>
+  <div class="card" role="dialog" aria-modal="true" aria-labelledby="ccName">
+    <canvas id="ccCanvas" width="440" height="280"></canvas>
+    <div class="badges" id="ccBadges"></div>
+    <div class="nm" id="ccName"></div>
+    <div class="w" id="ccW"></div>
+    <div class="d" id="ccDesc"></div>
+    <button class="pbtn" id="ccOk">放進魚缸</button>
+  </div>
+</div>
+
+<div id="sheet" hidden>
+  <div class="box" role="dialog" aria-modal="true" aria-label="選單">
+    <header>
+      <div id="tabs" role="tablist">
+        <button role="tab" data-tab="dex">圖鑑</button>
+        <button role="tab" data-tab="rank">排行榜</button>
+        <button role="tab" data-tab="tank">魚缸</button>
+        <button role="tab" data-tab="people">玩家</button>
+        <button role="tab" data-tab="style">造型</button>
+        <button role="tab" data-tab="help">玩法</button>
+      </div>
+      <button id="closeSheet" aria-label="關閉"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </header>
+    <div id="sheetBody"></div>
+  </div>
+</div>
+
+<div id="rotate" role="dialog" aria-label="請轉成橫向">
+  <div class="ph" aria-hidden="true"></div>
+  <h2>把手機轉成橫向</h2>
+  <p>潮汐釣魚村是橫向遊戲，左手搖桿、右手拋竿最順手。</p>
+  <div class="row"><button id="rotFull">全螢幕橫向玩</button><button id="rotSkip">先用直向</button></div>
+</div>
+
+<script>
+/* ===== 5 碼房間代碼：用 PeerJS 做一個跟 Claude 房間一樣用法的「房間」 =====
+   一個人當房主（開房的人），其他人連到房主；房主負責把每個人的位置、聊天、廣播轉給大家。
+   對外提供的用法：connected() emit(topic,data) on(topic,fn) presence(obj) onPeers(fn) onConnection(fn) leave() code */
+window.PJRoom = (function () {
+  var PFX = 'tide-v1-', LIB = null;
+  function loadLib() {
+    if (window.Peer) return Promise.resolve(window.Peer);
+    if (LIB) return LIB;
+    LIB = new Promise(function (res, rej) {
+      var urls = ['https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js', 'https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js'], k = 0;
+      (function next() {
+        if (k >= urls.length) { LIB = null; return rej(new Error('load')); }
+        var s = document.createElement('script'); s.src = urls[k++]; s.async = true;
+        s.onload = function () { window.Peer ? res(window.Peer) : next(); }; s.onerror = next; document.head.appendChild(s);
+      })();
+    });
+    return LIB;
+  }
+  function newCode() { var A = 'ABCDEFGHJKLMNPQRSTUVWXYZ', c = ''; for (var i = 0; i < 5; i++) c += A.charAt(Math.floor(Math.random() * A.length)); return c; }
+
+  function make(isHost, code, myName) {
+    var R = { code: code, host: isHost }, peer = null, me = null, conns = {}, hostConn = null, live = false;
+    var pres = {}, names = {}, lis = {}, peerFns = [], connFns = [], myPres = null, seen = {}, hbT = null;
+    function fire(t, msg) { (lis[t] || []).forEach(function (f) { try { f(msg); } catch (e) {} }); }
+    function firePeers(ch) { peerFns.forEach(function (f) { try { f(ch); } catch (e) {} }); }
+    function fireConn() { connFns.forEach(function (f) { try { f(live); } catch (e) {} }); }
+    function pp(id) { return { peer: id, isMe: id === me, kind: 'viewer', presence: pres[id] || {}, by: id, guest: false }; }
+    function bcast(o, except) { var s = JSON.stringify(o); Object.keys(conns).forEach(function (id) { if (id !== except) try { conns[id].send(s); } catch (e) {} }); }
+    function onHostMsg(id, raw) { /* 房主收到某位朋友的訊息 */
+      var m; try { m = JSON.parse(raw); } catch (e) { return; }
+      seen[id] = Date.now(); if (m.t === 'hb') return;
+      if (m.t === 'pres') { var isNew = !pres[id]; pres[id] = m.p || {}; bcast({ t: 'pres', id: id, p: pres[id] }, id); firePeers(isNew ? { joined: [pp(id)], updated: [], left: [] } : { joined: [], updated: [pp(id)], left: [] }); }
+      else if (m.t === 'ev' && typeof m.topic === 'string') { bcast({ t: 'ev', id: id, topic: m.topic, data: m.data }, id); fire(m.topic, { peer: id, data: m.data, sameTab: false }); }
+    }
+    function onGuestMsg(raw) { /* 朋友收到房主轉來的訊息 */
+      var m; try { m = JSON.parse(raw); } catch (e) { return; }
+      if (m.t === 'snap') { var j = []; Object.keys(m.all || {}).forEach(function (id) { if (id === me) return; pres[id] = m.all[id]; j.push(pp(id)); }); if (j.length) firePeers({ joined: j, updated: [], left: [] }); }
+      else if (m.t === 'pres' && m.id !== me) { var isNew = !pres[m.id]; pres[m.id] = m.p || {}; firePeers(isNew ? { joined: [pp(m.id)], updated: [], left: [] } : { joined: [], updated: [pp(m.id)], left: [] }); }
+      else if (m.t === 'left' && pres[m.id]) { var x = pp(m.id); delete pres[m.id]; firePeers({ joined: [], updated: [], left: [x] }); }
+      else if (m.t === 'ev' && m.id !== me) fire(m.topic, { peer: m.id, data: m.data, sameTab: false });
+    }
+    R.connected = function () { return live; };
+    R.on = function (t, fn) { (lis[t] || (lis[t] = [])).push(fn); return function () {}; };
+    R.onPeers = function (fn) { peerFns.push(fn); var j = Object.keys(pres).filter(function (id) { return id !== me; }).map(pp); if (j.length) setTimeout(function () { fn({ joined: j, updated: [], left: [] }); }, 0); return function () {}; };
+    R.onConnection = function (fn) { connFns.push(fn); return function () {}; };
+    R.presence = function (o) {
+      myPres = o; if (!live) return Promise.resolve();
+      if (isHost) { pres[me] = o; bcast({ t: 'pres', id: me, p: o }); }
+      else if (hostConn) try { hostConn.send(JSON.stringify({ t: 'pres', p: o })); } catch (e) {}
+      return Promise.resolve();
+    };
+    R.emit = function (topic, data) {
+      if (!live) return Promise.reject({ code: 'not_connected' });
+      if (isHost) bcast({ t: 'ev', id: me, topic: topic, data: data });
+      else if (hostConn) try { hostConn.send(JSON.stringify({ t: 'ev', topic: topic, data: data })); } catch (e) {}
+      fire(topic, { peer: me, data: data, sameTab: true });
+      return Promise.resolve();
+    };
+    R._gone = {};
+    R.leave = function () { live = false; clearInterval(hbT); try { peer && peer.destroy(); } catch (e) {} fireConn(); };
+    R.start = function () {
+      return loadLib().then(function (Peer) {
+        return new Promise(function (res, rej) {
+          var tries = 0;
+          (function attempt() {
+            if (isHost) {
+              var c = R.code || newCode(); tries++;
+              peer = new Peer(PFX + c, { debug: 0 });
+              peer.on('open', function (id) { me = id; R.code = c; live = true; fireConn(); if (myPres) R.presence(myPres); res(R);
+                hbT = setInterval(function () { var t = Date.now(); Object.keys(conns).forEach(function (k) { if (seen[k] && t - seen[k] > 20000 && R._gone[k]) R._gone[k](); }); bcast({ t: 'hb' }); }, 5000); });
+              peer.on('connection', function (conn) {
+                var id = conn.peer;
+                var ready = function () { if (conns[id]) return; conns[id] = conn; var all = {}; Object.keys(pres).forEach(function (k) { all[k] = pres[k]; }); if (myPres) all[me] = myPres; try { conn.send(JSON.stringify({ t: 'snap', all: all })); } catch (e) {} };
+                conn.on('open', ready); if (conn.open) setTimeout(ready, 0);
+                conn.on('data', function (d) { ready(); onHostMsg(id, d); });
+                var gone = R._gone[id] = function () { if (!conns[id]) return; delete conns[id]; var x = pp(id); delete pres[id]; bcast({ t: 'left', id: id }); firePeers({ joined: [], updated: [], left: [x] }); };
+                conn.on('close', gone); conn.on('error', gone);
+              });
+              peer.on('error', function (e) { if (e && e.type === 'unavailable-id' && tries < 4) { try { peer.destroy(); } catch (x) {} R.code = null; return attempt(); } if (!live) rej(e); });
+              peer.on('disconnected', function () { try { peer.reconnect(); } catch (e) {} });
+            } else {
+              peer = new Peer({ debug: 0 });
+              var done = false;
+              peer.on('open', function (id) {
+                me = id; hostConn = peer.connect(PFX + code, { reliable: true });
+                var lastHost = Date.now();
+                var opened = function () { if (done) return; done = true; live = true; fireConn(); if (myPres) R.presence(myPres); res(R);
+                  hbT = setInterval(function () { try { hostConn.send(JSON.stringify({ t: 'hb' })); } catch (e) {} if (Date.now() - lastHost > 20000 && live) { live = false; fireConn(); } }, 5000); };
+                hostConn.on('open', opened);
+                hostConn.on('data', function (d) { lastHost = Date.now(); if (!live && done) { live = true; fireConn(); } opened(); onGuestMsg(d); });
+                hostConn.on('close', function () { live = false; fireConn(); });
+                setTimeout(function () { if (!done) rej({ type: 'timeout' }); }, 15000);
+              });
+              peer.on('error', function (e) { if (!done) rej(e); });
+            }
+          })();
+        });
+      });
+    };
+    return R;
+  }
+  return { host: function (name) { return make(true, null, name).start(); }, join: function (code, name) { return make(false, String(code || '').toUpperCase().replace(/[^A-Z]/g, ''), name).start(); }, available: function () { return typeof RTCPeerConnection !== 'undefined'; } };
+})();
+
+</script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
+<script>if(!window.THREE)document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>')</script>
+<script>
+(function(){
+'use strict';
+const $ = (s, r=document) => r.querySelector(s);
+const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
+const isTouch = matchMedia('(pointer: coarse)').matches || ('ontouchstart' in window && innerWidth < 900);
+if (isTouch) document.body.classList.add('touch');
+const LS = {
+  get(k, d){ try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch(e){ return d; } },
+  set(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} }
+};
+const rand = (a, b) => a + Math.random() * (b - a);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const now = () => performance.now() / 1000;
+
+if (!window.THREE) { document.body.insertAdjacentHTML('beforeend', '<div class="panel" style="position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);padding:20px;max-width:300px;text-align:center">3D 引擎沒有載入成功，請重新整理頁面。</div>'); return; }
+
+/* ================= DATA (from world.ts) ================= */
+const PALETTE = { sky:'#8bd8e8', grass:'#77b86a', grassLight:'#a6d37d', sand:'#f2d69a', wood:'#8c5d3b', ink:'#18334a', river:'#4fc2cf', sea:'#2f89c7', creek:'#6bd6b0', coral:'#f17b6d', gold:'#ffd36a' };
+
+const FISH = [
+  // river
+  { id:'perch',  spot:'river', name:'翡翠河鱸', rarity:'常見', color:'#5de0bd', min:0.4, max:1.6, power:0.38, desc:'月灣河岸最常見的住民，綠色鱗片在水草間一閃一閃。' },
+  { id:'crucian',spot:'river', name:'銀鱗鯽',   rarity:'常見', color:'#c9d6e3', min:0.2, max:0.9, power:0.3,  desc:'成群在木橋下打轉，咬餌很快，適合新手練手感。' },
+  { id:'catfish',spot:'river', name:'竹影鯰',   rarity:'稀有', color:'#9c8657', min:1.5, max:5.5, power:0.66, desc:'白天躲在竹影下，鬍鬚很長，力氣比看起來大很多。' },
+  { id:'koi',    spot:'river', name:'朱紅錦鯉', rarity:'傳說', color:'#ff6b4a', min:2.5, max:7.0, power:0.9,  desc:'傳說它每年只在滿月那週游到河灣。釣到的人會有一整年好運。' },
+  // sea
+  { id:'mackerel',spot:'sea',  name:'沙灘小鯖', rarity:'常見', color:'#6fa8dc', min:0.3, max:1.2, power:0.4,  desc:'跟著浪花游來游去，背上有藍綠色的斑紋。' },
+  { id:'scorpion',spot:'sea',  name:'條紋石狗公',rarity:'常見',color:'#e08f5b', min:0.3, max:1.4, power:0.42, desc:'喜歡貼著礁石，背鰭有刺，拿的時候要小心。' },
+  { id:'moonbream',spot:'sea', name:'月光鯛',   rarity:'稀有', color:'#ffd86d', min:1.0, max:3.8, power:0.64, desc:'鱗片會反射月光，晴潮燈塔一亮，牠們就會靠近岸邊。' },
+  { id:'marlin', spot:'sea',   name:'深藍旗魚', rarity:'傳說', color:'#2f5fd0', min:8.0, max:24.0,power:0.95, desc:'遠洋的王者，偶爾追著小魚游進海灣。拉線時要很有耐心。' },
+  // creek
+  { id:'kuhua',  spot:'creek', name:'清溪苦花', rarity:'常見', color:'#9fd8c4', min:0.2, max:0.8, power:0.34, desc:'只住在最乾淨的溪水裡，身上有一條淡淡的光帶。' },
+  { id:'ayu',    spot:'creek', name:'霧溪香魚', rarity:'常見', color:'#b8e0a0', min:0.1, max:0.6, power:0.32, desc:'聞起來有西瓜般的清香，是溪間居民的驕傲。' },
+  { id:'goby',   spot:'creek', name:'紫晶蝦虎', rarity:'稀有', color:'#9b7bff', min:0.1, max:0.5, power:0.58, desc:'在螢光石旁邊發出紫色微光，個頭小但很會掙扎。' },
+  { id:'trout',  spot:'creek', name:'星點溪鱒', rarity:'傳說', color:'#c084ff', min:1.2, max:4.5, power:0.88, desc:'身上的星點跟夜空一模一樣。據說是螢光溪的守護者。' },
+];
+const FISH_BY_ID = Object.fromEntries(FISH.map(f => [f.id, f]));
+
+const SPOTS = [
+  { id:'river', label:'月灣河岸', short:'河岸', subtitle:'水草與木橋交錯的安靜河灣', pos:new THREE.Vector3(-11.2,0,3), color:PALETTE.river, dir:new THREE.Vector2(-0.75,-0.66).normalize() },
+  { id:'sea',   label:'晴潮海邊', short:'海邊', subtitle:'面向遠方燈塔的金色沙灘', pos:new THREE.Vector3(0,0,-14), color:PALETTE.sea, dir:new THREE.Vector2(-0.78,-0.62).normalize() },
+  { id:'creek', label:'螢光溪間', short:'溪間', subtitle:'螢光石環繞的清涼小溪', pos:new THREE.Vector3(14.5,0,10), color:PALETTE.creek, dir:new THREE.Vector2(1,0.35).normalize() },
+];
+const SPOT_BY_ID = Object.fromEntries(SPOTS.map(s => [s.id, s]));
+const LANDMARKS = [
+  { id:'plaza', label:'潮汐廣場', pos:new THREE.Vector3(0,0,4), color:PALETTE.gold },
+  { id:'aquarium', label:'你的水族館', pos:new THREE.Vector3(10,0,3), color:PALETTE.coral },
+  { id:'chat', label:'小岬聊天亭', pos:new THREE.Vector3(-3,0,11), color:'#f5a5d8' },
+  { id:'lighthouse', label:'晴潮燈塔', pos:new THREE.Vector3(15,0,-19), color:'#ffe5a4' },
+];
+const SHIRTS = ['#f17b6d','#2f89c7','#3fbf9d','#ffd36a','#9b7bff','#f5a5d8','#ff9f43','#5b6b7a'];
+const HATS = ['#ffd36a','#f6f0dd','#18334a','#f17b6d','#3fbf9d','#8c5d3b'];
+const EMOTES = { wave:'👋', fish:'🐟', wow:'😮' };
+const RARITY_ORDER = { '常見':0, '稀有':1, '傳說':2 };
+
+/* ================= RENDERER ================= */
+const canvas = $('#c');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: !isTouch, powerPreference:'high-performance' });
+renderer.setPixelRatio(Math.min(devicePixelRatio || 1, isTouch ? 1.6 : 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(PALETTE.sky);
+scene.fog = new THREE.Fog('#b7e5df', 38, 110);
+const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 220);
+function resize(){ const w = innerWidth, h = innerHeight; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); }
+addEventListener('resize', resize); resize();
+
+const MODERN = parseInt(THREE.REVISION, 10) >= 155;
+scene.add(new THREE.HemisphereLight('#e7fbff', '#52725c', MODERN ? 1.55 : 1.05));
+const sun = new THREE.DirectionalLight('#fff4d2', MODERN ? 2.2 : 1.25);
+sun.castShadow = true;
+const SM = isTouch ? 1024 : 2048;
+sun.shadow.mapSize.set(SM, SM);
+Object.assign(sun.shadow.camera, { left:-30, right:30, top:30, bottom:-30, near:1, far:100 });
+sun.shadow.bias = -0.0008;
+sun.shadow.camera.updateProjectionMatrix();
+scene.add(sun, sun.target);
+
+/* ================= WORLD ================= */
+const colliders = []; // {t:'b',x,z,hw,hd} | {t:'c',x,z,r}
+const decks = [];     // {x0,x1,z0,z1,y}
+const waters = [];    // {x0,x1,z0,z1}
+const animWater = [];
+const lanterns = [];
+const schools = [];
+const clouds = [];
+
+function mat(color, roughness=0.8, extra){ return new THREE.MeshStandardMaterial(Object.assign({ color, roughness, metalness:0.04 }, extra||{})); }
+function box(size, color, pos, material){ const m = new THREE.Mesh(new THREE.BoxGeometry(size[0], size[1], size[2]), material || mat(color)); m.position.set(pos[0], pos[1], pos[2]); m.castShadow = true; m.receiveShadow = true; return m; }
+const addBoxCol = (x, z, w, d) => colliders.push({ t:'b', x, z, hw:w/2, hd:d/2 });
+const addCircleCol = (x, z, r) => colliders.push({ t:'c', x, z, r });
+function addDeck(x, z, w, d, y){ decks.push({ x0:x-w/2, x1:x+w/2, z0:z-d/2, z1:z+d/2, y }); }
+
+function waterY(x, z, t){ return 0.12 + Math.sin(x*0.6 + t*1.3)*0.035 + Math.cos(z*0.5 + t*1.1)*0.035; }
+
+(function buildWorld(){
+  // sun disc
+  const sd = new THREE.Mesh(new THREE.SphereGeometry(6, 24, 16), new THREE.MeshBasicMaterial({ color:'#ffe8ae', fog:false }));
+  sd.position.set(-34, 32, -48); scene.add(sd);
+
+  // ground
+  const ground = box([72, 0.6, 72], PALETTE.grass, [0, -0.3, 0]); ground.castShadow = false; scene.add(ground);
+  // outer sea ring so the island floats in water
+  const outer = new THREE.Mesh(new THREE.PlaneGeometry(400, 400), mat('#4aa6cf', 0.3, { emissive:'#2f89c7', emissiveIntensity:0.15 }));
+  outer.rotation.x = -Math.PI/2; outer.position.y = -0.55; scene.add(outer);
+
+  const plaza = new THREE.Mesh(new THREE.CircleGeometry(7, 40), mat('#dcbf7d')); plaza.rotation.x = -Math.PI/2; plaza.position.set(0, 0.015, 4); plaza.receiveShadow = true; scene.add(plaza);
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(5.4, 0.11, 8, 48), mat(PALETTE.gold, 0.6, { emissive:PALETTE.gold, emissiveIntensity:0.5 })); ring.rotation.x = -Math.PI/2; ring.position.set(0, 0.06, 4); scene.add(ring);
+  // plaza tiles
+  for (let i = 0; i < 8; i++){ const a = i/8*Math.PI*2; const st = box([0.9,0.04,0.9], '#cfae6a', [Math.cos(a)*3, 0.03, 4+Math.sin(a)*3]); st.rotation.y = a; scene.add(st); }
+  // fountain
+  const basin = new THREE.Mesh(new THREE.CylinderGeometry(1.4, 1.55, 0.45, 20), mat('#e9e2cf', 0.7)); basin.position.set(0, 0.22, 4); basin.castShadow = basin.receiveShadow = true; scene.add(basin);
+  const fw = new THREE.Mesh(new THREE.CylinderGeometry(1.22, 1.22, 0.05, 20), mat('#67c9d0', 0.15, { emissive:'#4fc2cf', emissiveIntensity:0.35 })); fw.position.set(0, 0.42, 4); scene.add(fw);
+  const spout = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.22, 0.9, 10), mat('#e9e2cf', 0.7)); spout.position.set(0, 0.8, 4); spout.castShadow = true; scene.add(spout);
+  addCircleCol(0, 4, 1.6);
+
+  // waters
+  function addWater(w, d, x, z, color, phase){
+    const sx = Math.max(4, Math.round(w/1.3)), sz = Math.max(4, Math.round(d/1.3));
+    const geo = new THREE.PlaneGeometry(w, d, sx, sz); geo.rotateX(-Math.PI/2);
+    const m = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color, roughness:0.18, metalness:0.18, transparent:true, opacity:0.8, emissive:color, emissiveIntensity:0.2 }));
+    m.position.set(x, 0, z); m.receiveShadow = true; scene.add(m);
+    animWater.push({ m, phase });
+    waters.push({ x0:x-w/2, x1:x+w/2, z0:z-d/2, z1:z+d/2 });
+  }
+  addWater(13, 54, -17, 2, PALETTE.river, 0.2);
+  addWater(64, 14, 0, -22, PALETTE.sea, 1.7);
+  addWater(8, 34, 18, 10, PALETTE.creek, 3.4);
+
+  const sand = mat(PALETTE.sand, 0.95);
+  const riverBank = box([18, 0.08, 54], PALETTE.sand, [-9.3, 0.035, 2], sand); riverBank.rotation.y = 0.02;
+  scene.add(riverBank, box([64, 0.08, 5], PALETTE.sand, [0, 0.035, -14.2], sand), box([4, 0.08, 34], PALETTE.sand, [12, 0.035, 10], sand));
+
+  // river dock
+  scene.add(box([5.5, 0.32, 2.2], PALETTE.wood, [-13, 0.16, 3])); addDeck(-13, 3, 5.5, 2.2, 0.32);
+  for (let i = -2; i <= 2; i++){ const px = -15.1 + i*1.05; scene.add(box([0.22, 1.2, 0.22], PALETTE.wood, [px, 0.6, 1.95])); }
+  // sea pier
+  scene.add(box([4, 0.28, 7], PALETTE.wood, [0, 0.14, -16.2])); addDeck(0, -16.2, 4, 7, 0.28);
+  for (const sx of [-1.85, 1.85]) for (const sz of [-19.5, -16.2, -13]) scene.add(box([0.2, 0.9, 0.2], PALETTE.wood, [sx, 0.15, sz]));
+  // creek dock
+  scene.add(box([3.6, 0.28, 2.4], PALETTE.wood, [15.6, 0.14, 10])); addDeck(15.6, 10, 3.6, 2.4, 0.28);
+  // creek glow stones
+  const glowM = mat('#9bf3d6', 0.4, { emissive:'#6bd6b0', emissiveIntensity:0.9 });
+  [[19.5,4],[21,13],[16.5,15],[20,18],[17,2],[21.2,7.5]].forEach(([x,z],i)=>{ const s = new THREE.Mesh(new THREE.DodecahedronGeometry(0.35+i%3*0.12, 0), glowM); s.position.set(x, 0.12, z); s.rotation.set(i, i*2, 0); scene.add(s); lanterns.push(s); });
+  // river reeds
+  const reedM = mat('#5f9e58', 0.9);
+  for (let i = 0; i < 40; i++){ const r = new THREE.Mesh(new THREE.ConeGeometry(0.06, rand(0.6,1.1), 4), reedM); const z = rand(-24, 28); if (Math.abs(z-3) < 2.5) continue; r.position.set(-10.7 - Math.random()*0.8, 0.4, z); r.rotation.z = rand(-0.2,0.2); scene.add(r); }
+
+  // village
+  function house(x, z, roofColor, width){
+    const g = new THREE.Group(); g.position.set(x, 0, z);
+    const body = box([width, 2.3, 2.5], '#f6e4bd', [0, 1.15, 0]);
+    const roof = new THREE.Mesh(new THREE.ConeGeometry(width*0.78, 1.55, 4), mat(roofColor)); roof.position.y = 3.05; roof.rotation.y = Math.PI/4; roof.castShadow = true;
+    const door = box([0.55, 1.15, 0.12], PALETTE.wood, [0, 0.58, -1.28]);
+    const win = box([0.62, 0.52, 0.1], '#8edce1', [-0.88, 1.4, -1.28]);
+    const win2 = win.clone(); win2.position.x = 0.88;
+    const chim = box([0.4, 0.9, 0.4], '#c9b38a', [width*0.25, 3.2, 0.5]);
+    g.add(body, roof, door, win, win2, chim); scene.add(g);
+    addBoxCol(x, z, width, 2.5);
+  }
+  house(5.6, 6.3, '#ec8b68', 3.4);
+  house(-6.2, 6.2, '#d896c3', 3.1);
+  house(11.5, 8.6, '#7db7d7', 3.8);
+
+  // chat pavilion
+  const pav = new THREE.Group(); pav.position.set(-3, 0, 11);
+  for (const [px,pz] of [[-1.4,-1.4],[1.4,-1.4],[-1.4,1.4],[1.4,1.4]]){ const p = new THREE.Mesh(new THREE.CylinderGeometry(0.1,0.12,2.3,8), mat(PALETTE.wood)); p.position.set(px,1.15,pz); p.castShadow = true; pav.add(p); }
+  const proof = new THREE.Mesh(new THREE.ConeGeometry(2.6, 1.2, 6), mat('#f5a5d8')); proof.position.y = 2.85; proof.castShadow = true; pav.add(proof);
+  const bench = box([2.2, 0.12, 0.5], PALETTE.wood, [0, 0.45, 0.9]); const bench2 = bench.clone(); bench2.position.z = -0.9;
+  const floor = new THREE.Mesh(new THREE.CylinderGeometry(2.1, 2.2, 0.12, 6), mat('#e9d6b0')); floor.position.y = 0.06; floor.receiveShadow = true;
+  pav.add(bench, bench2, floor); scene.add(pav);
+
+  // aquarium tank
+  const tank = new THREE.Group(); tank.position.set(10, 1.1, 3);
+  const glass = new THREE.Mesh(new THREE.BoxGeometry(3.8, 2.25, 2.1), new THREE.MeshPhysicalMaterial({ color:'#b8f3f1', transparent:true, opacity:0.2, roughness:0.05, depthWrite:false }));
+  const twater = new THREE.Mesh(new THREE.BoxGeometry(3.45, 1.65, 1.75), new THREE.MeshStandardMaterial({ color:'#67c9d0', transparent:true, opacity:0.4, roughness:0.2, depthWrite:false }));
+  twater.position.y = 0.05;
+  const base = box([4.2, 0.42, 2.5], PALETTE.wood, [0, -1.22, 0]);
+  const sign = box([2.1, 0.38, 0.16], PALETTE.coral, [0, 1.42, -1.1]);
+  const gravel = box([3.45, 0.12, 1.75], '#e8d9a8', [0, -0.75, 0]);
+  tank.add(gravel, twater, base, sign, glass); scene.add(tank);
+  tankGroup = new THREE.Group(); tank.add(tankGroup);
+  addBoxCol(10, 3, 4.2, 2.5);
+
+  // lighthouse
+  const lh = new THREE.Group(); lh.position.set(15, 0, -19);
+  const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(2.4, 0), mat('#8e9a9a', 0.95)); rock.scale.y = 0.45; rock.position.y = 0; rock.castShadow = rock.receiveShadow = true;
+  const tower = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 1.2, 5.5, 12), mat('#f4f0dd')); tower.position.y = 2.75; tower.castShadow = true;
+  const stripe = new THREE.Mesh(new THREE.CylinderGeometry(1.02, 1.08, 0.8, 12), mat(PALETTE.coral)); stripe.position.y = 2.6;
+  const cap = new THREE.Mesh(new THREE.ConeGeometry(1.15, 0.9, 12), mat(PALETTE.coral)); cap.position.y = 5.95; cap.castShadow = true;
+  lhLight = new THREE.Mesh(new THREE.SphereGeometry(0.3, 12, 8), new THREE.MeshStandardMaterial({ color:'#fff6bb', emissive:'#fff0a0', emissiveIntensity:3 })); lhLight.position.y = 5.4;
+  lh.add(rock, tower, stripe, cap, lhLight); scene.add(lh);
+
+  // trees
+  const trees = [[-27,-15],[-26,17],[-10,20],[25,-9],[27,21],[8,22],[-25,28],[-30,5],[30,0],[4,-9],[-6,-9],[26,30],[-4,26],[31,12]];
+  const trunkM = mat(PALETTE.wood), crownM = mat(PALETTE.grassLight);
+  trees.forEach(([x,z], i) => {
+    const s = 0.9 + (Math.abs(x+z) % 3) * 0.12;
+    const t = new THREE.Group(); t.position.set(x, 0, z); t.scale.setScalar(s);
+    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.24, 1.8, 8), trunkM); trunk.position.y = 0.9; trunk.castShadow = true;
+    const crown = new THREE.Mesh(new THREE.IcosahedronGeometry(1.25, 1), crownM); crown.position.y = 2.15; crown.castShadow = true;
+    t.add(trunk, crown); scene.add(t); addCircleCol(x, z, 0.45*s);
+  });
+
+  // lanterns around plaza
+  const lampM = () => new THREE.MeshStandardMaterial({ color:'#fff3c4', emissive:'#ffd36a', emissiveIntensity:1.2 });
+  for (let i = 0; i < 6; i++){
+    const a = i/6*Math.PI*2 + 0.3; const x = Math.cos(a)*6.4, z = 4 + Math.sin(a)*6.4;
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.07, 1.6, 6), mat(PALETTE.ink)); pole.position.set(x, 0.8, z); pole.castShadow = true;
+    const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.17, 12, 8), lampM()); lamp.position.set(x, 1.68, z);
+    scene.add(pole, lamp); lanterns.push(lamp); addCircleCol(x, z, 0.2);
+  }
+
+  // landmark & spot markers
+  function labelMarker(color){ const m = new THREE.Group(); const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.08, 1.3, 8), mat(PALETTE.wood)); pole.position.y = 0.65; pole.castShadow = true; const orb = new THREE.Mesh(new THREE.SphereGeometry(0.19, 16, 10), new THREE.MeshStandardMaterial({ color, emissive:color, emissiveIntensity:1.4 })); orb.position.y = 1.42; m.add(pole, orb); return m; }
+  for (const mk of LANDMARKS){ if (mk.id === 'plaza' || mk.id === 'lighthouse') continue; const m = labelMarker(mk.color); m.position.set(mk.pos.x + 1.6, 0, mk.pos.z - 1.8); scene.add(m); }
+  for (const sp of SPOTS){
+    const deckY = groundHeight(sp.pos.x, sp.pos.z);
+    const r = new THREE.Mesh(new THREE.TorusGeometry(1.15, 0.08, 8, 36), new THREE.MeshStandardMaterial({ color:sp.color, emissive:sp.color, emissiveIntensity:1.8, transparent:true, opacity:0.86 }));
+    r.rotation.x = -Math.PI/2; r.position.set(sp.pos.x, deckY + 0.06, sp.pos.z); scene.add(r); sp.ring = r;
+    const m = labelMarker(sp.color); const mx = sp.pos.x - sp.dir.x*1.6 + sp.dir.y*1.3, mz = sp.pos.z - sp.dir.y*1.6 - sp.dir.x*1.3; m.position.set(mx, groundHeight(mx, mz), mz); scene.add(m);
+    // fish school in water
+    const g = new THREE.Group(); g.position.set(sp.pos.x + sp.dir.x*5, 0.04, sp.pos.z + sp.dir.y*5);
+    FISH.filter(f => f.spot === sp.id && f.rarity === '常見').forEach((f, i) => { for (let k = 0; k < 2; k++){ const fm = makeFish(f.color, 0.45); const a = (i*2+k)/4*Math.PI*2; fm.position.set(Math.cos(a)*1.2, 0, Math.sin(a)*1.2); fm.rotation.y = -a; g.add(fm); } });
+    scene.add(g); schools.push({ g, phase: sp.pos.x*0.2 });
+  }
+
+  // grass tufts & flowers (instanced)
+  const tuftGeo = new THREE.ConeGeometry(0.09, 0.32, 4); const tuftMat = mat('#ffffff', 0.9);
+  const N = isTouch ? 260 : 520; const tufts = new THREE.InstancedMesh(tuftGeo, tuftMat, N);
+  const dummy = new THREE.Object3D(); const col = new THREE.Color(); let n = 0, guard = 0;
+  while (n < N && guard++ < 5000){
+    const x = rand(-34, 34), z = rand(-11, 34);
+    if (inWater(x, z) || Math.hypot(x, z-4) < 7.4 || blocked(x, z, 0.3)) continue;
+    dummy.position.set(x, 0.14, z); dummy.rotation.set(rand(-0.2,0.2), rand(0,6), rand(-0.2,0.2)); dummy.scale.setScalar(rand(0.7,1.4)); dummy.updateMatrix();
+    tufts.setMatrixAt(n, dummy.matrix); col.set(Math.random() < 0.08 ? (Math.random()<0.5 ? '#ffd36a' : '#f5a5d8') : (Math.random()<0.5 ? '#8fc46f' : '#a6d37d')); tufts.setColorAt(n, col); n++;
+  }
+  tufts.count = n; tufts.receiveShadow = true; scene.add(tufts);
+
+  // clouds
+  const cm = mat('#ffffff', 1, { flatShading:true, emissive:'#ffffff', emissiveIntensity:0.25 });
+  for (let i = 0; i < 7; i++){
+    const g = new THREE.Group(); const k = 3 + (i%3);
+    for (let j = 0; j < k; j++){ const p = new THREE.Mesh(new THREE.IcosahedronGeometry(rand(1.4,2.4), 0), cm); p.position.set(j*1.8 - k, rand(-0.3,0.4), rand(-0.6,0.6)); g.add(p); }
+    g.position.set(rand(-60,60), rand(18,26), rand(-55,30)); scene.add(g); clouds.push({ g, v: rand(0.4,0.9) });
+  }
+})();
+var tankGroup, lhLight;
+
+function inWater(x, z){ for (const w of waters) if (x > w.x0 && x < w.x1 && z > w.z0 && z < w.z1) return true; return false; }
+function deckAt(x, z){ for (const d of decks) if (x > d.x0 && x < d.x1 && z > d.z0 && z < d.z1) return d; return null; }
+function groundHeight(x, z){ const d = deckAt(x, z); return d ? d.y : 0; }
+function walkable(x, z){ if (Math.abs(x) > 35 || Math.abs(z) > 35) return false; if (deckAt(x, z)) return true; return !inWater(x, z); }
+function blocked(x, z, r){
+  for (const c of colliders){
+    if (c.t === 'b'){ if (Math.abs(x - c.x) < c.hw + r && Math.abs(z - c.z) < c.hd + r) return true; }
+    else if (Math.hypot(x - c.x, z - c.z) < c.r + r) return true;
+  }
+  return false;
+}
+
+/* ================= MODELS ================= */
+function makeFish(color, scale){
+  const fish = new THREE.Group(); fish.scale.setScalar(scale || 1);
+  const body = new THREE.Mesh(new THREE.SphereGeometry(0.42, 14, 10), mat(color, 0.4)); body.scale.set(1.45, 0.68, 0.62);
+  const tail = new THREE.Mesh(new THREE.ConeGeometry(0.35, 0.62, 3), mat(color, 0.55)); tail.rotation.z = Math.PI/2; tail.position.x = -0.65;
+  const fin = new THREE.Mesh(new THREE.ConeGeometry(0.14, 0.42, 3), mat('#fff4d2', 0.65)); fin.rotation.z = -Math.PI/2; fin.position.set(0.05, 0.3, 0);
+  const eyeM = mat('#173247', 0.25);
+  const eye = new THREE.Mesh(new THREE.SphereGeometry(0.055, 8, 6), eyeM); eye.position.set(0.47, 0.13, -0.23);
+  const eye2 = eye.clone(); eye2.position.z = 0.23;
+  fish.add(body, tail, fin, eye, eye2); fish.userData.tail = tail;
+  fish.traverse(o => { if (o.isMesh) o.castShadow = true; });
+  return fish;
+}
+
+function makeAvatar(shirt, hat){
+  const g = new THREE.Group();
+  const skin = mat('#ffd9b8', 0.7), pants = mat('#2f4b63', 0.8), shirtM = mat(shirt, 0.75), hatM = mat(hat, 0.7), ink = mat(PALETTE.ink, 0.4);
+  function limb(w, h, d, m, x, y){ const p = new THREE.Group(); p.position.set(x, y, 0); const me = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); me.position.y = -h/2; me.castShadow = true; p.add(me); g.add(p); return p; }
+  const legL = limb(0.17, 0.46, 0.2, pants, -0.11, 0.46), legR = limb(0.17, 0.46, 0.2, pants, 0.11, 0.46);
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.3, 0.56, 10), shirtM); body.position.y = 0.74; body.castShadow = true;
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.27, 16, 12), skin); head.position.y = 1.25; head.castShadow = true;
+  const e1 = new THREE.Mesh(new THREE.SphereGeometry(0.035, 6, 6), ink); e1.position.set(-0.09, 1.29, 0.24); const e2 = e1.clone(); e2.position.x = 0.09;
+  const brim = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 0.04, 18), hatM); brim.position.y = 1.44; brim.castShadow = true;
+  const crown = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.25, 0.2, 14), hatM); crown.position.y = 1.55;
+  const band = new THREE.Mesh(new THREE.CylinderGeometry(0.255, 0.255, 0.05, 14), ink); band.position.y = 1.48;
+  g.add(body, head, e1, e2, brim, crown, band);
+  const armL = limb(0.12, 0.44, 0.13, shirtM, -0.36, 0.98), armR = limb(0.12, 0.44, 0.13, shirtM, 0.36, 0.98);
+  const rod = new THREE.Group(); rod.position.set(0.36, 0.74, 0.37);
+  const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.03, 2.3, 6), mat('#3b2a1e', 0.5)); pole.position.y = 1.15;
+  const grip = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.3, 8), mat(PALETTE.coral)); grip.position.y = 0.05;
+  const reel = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.05, 10), mat('#c9d6e3', 0.3, { metalness:0.6 })); reel.rotation.z = Math.PI/2; reel.position.set(0.06, 0.25, 0);
+  const tip = new THREE.Object3D(); tip.position.y = 2.3;
+  rod.add(pole, grip, reel, tip); rod.rotation.x = 0.95; rod.visible = false; g.add(rod);
+  return { g, legL, legR, armL, armR, rod, tip, shirtM, hatM };
+}
+function makeBobber(){
+  const g = new THREE.Group();
+  const top = new THREE.Mesh(new THREE.SphereGeometry(0.1, 10, 8, 0, Math.PI*2, 0, Math.PI/2), mat('#e8473a', 0.4));
+  const bot = new THREE.Mesh(new THREE.SphereGeometry(0.1, 10, 8, 0, Math.PI*2, Math.PI/2, Math.PI/2), mat('#ffffff', 0.4));
+  const stick = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.16, 4), mat(PALETTE.ink)); stick.position.y = 0.14;
+  g.add(top, bot, stick); g.visible = false; scene.add(g); return g;
+}
+const LINE_PTS = 18;
+function makeLine(){
+  const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(LINE_PTS*3), 3));
+  const l = new THREE.Line(geo, new THREE.LineBasicMaterial({ color:'#fbf8ef', transparent:true, opacity:0.85 })); l.frustumCulled = false; l.visible = false; scene.add(l); return l;
+}
+
+// ripples
+const ripples = [];
+const rippleGeo = new THREE.RingGeometry(0.12, 0.17, 28); rippleGeo.rotateX(-Math.PI/2);
+for (let i = 0; i < 10; i++){ const m = new THREE.Mesh(rippleGeo, new THREE.MeshBasicMaterial({ color:'#ffffff', transparent:true, opacity:0, depthWrite:false })); m.visible = false; scene.add(m); ripples.push({ m, t:9 }); }
+function ripple(x, z, big){ const r = ripples.find(r => r.t > 1.2) || ripples[0]; r.t = 0; r.big = big ? 1.8 : 1; r.m.position.set(x, waterY(x, z, now()) + 0.02, z); r.m.visible = true; }
+
+/* ================= FISHER ================= */
+const labelsEl = $('#labels');
+class Fisher {
+  constructor(opts){
+    this.av = makeAvatar(opts.shirt, opts.hat); scene.add(this.av.g);
+    this.bob = makeBobber(); this.line = makeLine();
+    this.pos = this.av.g.position; this.rot = 0; this.walk = 0; this.speed = 0;
+    this.fishing = false; this.bobPos = new THREE.Vector3(); this.dip = 0; this.bend = 0; this.flying = null;
+    this.tag = document.createElement('div'); this.tag.className = 'tag';
+    this.bub = document.createElement('div'); this.bub.className = 'bub'; this.bub.hidden = true;
+    this.nm = document.createElement('div'); this.nm.className = 'nm' + (opts.kind ? ' ' + opts.kind : '');
+    this.nm.textContent = opts.name || '';
+    this.tag.append(this.bub, this.nm); labelsEl.appendChild(this.tag);
+    this.bubUntil = 0;
+  }
+  setLook(shirt, hat){ this.av.shirtM.color.set(shirt); this.av.hatM.color.set(hat); }
+  setName(n){ if (this.nm.textContent !== n) this.nm.textContent = n; }
+  say(text, cls, secs){ this.bub.className = 'bub' + (cls ? ' ' + cls : ''); this.bub.textContent = text; this.bub.hidden = false; this.bubUntil = now() + (secs || 5); }
+  dispose(){ scene.remove(this.av.g, this.bob, this.line); this.tag.remove(); }
+  update(dt, t){
+    const a = this.av;
+    this.walk += dt * this.speed * 2.2;
+    const sw = Math.sin(this.walk) * Math.min(1, this.speed / 3) * 0.7;
+    a.legL.rotation.x = sw; a.legR.rotation.x = -sw;
+    a.g.rotation.y = this.rot;
+    a.rod.visible = this.fishing;
+    if (this.fishing){
+      a.armR.rotation.x = -1.0 - this.bend * 0.3; a.armL.rotation.x = -0.7 - this.bend*0.2;
+      a.rod.rotation.x = 0.95 - this.bend * 0.45 + Math.sin(t*9) * this.bend * 0.04;
+    } else { a.armL.rotation.x = -sw * 0.8; a.armR.rotation.x = sw * 0.8; }
+    a.g.position.y = this.baseY + Math.abs(Math.sin(this.walk)) * Math.min(1, this.speed/3) * 0.06;
+    // bobber
+    const showBob = this.fishing && this.bobState !== 'none';
+    this.bob.visible = showBob; this.line.visible = showBob;
+    if (showBob){
+      if (this.flying){
+        const f = this.flying; f.t += dt / f.dur; const k = Math.min(1, f.t);
+        this.bob.position.lerpVectors(f.from, f.to, k); this.bob.position.y += Math.sin(k * Math.PI) * f.h;
+        if (k >= 1){ this.flying = null; this.bobState = 'water'; ripple(f.to.x, f.to.z); if (f.done) f.done(); }
+      } else {
+        const wy = waterY(this.bobPos.x, this.bobPos.z, t);
+        this.bob.position.set(this.bobPos.x, wy - this.dip * 0.16 + Math.sin(t*3)*0.01, this.bobPos.z);
+      }
+      // line
+      const tip = new THREE.Vector3(); a.tip.getWorldPosition(tip);
+      const B = this.bob.position; const arr = this.line.geometry.attributes.position.array;
+      const dist = tip.distanceTo(B); const sag = this.flying ? 0.05 : (0.35 - this.bend*0.3) * Math.min(1, dist/4);
+      for (let i = 0; i < LINE_PTS; i++){ const k = i/(LINE_PTS-1); arr[i*3] = tip.x + (B.x - tip.x)*k; arr[i*3+1] = tip.y + (B.y + 0.1 - tip.y)*k - Math.sin(k*Math.PI)*sag; arr[i*3+2] = tip.z + (B.z - tip.z)*k; }
+      this.line.geometry.attributes.position.needsUpdate = true;
+    }
+    if (!this.bub.hidden && now() > this.bubUntil) this.bub.hidden = true;
+  }
+  placeTag(){
+    const v = tmpV.set(this.pos.x, this.pos.y + 1.95, this.pos.z);
+    const d = camera.position.distanceTo(v);
+    v.project(camera);
+    if (v.z > 1 || d > 45){ this.tag.style.display = 'none'; return; }
+    this.tag.style.display = '';
+    this.tag.style.transform = `translate(${(v.x*0.5+0.5)*innerWidth}px,${(-v.y*0.5+0.5)*innerHeight}px) translate(-50%,-100%)`;
+    this.tag.style.opacity = d > 30 ? String(clamp(1 - (d-30)/15, 0, 1)) : '1';
+  }
+}
+Fisher.prototype.baseY = 0;
+Fisher.prototype.bobState = 'none';
+const tmpV = new THREE.Vector3();
+
+/* ================= LABELS for places ================= */
+const placeLabels = [];
+for (const s of SPOTS){ const el = document.createElement('div'); el.className = 'lbl spot'; el.style.setProperty('--c', s.color); el.innerHTML = ''; el.textContent = s.label; const sm = document.createElement('small'); sm.textContent = '釣點'; el.appendChild(sm); labelsEl.appendChild(el); placeLabels.push({ el, p:new THREE.Vector3(s.pos.x, 2.1, s.pos.z) }); }
+for (const m of LANDMARKS){ const el = document.createElement('div'); el.className = 'lbl'; el.textContent = m.label; labelsEl.appendChild(el); placeLabels.push({ el, p:new THREE.Vector3(m.pos.x, m.id === 'lighthouse' ? 7.4 : m.id === 'aquarium' ? 3.2 : m.id === 'chat' ? 3.8 : 1.8, m.pos.z) }); }
+function placeLabelsUpdate(){
+  for (const L of placeLabels){
+    const d = camera.position.distanceTo(L.p); tmpV.copy(L.p).project(camera);
+    if (tmpV.z > 1 || d > 55){ L.el.style.display = 'none'; continue; }
+    L.el.style.display = ''; L.el.style.opacity = String(clamp(1.3 - d/55, 0.25, 1));
+    L.el.style.transform = `translate(${(tmpV.x*0.5+0.5)*innerWidth}px,${(-tmpV.y*0.5+0.5)*innerHeight}px) translate(-50%,-100%)`;
+  }
+}
+
+/* ================= SOUND ================= */
+let actx = null, soundOn = LS.get('tide.sound', true);
+function ensureAudio(){ if (!actx && soundOn){ try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){} } if (actx && actx.state === 'suspended') actx.resume(); }
+function tone(freq, dur, type, vol, slide){ if (!soundOn || !actx) return; const t = actx.currentTime; const o = actx.createOscillator(), g = actx.createGain(); o.type = type || 'sine'; o.frequency.setValueAtTime(freq, t); if (slide) o.frequency.exponentialRampToValueAtTime(slide, t + dur); g.gain.setValueAtTime(vol || 0.15, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur); o.connect(g).connect(actx.destination); o.start(t); o.stop(t + dur); }
+const SFX = {
+  cast(){ tone(900, 0.25, 'triangle', 0.08, 300); },
+  plop(){ tone(520, 0.18, 'sine', 0.18, 160); },
+  bite(){ tone(880, 0.08, 'square', 0.06); setTimeout(() => tone(1100, 0.1, 'square', 0.06), 90); },
+  catch(){ [523,659,784,1046].forEach((f,i) => setTimeout(() => tone(f, 0.22, 'triangle', 0.12), i*90)); },
+  fail(){ tone(300, 0.35, 'sawtooth', 0.06, 120); },
+  chat(){ tone(1320, 0.06, 'sine', 0.05); }
+};
+function renderSoundIcon(){ $('#soundIco').innerHTML = soundOn ? '<path d="M4 9v6h4l5 4V5L8 9z"/><path d="M17 9a4 4 0 0 1 0 6"/>' : '<path d="M4 9v6h4l5 4V5L8 9z"/><path d="M17 9l5 6M22 9l-5 6"/>'; }
+renderSoundIcon();
+$('#soundBtn').addEventListener('click', () => { soundOn = !soundOn; LS.set('tide.sound', soundOn); if (soundOn) ensureAudio(); renderSoundIcon(); });
+
+/* ================= PLAYER ================= */
+const look = LS.get('tide.look', { shirt: SHIRTS[Math.floor(Math.random()*SHIRTS.length)], hat: HATS[0] });
+let nickname = LS.get('tide.nick', '');
+const me = new Fisher({ shirt: look.shirt, hat: look.hat, name: '你', kind: 'me' });
+me.pos.set(0, 0, 8.4); me.rot = Math.PI;
+const cam = { yaw: 0, pitch: 0.42, dist: 9 };
+
+const keys = {};
+const joy = { x: 0, z: 0 };
+let uiBlocked = false;
+
+addEventListener('keydown', e => {
+  if (e.target && (e.target.tagName === 'INPUT')) { if (e.key === 'Escape') e.target.blur(); return; }
+  if (!$('#sheet').hidden || !$('#catchCard').hidden){ if (e.key === 'Escape'){ closeSheet(); closeCatch(); } if (e.key === 'Enter' && !$('#catchCard').hidden) closeCatch(); return; }
+  keys[e.code] = true;
+  if (e.code === 'Space' || e.code === 'KeyF'){ e.preventDefault(); if (!e.repeat) actionDown(); }
+  if (e.code === 'Enter'){ e.preventDefault(); $('#chatIn').focus(); }
+  if (e.code === 'Digit1') emote('wave'); if (e.code === 'Digit2') emote('fish'); if (e.code === 'Digit3') emote('wow');
+});
+addEventListener('keyup', e => { keys[e.code] = false; if (e.code === 'Space' || e.code === 'KeyF') actionUp(); });
+addEventListener('blur', () => { for (const k in keys) keys[k] = false; actionUp(); });
+
+// camera drag
+let drag = null;
+canvas.addEventListener('pointerdown', e => { ensureAudio(); drag = { id: e.pointerId, x: e.clientX, y: e.clientY }; canvas.setPointerCapture(e.pointerId); });
+canvas.addEventListener('pointermove', e => { if (!drag || drag.id !== e.pointerId) return; const dx = e.clientX - drag.x, dy = e.clientY - drag.y; drag.x = e.clientX; drag.y = e.clientY; cam.yaw -= dx * 0.006; cam.pitch = clamp(cam.pitch + dy * 0.004, 0.12, 1.15); });
+const endDrag = e => { if (drag && drag.id === e.pointerId) drag = null; };
+canvas.addEventListener('pointerup', endDrag); canvas.addEventListener('pointercancel', endDrag);
+canvas.addEventListener('wheel', e => { e.preventDefault(); cam.dist = clamp(cam.dist + e.deltaY * 0.01, 4.5, 18); }, { passive:false });
+
+// joystick
+(function(){
+  const el = $('#joy'), knob = $('.knob', el); let id = null, cx = 0, cy = 0;
+  el.addEventListener('pointerdown', e => { ensureAudio(); id = e.pointerId; el.setPointerCapture(id); const r = el.getBoundingClientRect(); cx = r.left + r.width/2; cy = r.top + r.height/2; move(e); });
+  el.addEventListener('pointermove', e => { if (e.pointerId === id) move(e); });
+  const end = e => { if (e.pointerId !== id) return; id = null; joy.x = joy.z = 0; knob.style.transform = ''; };
+  el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end);
+  function move(e){ let dx = e.clientX - cx, dy = e.clientY - cy; const L = Math.hypot(dx, dy), M = 46; if (L > M){ dx *= M/L; dy *= M/L; } knob.style.transform = `translate(${dx}px,${dy}px)`; joy.x = dx / M; joy.z = dy / M; }
+})();
+
+function nearestSpot(){ let best = null, bd = 1e9; for (const s of SPOTS){ const d = Math.hypot(me.pos.x - s.pos.x, me.pos.z - s.pos.z); if (d < bd){ bd = d; best = s; } } return { spot: best, d: bd }; }
+
+function updatePlayer(dt){
+  let ix = 0, iz = 0;
+  if (!uiBlocked){
+    if (keys.KeyW || keys.ArrowUp) iz -= 1; if (keys.KeyS || keys.ArrowDown) iz += 1;
+    if (keys.KeyA || keys.ArrowLeft) ix -= 1; if (keys.KeyD || keys.ArrowRight) ix += 1;
+    ix += joy.x; iz += joy.z;
+  }
+  const L = Math.hypot(ix, iz); if (L > 1){ ix /= L; iz /= L; }
+  const locked = F.phase === 'bite' || F.phase === 'reeling' || F.phase === 'landing';
+  let speed = 0;
+  if (L > 0.08 && !locked){
+    if (F.phase !== 'idle') cancelFishing('收竿了');
+    const fx = -Math.sin(cam.yaw), fz = -Math.cos(cam.yaw); const rx = Math.cos(cam.yaw), rz = -Math.sin(cam.yaw);
+    const mx = fx * -iz + rx * ix, mz = fz * -iz + rz * ix;
+    const run = keys.ShiftLeft || keys.ShiftRight || L > 0.95;
+    speed = (run ? 6.2 : 4.2) * Math.min(1, L);
+    const nx = me.pos.x + mx / Math.max(1e-6, Math.hypot(mx, mz)) * speed * dt;
+    const nz = me.pos.z + mz / Math.max(1e-6, Math.hypot(mx, mz)) * speed * dt;
+    if (walkable(nx, me.pos.z) && !blocked(nx, me.pos.z, 0.35)) me.pos.x = nx;
+    if (walkable(me.pos.x, nz) && !blocked(me.pos.x, nz, 0.35)) me.pos.z = nz;
+    const target = Math.atan2(mx, mz);
+    me.rot = lerpAngle(me.rot, target, 1 - Math.exp(-14 * dt));
+  }
+  me.speed += (speed - me.speed) * Math.min(1, dt * 12);
+  const gy = groundHeight(me.pos.x, me.pos.z); me.baseY += (gy - me.baseY) * Math.min(1, dt * 14);
+}
+function lerpAngle(a, b, k){ let d = ((b - a + Math.PI) % (Math.PI*2)); if (d < 0) d += Math.PI*2; return a + (d - Math.PI) * k; }
+
+function updateCamera(dt){
+  const target = tmpV.set(me.pos.x, me.pos.y + 1.3, me.pos.z);
+  const cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
+  const want = new THREE.Vector3(target.x + Math.sin(cam.yaw)*cp*cam.dist, target.y + sp*cam.dist, target.z + Math.cos(cam.yaw)*cp*cam.dist);
+  want.y = Math.max(want.y, 0.8);
+  camera.position.lerp(want, 1 - Math.exp(-10 * dt));
+  camera.lookAt(target);
+}
+
+/* ================= FISHING ================= */
+const F = { phase:'idle', spot:null, charge:0, chargeT:0, waitUntil:0, nibbleAt:0, biteUntil:0, fish:null, weight:0, T:0.3, P:0.3, hold:false, surge:0, seed:0, castCharge:0 };
+const bigMsg = $('#bigMsg');
+let bigTimer = 0;
+function flash(text, secs){ bigMsg.textContent = text; bigMsg.hidden = false; bigMsg.classList.remove('pop'); void bigMsg.offsetWidth; bigMsg.classList.add('pop'); clearTimeout(bigTimer); bigTimer = setTimeout(() => bigMsg.hidden = true, (secs || 1.2) * 1000); }
+
+function actionDown(){
+  if (uiBlocked) return;
+  ensureAudio();
+  const act = $('#act'); act.classList.add('down');
+  if (F.phase === 'idle'){
+    const { spot, d } = nearestSpot(); if (d > 1.7) return;
+    F.spot = spot; F.phase = 'charging'; F.chargeT = 0;
+    me.rot = Math.atan2(spot.dir.x, spot.dir.y); me.fishing = true; me.bobState = 'none';
+  } else if (F.phase === 'waiting'){
+    cancelFishing('收竿了');
+  } else if (F.phase === 'bite'){
+    startReel(); F.hold = true;
+  } else if (F.phase === 'reeling'){
+    F.hold = true;
+  }
+}
+function actionUp(){
+  $('#act').classList.remove('down');
+  if (F.phase === 'charging') doCast();
+  else if (F.phase === 'reeling') F.hold = false;
+}
+function doCast(){
+  const s = F.spot; const c = F.charge; F.castCharge = c;
+  const dist = 3 + c * 4.5;
+  const to = new THREE.Vector3(s.pos.x + s.dir.x*dist + rand(-0.4,0.4), 0.12, s.pos.z + s.dir.y*dist + rand(-0.4,0.4));
+  const from = new THREE.Vector3(); me.av.tip.getWorldPosition(from);
+  me.bobPos.copy(to); me.bobState = 'fly';
+  me.flying = { from, to, t:0, dur: 0.55 + c*0.25, h: 1.4 + c*1.4, done(){ SFX.plop(); } };
+  F.phase = 'waiting'; F.waitUntil = now() + 0.8 + rand(2.4, 6.5) - c * 0.8; F.nibbleAt = now() + 1.2 + Math.random()*1.5;
+  SFX.cast(); pushPresence(true);
+}
+function cancelFishing(msg){
+  F.phase = 'idle'; F.hold = false; me.fishing = false; me.bobState = 'none'; me.flying = null; me.dip = 0; me.bend = 0;
+  if (msg && msg !== '收竿了') flash(msg);
+  pushPresence(true);
+}
+function pickFish(spot, charge){
+  const list = FISH.filter(f => f.spot === spot.id);
+  const w = list.map(f => f.rarity === '常見' ? 1 : f.rarity === '稀有' ? 0.34 * (1 + charge*0.8) : 0.07 * (1 + charge*1.6));
+  let r = Math.random() * w.reduce((a,b) => a+b, 0);
+  for (let i = 0; i < list.length; i++){ r -= w[i]; if (r <= 0) return list[i]; }
+  return list[0];
+}
+function startReel(){
+  F.phase = 'reeling'; F.T = 0.35; F.P = 0.3; F.surge = 0; F.seed = Math.random()*10;
+  me.say('!', 'alert', 0.6);
+  $('#fhName').textContent = F.fish.rarity === '傳說' ? '超大的拉力！' : F.fish.rarity === '稀有' ? '好重的手感！' : '有魚上鉤了！';
+  pushPresence(true);
+}
+function updateFishing(dt, t){
+  const act = $('#act');
+  if (F.phase === 'charging'){
+    F.chargeT += dt; F.charge = 1 - Math.abs(((F.chargeT / 1.3) % 2) - 1);
+    $('#chargeFill').style.width = (F.charge*100).toFixed(1) + '%';
+    me.bend = F.charge * 1.5;
+  }
+  if (F.phase === 'waiting' && !me.flying){
+    me.bend *= 0.9;
+    if (t > F.nibbleAt && t < F.waitUntil - 0.6){ me.dip = 0.35; ripple(me.bobPos.x, me.bobPos.z); F.nibbleAt = t + 0.9 + Math.random()*1.6; }
+    me.dip *= Math.pow(0.02, dt);
+    if (t > F.waitUntil){
+      F.fish = pickFish(F.spot, F.castCharge); F.weight = +(F.fish.min + (F.fish.max - F.fish.min) * Math.pow(Math.random(), 1.7)).toFixed(2);
+      F.phase = 'bite'; F.biteUntil = t + (F.fish.rarity === '傳說' ? 0.8 : F.fish.rarity === '稀有' ? 0.95 : 1.15);
+      me.say('!', 'alert', 1); SFX.bite(); ripple(me.bobPos.x, me.bobPos.z, true); pushPresence(true);
+    }
+  }
+  if (F.phase === 'bite'){
+    me.dip = 0.9 + Math.sin(t*30)*0.1;
+    if (t > F.biteUntil){ me.dip = 0; F.phase = 'waiting'; F.waitUntil = t + rand(2.5, 5.5); F.nibbleAt = t + 1; flash('魚跑掉了', 1); SFX.fail(); pushPresence(true); }
+  }
+  if (F.phase === 'reeling'){
+    const p = F.fish.power;
+    let pull = p * (0.55 + 0.45 * Math.sin(t*2.3 + F.seed) * Math.sin(t*0.7 + F.seed*2));
+    if (F.surge > 0){ F.surge -= dt; pull += 0.55 * p; } else if (Math.random() < dt * 0.3 * p){ F.surge = rand(0.4, 0.9); }
+    const inZone = F.T > 0.35 && F.T < 0.8;
+    if (F.hold){ F.T += (0.42 + pull*0.9) * dt; F.P += (0.26 + (inZone ? 0.1 : 0)) * (1.15 - p*0.35) * dt; }
+    else { F.T -= 0.75 * dt; F.T += pull * 0.12 * dt; F.P -= (0.03 + pull*0.03) * dt; }
+    F.T = Math.max(0, F.T);
+    me.bend = clamp(F.T, 0, 1); me.dip = 0.5 + pull*0.4;
+    // bobber drifts toward player with progress
+    const s = F.spot; const dist = 1.4 + (1 - F.P) * (2 + F.castCharge*4.5);
+    const tx = s.pos.x + s.dir.x*dist + Math.sin(t*3 + F.seed)*0.5*(1-F.P), tz = s.pos.z + s.dir.y*dist + Math.cos(t*2.4)*0.5*(1-F.P);
+    me.bobPos.x += (tx - me.bobPos.x) * Math.min(1, dt*3); me.bobPos.z += (tz - me.bobPos.z) * Math.min(1, dt*3);
+    if (Math.random() < dt * 4) ripple(me.bobPos.x, me.bobPos.z);
+    $('#tFill').style.width = (clamp(F.T,0,1)*100).toFixed(1) + '%';
+    $('#tBar').classList.toggle('hot', F.T > 0.8);
+    $('#fhT').textContent = F.T > 0.8 ? '線快斷了！放開！' : F.T < 0.35 ? '太鬆了，按住拉' : '很好，保持住';
+    $('#pFill').style.width = (clamp(F.P,0,1)*100).toFixed(1) + '%';
+    $('#fhP').textContent = Math.round(clamp(F.P,0,1)*100) + '%';
+    if (F.T >= 1){ SFX.fail(); flash('線斷了！', 1.4); cancelFishing(); }
+    else if (F.P <= 0){ SFX.fail(); flash('魚掙脫了', 1.4); cancelFishing(); }
+    else if (F.P >= 1){ landFish(); }
+  }
+  // HUD + button
+  $('#chargeHud').hidden = F.phase !== 'charging';
+  $('#fishHud').hidden = F.phase !== 'reeling';
+  let label, sub = '', cls = '';
+  const near = nearestSpot();
+  if (F.phase === 'idle'){ if (near.d < 1.7){ label = '拋竿'; sub = isTouch ? '按住蓄力' : '按住空白鍵'; } else { label = '走到釣點'; cls = 'idle'; } }
+  else if (F.phase === 'charging'){ label = '放開'; sub = '拋出去'; }
+  else if (F.phase === 'waiting'){ label = '等待中'; sub = '點一下收竿'; cls = 'idle'; }
+  else if (F.phase === 'bite'){ label = '提竿！'; cls = 'bite'; }
+  else if (F.phase === 'reeling'){ label = '拉線'; sub = '按住 / 放開'; }
+  else { label = '…'; cls = 'idle'; }
+  const html = label + (sub ? `<small>${sub}</small>` : '');
+  if (act._h !== html){ act.innerHTML = html; act._h = html; }
+  const c = 'act-' + cls; if (act._c !== c){ act.classList.remove('idle','bite'); if (cls) act.classList.add(cls); act._c = c; }
+  // spot card
+  const card = $('#spotCard');
+  const showCard = near.d < 3.2 && F.phase !== 'reeling' && F.phase !== 'charging';
+  if (showCard && card._s !== near.spot.id){
+    card._s = near.spot.id; $('.t', card).textContent = near.spot.label; $('.s', card).textContent = near.spot.subtitle;
+    const fl = $('.fl', card); fl.textContent = '';
+    FISH.filter(f => f.spot === near.spot.id).forEach(f => { const c = document.createElement('span'); const known = rec.count[f.id] > 0; c.className = 'chip r-' + f.rarity; c.textContent = (known ? f.name : '？？？') + '・' + f.rarity; fl.appendChild(c); });
+  }
+  if (!showCard) card._s = null;
+  card.hidden = !showCard;
+}
+function landFish(){
+  F.phase = 'landing'; F.hold = false; me.bobState = 'none'; me.dip = 0; me.bend = 0.2;
+  const f = F.fish, w = F.weight;
+  const from = me.bobPos.clone(); from.y = 0.1;
+  const fm = makeFish(f.color, clamp(0.5 + Math.log(1 + w) * 0.35, 0.5, 1.8)); fm.position.copy(from); scene.add(fm);
+  const to = new THREE.Vector3(me.pos.x, me.pos.y + 2.4, me.pos.z);
+  jumpers.push({ m: fm, from, to, t: 0 });
+  ripple(from.x, from.z, true); SFX.catch();
+  setTimeout(() => { me.fishing = false; F.phase = 'result'; const res = recordCatch(f, w); showCatch(f, w, res); announceCatch(f, w, F.spot.id); pushPresence(true); }, 900);
+}
+const jumpers = [];
+function updateJumpers(dt, t){
+  for (let i = jumpers.length - 1; i >= 0; i--){
+    const j = jumpers[i]; j.t += dt;
+    const k = Math.min(1, j.t / 0.9);
+    j.m.position.lerpVectors(j.from, j.to, k); j.m.position.y += Math.sin(k*Math.PI) * 1.6;
+    j.m.rotation.z = Math.sin(t*14) * 0.4; j.m.rotation.y += dt * 4;
+    if (j.t > 2.6){ scene.remove(j.m); jumpers.splice(i, 1); }
+  }
+}
+
+/* ================= RECORDS / COLLECTION ================= */
+function emptyRec(){ return { total:0, bestW:0, bestFish:null, best:{}, count:{}, tank:[], legend:0, updatedAt:0 }; }
+function normRec(r){
+  const e = emptyRec(); if (!r || typeof r !== 'object') return e;
+  e.total = Number(r.total) || 0; e.bestW = Number(r.bestW) || 0; e.bestFish = FISH_BY_ID[r.bestFish] ? r.bestFish : null; e.legend = Number(r.legend) || 0; e.updatedAt = Number(r.updatedAt) || 0;
+  for (const f of FISH){ if (r.best && Number(r.best[f.id]) > 0) e.best[f.id] = Number(r.best[f.id]); if (r.count && Number(r.count[f.id]) > 0) e.count[f.id] = Number(r.count[f.id]); }
+  if (Array.isArray(r.tank)) e.tank = r.tank.filter(x => x && FISH_BY_ID[x.f]).slice(0, 24).map(x => ({ f:x.f, w:Number(x.w)||0, t:Number(x.t)||0 }));
+  return e;
+}
+let rec = normRec(LS.get('tide.rec', null));
+function recordCatch(f, w){
+  const isNew = !rec.count[f.id]; const isBest = w > (rec.best[f.id] || 0);
+  rec.total++; rec.count[f.id] = (rec.count[f.id] || 0) + 1; if (isBest) rec.best[f.id] = w;
+  const isTop = w > rec.bestW; if (isTop){ rec.bestW = w; rec.bestFish = f.id; }
+  if (f.rarity === '傳說') rec.legend++;
+  rec.tank.unshift({ f: f.id, w, t: Date.now() }); rec.tank = rec.tank.slice(0, 24);
+  rec.updatedAt = Date.now();
+  LS.set('tide.rec', rec); saveRemote(); buildTank();
+  return { isNew, isBest: isBest && !isNew };
+}
+
+function shade(hex, amt){ const c = new THREE.Color(hex); if (amt < 0) c.lerp(new THREE.Color('#000'), -amt); else c.lerp(new THREE.Color('#fff'), amt); return '#' + c.getHexString(); }
+function drawFish(cv, color, known){
+  const ctx = cv.getContext('2d'), W = cv.width, H = cv.height; ctx.clearRect(0, 0, W, H); ctx.save(); ctx.translate(W*0.52, H/2);
+  const c = known ? color : '#b9c8cf';
+  ctx.fillStyle = shade(c, -0.18); ctx.beginPath(); ctx.moveTo(-W*0.24, 0); ctx.lineTo(-W*0.44, -H*0.3); ctx.quadraticCurveTo(-W*0.38, 0, -W*0.44, H*0.3); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(-W*0.05, -H*0.2); ctx.quadraticCurveTo(W*0.02, -H*0.44, W*0.12, -H*0.2); ctx.fill();
+  ctx.fillStyle = c; ctx.beginPath(); ctx.ellipse(0, 0, W*0.32, H*0.26, 0, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,.3)'; ctx.beginPath(); ctx.ellipse(W*0.02, H*0.09, W*0.22, H*0.09, 0, 0, Math.PI*2); ctx.fill();
+  if (known){ ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(W*0.19, -H*0.05, H*0.075, 0, Math.PI*2); ctx.fill(); ctx.fillStyle = '#173247'; ctx.beginPath(); ctx.arc(W*0.205, -H*0.05, H*0.04, 0, Math.PI*2); ctx.fill(); }
+  else { ctx.fillStyle = 'rgba(255,255,255,.9)'; ctx.font = `bold ${Math.round(H*0.34)}px ${getComputedStyle(document.body).fontFamily}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('?', 0, H*0.02); }
+  ctx.restore();
+}
+function fishCanvas(f, known, w, h){ const cv = document.createElement('canvas'); cv.width = w*2; cv.height = h*2; drawFish(cv, f.color, known); return cv; }
+
+// in-world tank
+let tankFish = [];
+function buildTank(){
+  if (!tankGroup) return;
+  for (const t of tankFish) tankGroup.remove(t.m); tankFish = [];
+  rec.tank.slice(0, 12).forEach((x, i) => {
+    const f = FISH_BY_ID[x.f]; const m = makeFish(f.color, 0.26 + Math.min(0.14, Math.log(1 + x.w) * 0.05));
+    tankGroup.add(m); tankFish.push({ m, ph: i*1.7 + Math.random(), sp: rand(0.35, 0.7), y: rand(-0.45, 0.55), rx: rand(1.1, 1.45), rz: rand(0.45, 0.65) });
+  });
+}
+buildTank();
+function updateTank(t){ for (const f of tankFish){ const a = t*f.sp + f.ph; f.m.position.set(Math.cos(a)*f.rx, f.y + Math.sin(a*2)*0.08, Math.sin(a)*f.rz); f.m.rotation.y = -Math.atan2(Math.cos(a)*f.rz, -Math.sin(a)*f.rx); f.m.userData.tail.rotation.y = Math.sin(t*8 + f.ph)*0.4; } }
+
+/* ================= CATCH CARD ================= */
+function showCatch(f, w, res){
+  drawFish($('#ccCanvas'), f.color, true);
+  const b = $('#ccBadges'); b.textContent = '';
+  const chip = document.createElement('span'); chip.className = 'chip r-' + f.rarity; chip.textContent = f.rarity + '・' + SPOT_BY_ID[f.spot].label; b.appendChild(chip);
+  if (res.isNew){ const x = document.createElement('span'); x.className = 'badge new'; x.textContent = '圖鑑新登錄'; b.appendChild(x); }
+  if (res.isBest){ const x = document.createElement('span'); x.className = 'badge'; x.textContent = '個人新紀錄'; b.appendChild(x); }
+  $('#ccName').textContent = f.name;
+  $('#ccW').innerHTML = w.toFixed(2) + '<small>kg</small>';
+  $('#ccDesc').textContent = f.desc;
+  $('#catchCard').hidden = false; uiBlocked = true;
+  setTimeout(() => $('#ccOk').focus(), 50);
+}
+function closeCatch(){ if ($('#catchCard').hidden) return; $('#catchCard').hidden = true; uiBlocked = !$('#sheet').hidden; if (F.phase === 'result') F.phase = 'idle'; }
+$('#ccOk').addEventListener('click', closeCatch);
+(function(){ const a = $('#act');
+  a.addEventListener('pointerdown', e => { e.preventDefault(); try { a.setPointerCapture(e.pointerId); } catch(_){} actionDown(); });
+  const up = () => actionUp();
+  a.addEventListener('pointerup', up); a.addEventListener('pointercancel', up); a.addEventListener('lostpointercapture', up);
+  a.addEventListener('contextmenu', e => e.preventDefault());
+})();
+
+/* ================= CHAT / TOASTS ================= */
+const logEl = $('#log');
+function logMsg(name, text, sys){
+  const d = document.createElement('div'); d.className = 'm' + (sys ? ' sys' : '');
+  if (name){ const b = document.createElement('b'); b.textContent = name; d.appendChild(b); }
+  d.appendChild(document.createTextNode(text)); logEl.appendChild(d);
+  while (logEl.children.length > 30) logEl.firstChild.remove();
+  setTimeout(() => d.classList.add('fade'), 14000);
+}
+function toast(html){ const t = document.createElement('div'); t.className = 'toast panel'; t.innerHTML = html; $('#toasts').appendChild(t); setTimeout(() => { t.classList.add('out'); setTimeout(() => t.remove(), 500); }, 5200); while ($('#toasts').children.length > 3) $('#toasts').firstChild.remove(); }
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+
+let chatAllowed = true;
+$('#chatForm').addEventListener('submit', async e => {
+  e.preventDefault(); const inp = $('#chatIn'); const text = inp.value.trim().slice(0, 120); if (!text) return;
+  inp.value = '';
+  if (room && room.connected() && chatAllowed){
+    try { await room.emit('chat', { t: text }); }
+    catch(err){ if (err && err.code === 'not_permitted'){ chatAllowed = false; logMsg('系統', '你目前是檢視者，聊天只有你自己看得到。', true); } me.say(text); logMsg('你', text); }
+  } else { me.say(text); logMsg('你', text + (room ? '' : '（單人模式）')); }
+  if (isTouch){ inp.blur(); document.body.classList.remove('chatting'); }
+});
+$('#chatToggle').addEventListener('click', () => { document.body.classList.toggle('chatting'); if (document.body.classList.contains('chatting')) $('#chatIn').focus(); });
+$('#chatIn').addEventListener('focus', () => { for (const k in keys) keys[k] = false; });
+
+let myEmote = null;
+function emote(k){ ensureAudio(); me.say(EMOTES[k], 'emote', 3); myEmote = { k, at: Date.now() }; pushPresence(true); }
+$$('#emotes [data-emote]').forEach(b => b.addEventListener('click', () => emote(b.dataset.emote)));
+
+/* ================= SOCIAL (room / db / user) ================= */
+let room = null, db = null, user = null, myId = null, dbWritable = true;
+const peers = new Map(); // peer -> {fisher, by, target, rot, lastEmoteAt, pres}
+const profileNames = {};
+async function resolveNames(ids){
+  ids = ids.filter(Boolean); if (!user || !ids.length) return;
+  try { const ps = await user.profiles(ids); for (const id of ids) if (ps[id]) profileNames[id] = ps[id].name || ''; } catch(e){}
+}
+function peerName(p){ const pr = p.pres || {}; if (typeof pr.n === 'string' && pr.n.trim()) return pr.n.trim().slice(0, 16); return (p.by && profileNames[p.by]) || '釣客'; }
+function myDisplayName(){ return nickname || (myId && profileNames[myId]) || '你'; }
+
+let lastPres = '', lastPresAt = 0;
+function presenceObj(){
+  const o = { p:[+me.pos.x.toFixed(2), +me.pos.z.toFixed(2), +me.baseY.toFixed(2)], r:+me.rot.toFixed(2), sh:look.shirt, ht:look.hat };
+  if (nickname) o.n = nickname;
+  if (myId) o.u = myId;
+  if (me.fishing && me.bobState !== 'none') o.f = { ph: F.phase === 'bite' ? 'bite' : F.phase === 'reeling' ? 'reel' : 'wait', b:[+me.bobPos.x.toFixed(2), +me.bobPos.z.toFixed(2)] };
+  else if (me.fishing) o.f = { ph:'cast' };
+  if (myEmote && Date.now() - myEmote.at < 4000) o.e = myEmote;
+  return o;
+}
+function pushPresence(force){
+  if (!room) return; const t = now(); if (!force && t - lastPresAt < 0.1) return;
+  const o = presenceObj(); const s = JSON.stringify(o); if (s === lastPres) return;
+  lastPres = s; lastPresAt = t; room.presence(o).catch(() => {});
+}
+function setOnline(){
+  const n = 1 + Array.from(peers.values()).length; const el = $('#online');
+  el.classList.toggle('live', !!(room && room.connected()));
+  $('#onlineTxt').textContent = room ? (room.connected() ? (pjMode && room.code ? `房間 ${room.code}・` : '') + `${n} 人在村裡` : '連線中…') : '單人模式';
+  if (!$('#sheet').hidden && curTab === 'people') renderTab();
+}
+function isHex(s){ return typeof s === 'string' && /^#[0-9a-f]{6}$/i.test(s); }
+function applyPeer(pp){
+  if (pp.isMe || pp.kind !== 'viewer') return;
+  let p = peers.get(pp.peer); const pr = pp.presence || {};
+  const pos = Array.isArray(pr.p) ? pr.p : null;
+  if (!p){
+    if (!pos) return;
+    const f = new Fisher({ shirt: isHex(pr.sh) ? pr.sh : '#9fb3bf', hat: isHex(pr.ht) ? pr.ht : '#ffd36a', name:'' });
+    f.pos.set(+pos[0]||0, 0, +pos[1]||0); f.rot = +pr.r || 0;
+    p = { fisher: f, by: pp.by, target: new THREE.Vector3(+pos[0]||0, 0, +pos[1]||0), rot: +pr.r || 0, y:+pos[2]||0, lastEmote: 0, pres: pr, guest: pp.guest };
+    peers.set(pp.peer, p);
+    resolveNames([pp.by]).then(() => p.fisher.setName(peerName(p)));
+  }
+  p.pres = pr; p.by = pp.by;
+  if (pos){ p.target.set(clamp(+pos[0]||0, -36, 36), 0, clamp(+pos[1]||0, -36, 36)); p.y = clamp(+pos[2]||0, 0, 1); }
+  p.rot = Number.isFinite(+pr.r) ? +pr.r : p.rot;
+  p.fisher.setLook(isHex(pr.sh) ? pr.sh : '#9fb3bf', isHex(pr.ht) ? pr.ht : '#ffd36a');
+  p.fisher.setName(peerName(p) + (pp.guest ? '・訪客' : ''));
+  const fi = pr.f && typeof pr.f === 'object' ? pr.f : null;
+  p.fisher.fishing = !!fi;
+  if (fi && Array.isArray(fi.b)){
+    const nb = new THREE.Vector3(clamp(+fi.b[0]||0,-36,36), 0.12, clamp(+fi.b[1]||0,-36,36));
+    if (p.fisher.bobState === 'none'){ const from = new THREE.Vector3(); p.fisher.av.tip.getWorldPosition(from); p.fisher.bobPos.copy(nb); p.fisher.bobState = 'fly'; p.fisher.flying = { from, to: nb.clone(), t:0, dur:0.6, h:1.8 }; }
+    else p.fisher.bobPos.copy(nb);
+    p.ph = fi.ph;
+  } else { p.fisher.bobState = 'none'; p.fisher.flying = null; p.ph = null; }
+  if (pr.e && typeof pr.e === 'object' && EMOTES[pr.e.k] && pr.e.at !== p.lastEmote){ p.lastEmote = pr.e.at; p.fisher.say(EMOTES[pr.e.k], 'emote', 3); }
+}
+function updatePeers(dt, t){
+  for (const p of peers.values()){
+    const f = p.fisher; const dx = p.target.x - f.pos.x, dz = p.target.z - f.pos.z; const d = Math.hypot(dx, dz);
+    if (d > 8){ f.pos.x = p.target.x; f.pos.z = p.target.z; }
+    else { const k = 1 - Math.exp(-8*dt); f.pos.x += dx*k; f.pos.z += dz*k; }
+    f.speed += ((d > 0.05 ? Math.min(6, d*8) : 0) - f.speed) * Math.min(1, dt*8);
+    f.rot = lerpAngle(f.rot, p.rot, 1 - Math.exp(-10*dt));
+    f.baseY += (p.y - f.baseY) * Math.min(1, dt*10);
+    f.dip = p.ph === 'bite' ? 0.9 + Math.sin(t*30)*0.1 : p.ph === 'reel' ? 0.5 + Math.sin(t*7)*0.2 : f.dip * Math.pow(0.05, dt);
+    f.bend = p.ph === 'reel' ? 0.55 + Math.sin(t*5)*0.25 : f.bend * 0.9;
+    f.update(dt, t); f.placeTag();
+  }
+}
+
+let pjMode = false, roomTimer = null;
+function useRoom(r){
+  room = r;
+    room.onPeers(ch => { for (const pp of ch.joined) applyPeer(pp); for (const pp of ch.updated) applyPeer(pp);
+      for (const pp of ch.left){ const p = peers.get(pp.peer); if (p){ p.fisher.dispose(); peers.delete(pp.peer); } }
+      for (const pp of ch.joined){ if (!pp.isMe && pp.kind === 'viewer') setTimeout(() => { const p = peers.get(pp.peer); if (p) logMsg('', `${peerName(p)} 來到了村子`, true); }, 600); }
+      setOnline(); }, () => { room = null; setOnline(); });
+    room.on('chat', msg => {
+      const text = msg && msg.data && typeof msg.data.t === 'string' ? msg.data.t.slice(0, 120) : ''; if (!text) return;
+      if (msg.sameTab){ me.say(text); logMsg(myDisplayName() === '你' ? '你' : myDisplayName(), text); return; }
+      const p = peers.get(msg.peer); const name = p ? peerName(p) : '釣客';
+      if (p) p.fisher.say(text); logMsg(name, text); SFX.chat();
+    }, () => {});
+    room.on('catch', msg => {
+      if (msg.sameTab || !msg.data) return; const f = FISH_BY_ID[msg.data.f]; const w = Number(msg.data.w); if (!f || !(w > 0) || w > 100) return;
+      const p = peers.get(msg.peer); const name = p ? peerName(p) : '有人';
+      toast(`<b>${esc(name)}</b> 在${esc(SPOT_BY_ID[f.spot].short)}釣到 <span class="chip r-${f.rarity}">${f.rarity}</span> <b>${esc(f.name)}</b> ${w.toFixed(2)}kg`);
+      if (p) p.fisher.say(f.rarity === '傳說' ? '🎉' : '🐟', 'emote', 3);
+    }, () => {});
+    room.onConnection(() => setOnline(), () => {});
+    clearInterval(roomTimer); roomTimer = setInterval(() => pushPresence(false), 120);
+    pushPresence(true); setOnline();
+}
+/* ---- 5 碼房間代碼（不在 Claude 網頁裡、或沒登入時用） ---- */
+function pjAvailable(){ return !!(window.PJRoom && PJRoom.available()) && !(window.claude && room && !pjMode); }
+function clearPeers(){ for (const p of peers.values()) p.fisher.dispose(); peers.clear(); }
+async function pjStart(mode, code){
+  if (room && pjMode){ try { room.leave(); } catch(e){} }
+  clearInterval(roomTimer); clearPeers(); room = null; pjMode = true; setOnline();
+  $('#onlineTxt').textContent = mode === 'host' ? '開房中…' : '連線中…';
+  try {
+    const r = mode === 'host' ? await PJRoom.host(nickname) : await PJRoom.join(code, nickname);
+    useRoom(r); pjMode = true;
+    try { history.replaceState(null, '', location.pathname + location.search + '#room=' + r.code); } catch(e){}
+    logMsg('系統', mode === 'host' ? `開好房間了，房間代碼 ${r.code}。把代碼或網址傳給朋友就能一起釣魚。` : `加入房間 ${r.code} 了！`, true);
+    setOnline(); if (!$('#sheet').hidden && curTab === 'people') renderTab();
+  } catch(err){
+    pjMode = false; room = null; setOnline();
+    const why = err && err.type === 'peer-unavailable' ? '找不到這個房間，請確認 5 個字母沒打錯、開房的人畫面還開著。' : err && err.type === 'timeout' ? '連不上房間，請再試一次。' : '連線服務暫時連不上，請稍後再試。';
+    logMsg('系統', why, true); toast(esc(why));
+  }
+}
+function pjLeave(){ if (room && pjMode){ try { room.leave(); } catch(e){} } clearInterval(roomTimer); clearPeers(); room = null; pjMode = false; try { history.replaceState(null, '', location.pathname + location.search); } catch(e){} setOnline(); logMsg('系統', '你離開了房間，現在是單人模式。', true); }
+function autoJoinCode(){ const m = /room=([A-Za-z]{5})/.exec(location.hash || ''); if (m && pjAvailable()) pjStart('join', m[1].toUpperCase()); }
+async function initSocial(){
+  if (!window.claude || typeof window.claude.use !== 'function'){ autoJoinCode(); return; }
+  const [r, d, u] = await Promise.all([ window.claude.use('room').catch(() => null), window.claude.use('db').catch(() => null), window.claude.use('user').catch(() => null) ]);
+  user = u; db = d;
+  if (user){ try { myId = await user.id(); } catch(e){} if (myId) await resolveNames([myId]); refreshMyName(); }
+  if (r) useRoom(r);
+  else autoJoinCode();
+  if (db && myId){
+    try { const can = await user.can('data.write'); if (can === false) dbWritable = false; } catch(e){}
+    let first = true;
+    db.doc('records/' + myId).onSnapshot(snap => {
+      if (!snap.exists){ if (first && rec.total > 0) setTimeout(saveRemote, 50); first = false; return; }
+      const remote = normRec(snap.data());
+      if (remote.total > rec.total){ rec = remote; LS.set('tide.rec', rec); buildTank(); if (!$('#sheet').hidden) renderTab(); }
+      else if (first && rec.total > remote.total) setTimeout(saveRemote, 50);
+      first = false;
+    }, () => {});
+  }
+  if (db){
+    lbLoading = true; const timer = setTimeout(() => { lbSlow = true; if (curTab === 'rank') renderTab(); }, 10000);
+    db.collection('records').orderBy('bestW', 'desc').limit(20).onSnapshot(s => { clearTimeout(timer); lbLoading = false; lbSlow = false; lb.best = s.docs.map(d => ({ id:d.id, ...normRec(d.data()) })); if (curTab === 'rank' && !$('#sheet').hidden) renderTab(); }, () => { lbLoading = false; });
+    db.collection('records').orderBy('total', 'desc').limit(20).onSnapshot(s => { lb.total = s.docs.map(d => ({ id:d.id, ...normRec(d.data()) })); if (curTab === 'rank' && !$('#sheet').hidden) renderTab(); }, () => {});
+  }
+}
+function refreshMyName(){ me.setName(nickname || (myId && profileNames[myId]) || '你'); }
+let saving = false, saveAgain = false;
+async function saveRemote(){
+  if (!db || !myId || !dbWritable) return;
+  if (saving){ saveAgain = true; return; }
+  saving = true;
+  try { await db.doc('records/' + myId).set(JSON.parse(JSON.stringify(rec))); }
+  catch(e){ if (e && e.code === 'invalid_argument') dbWritable = false; }
+  saving = false; if (saveAgain){ saveAgain = false; saveRemote(); }
+}
+function announceCatch(f, w, spot){ if (room && room.connected() && chatAllowed) room.emit('catch', { f: f.id, w, s: spot }).catch(() => {}); logMsg('', `你釣到了 ${f.name} ${w.toFixed(2)}kg`, true); }
+const lb = { best: [], total: [] }; let lbLoading = false, lbSlow = false, lbMode = 'best';
+
+/* ================= NPC villagers ================= */
+const npcs = [
+  { name:'阿潮・村民', shirt:'#7db7d7', hat:'#f6f0dd', x:-0.6, z:-19.2, y:0.28, dir:new THREE.Vector2(-0.3,-1).normalize() },
+  { name:'小溪・村民', shirt:'#d896c3', hat:'#3fbf9d', x:16.9, z:10.9, y:0.28, dir:new THREE.Vector2(1,0.2).normalize() },
+].map(n => { const f = new Fisher({ shirt:n.shirt, hat:n.hat, name:n.name, kind:'npc' }); f.pos.set(n.x, n.y, n.z); f.baseY = n.y; f.rot = Math.atan2(n.dir.x, n.dir.y); f.fishing = true; f.bobState = 'water'; f.bobPos.set(n.x + n.dir.x*4.5, 0.12, n.z + n.dir.y*4.5); f.next = now() + rand(4, 12); f.lines = ['今天的浪很溫柔呢', '聽說溪裡有會發光的魚…', '慢慢來，魚會來的', '燈塔亮的時候，月光鯛最多']; return f; });
+function updateNpcs(dt, t){
+  for (const n of npcs){
+    if (t > n.next){ n.dip = 1; n.bend = 0.6; ripple(n.bobPos.x, n.bobPos.z); if (Math.random() < 0.35 && camera.position.distanceTo(n.pos) < 25) n.say(n.lines[Math.floor(Math.random()*n.lines.length)], '', 4); n.next = t + rand(6, 15); }
+    n.dip *= Math.pow(0.08, dt); n.bend *= Math.pow(0.2, dt);
+    n.update(dt, t); n.placeTag();
+  }
+}
+
+/* ================= SHEET ================= */
+let curTab = 'dex';
+function openSheet(tab){ curTab = tab; $('#sheet').hidden = false; uiBlocked = true; for (const k in keys) keys[k] = false; renderTab(); }
+function closeSheet(){ if ($('#sheet').hidden) return; $('#sheet').hidden = true; uiBlocked = !$('#catchCard').hidden; canvas.focus(); }
+$$('#menu [data-tab]').forEach(b => b.addEventListener('click', () => openSheet(b.dataset.tab)));
+$$('#tabs [data-tab]').forEach(b => b.addEventListener('click', () => { curTab = b.dataset.tab; renderTab(); }));
+$('#closeSheet').addEventListener('click', closeSheet);
+$('#sheet').addEventListener('click', e => { if (e.target.id === 'sheet') closeSheet(); });
+
+function el(tag, cls, text){ const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+function renderTab(){
+  $$('#tabs [data-tab]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === curTab)));
+  const body = $('#sheetBody'); body.textContent = '';
+  if (curTab === 'dex'){
+    const got = FISH.filter(f => rec.count[f.id]).length;
+    body.appendChild(el('p', 'sub', `已收集 ${got} / ${FISH.length} 種・總共釣到 ${rec.total} 條・傳說 ${rec.legend} 條。拋得越遠，越容易遇到稀有魚。`));
+    for (const s of SPOTS){
+      const h = el('div', 'dexhead', s.label); h.appendChild(el('small', '', s.subtitle)); body.appendChild(h);
+      const g = el('div', 'dex');
+      FISH.filter(f => f.spot === s.id).sort((a,b) => RARITY_ORDER[a.rarity] - RARITY_ORDER[b.rarity]).forEach(f => {
+        const known = !!rec.count[f.id]; const it = el('div', 'it' + (known ? '' : ' lock'));
+        it.appendChild(fishCanvas(f, known, 96, 60)); it.appendChild(el('div', 'n', known ? f.name : '？？？'));
+        it.appendChild(el('span', 'chip r-' + f.rarity, f.rarity));
+        it.appendChild(el('div', 'meta', known ? `最大 ${rec.best[f.id].toFixed(2)}kg・${rec.count[f.id]} 條` : '尚未釣到'));
+        g.appendChild(it);
+      });
+      body.appendChild(g);
+    }
+  } else if (curTab === 'rank'){
+    const seg = el('div', 'seg');
+    [['best','最大的魚'],['total','釣魚總數']].forEach(([k, l]) => { const b = el('button', '', l); b.setAttribute('aria-pressed', String(lbMode === k)); b.addEventListener('click', () => { lbMode = k; renderTab(); }); seg.appendChild(b); });
+    body.appendChild(seg);
+    if (!db){ body.appendChild(el('p', 'sub', '排行榜會跟所有打開這個村子的人同步。目前沒有連上共享資料，下面只顯示你自己的紀錄。')); }
+    else if (lbSlow){ body.appendChild(el('p', 'sub', '暫時連不上排行榜，資料可能不是最新的。')); }
+    let rows = (lbMode === 'best' ? lb.best : lb.total).filter(r => r.total > 0);
+    if (!db || (!rows.some(r => r.id === myId) && rec.total > 0)) rows = rows.concat([{ id: myId || 'me', ...rec, _me: true }]);
+    rows.sort((a, b) => lbMode === 'best' ? b.bestW - a.bestW : b.total - a.total);
+    if (!rows.length){ body.appendChild(el('div', 'empty', lbLoading ? '正在讀取排行榜…' : '還沒有人上榜。走到任何一個發光圈拋竿，成為村子裡第一個上榜的釣客吧！')); return; }
+    const ul = el('ol', 'rank'); const ids = rows.map(r => r.id).filter(id => id && id !== 'me');
+    rows.slice(0, 20).forEach((r, i) => {
+      const isMe = r._me || r.id === myId; const li = el('li', isMe ? 'me' : '');
+      li.appendChild(el('span', 'pos', String(i + 1)));
+      const who = el('span', 'who', isMe ? `${myDisplayName() === '你' ? '你' : myDisplayName() + '（你）'}` : (profileNames[r.id] || '釣客'));
+      who.dataset.id = r.id;
+      const bf = r.bestFish && FISH_BY_ID[r.bestFish];
+      who.appendChild(el('small', '', lbMode === 'best' ? (bf ? `${bf.name}・${bf.rarity}` : '') : `收集 ${Object.keys(r.count).length} 種・傳說 ${r.legend} 條`));
+      li.appendChild(who);
+      li.appendChild(el('span', 'val', lbMode === 'best' ? r.bestW.toFixed(2) + ' kg' : r.total + ' 條'));
+      ul.appendChild(li);
+    });
+    body.appendChild(ul);
+    const missing = ids.filter(id => !(id in profileNames));
+    if (missing.length) resolveNames(missing).then(() => { if (curTab === 'rank' && !$('#sheet').hidden) $$('.rank .who', body).forEach(w => { const id = w.dataset.id; if (id !== myId && profileNames[id]) w.firstChild.textContent = profileNames[id]; }); });
+  } else if (curTab === 'tank'){
+    body.appendChild(el('p', 'sub', '最近釣到的魚都會放進魚缸，最新的 12 條會在村子東邊的「你的水族館」裡游泳。'));
+    if (!rec.tank.length){ body.appendChild(el('div', 'empty', '魚缸還是空的。去月灣河岸、晴潮海邊或螢光溪間釣第一條魚吧！')); return; }
+    const ul = el('ul', 'tank');
+    rec.tank.forEach(x => { const f = FISH_BY_ID[x.f]; const li = el('li'); li.appendChild(fishCanvas(f, true, 56, 36)); const d = el('div'); d.appendChild(el('div', 'n', f.name)); const dt = new Date(x.t); d.appendChild(el('div', 'meta', `${x.w.toFixed(2)}kg・${f.rarity}・${dt.getMonth()+1}/${dt.getDate()} ${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`)); li.appendChild(d); ul.appendChild(li); });
+    body.appendChild(ul);
+  } else if (curTab === 'people'){
+    if (room && !pjMode) body.appendChild(el('p', 'sub', '現在在村子裡的人。分享這個頁面的連結給朋友，就能一起釣魚、聊天。'));
+    else if (pjAvailable()) body.appendChild(pjBox());
+    else body.appendChild(el('p', 'sub', '目前是單人模式。在 claude.ai 上開啟並分享這個頁面，朋友加入後就會出現在這裡。'));
+    const ul = el('ul', 'people');
+    const add = (name, color, st, isMe) => { const li = el('li'); const sw = el('span', 'sw'); sw.style.background = color; li.append(sw, el('span', '', name + (isMe ? '（你）' : '')), el('span', 'st', st)); ul.appendChild(li); };
+    const stOf = (ph, x, z) => { if (ph){ const s = SPOTS.reduce((a, b) => Math.hypot(x-a.pos.x, z-a.pos.z) < Math.hypot(x-b.pos.x, z-b.pos.z) ? a : b); return `在${s.short}釣魚中`; } return '散步中'; };
+    add(myDisplayName() === '你' ? '你' : myDisplayName(), look.shirt, stOf(me.fishing, me.pos.x, me.pos.z), true);
+    for (const p of peers.values()) add(peerName(p) + (p.guest ? '・訪客' : ''), isHex(p.pres.sh) ? p.pres.sh : '#9fb3bf', stOf(!!p.pres.f, p.target.x, p.target.z));
+    for (const n of npcs) add(n.nm.textContent, n.av.shirtM.color.getStyle(), '在岸邊釣魚（NPC）');
+    body.appendChild(ul);
+  } else if (curTab === 'style'){
+    const f1 = el('div', 'field'); f1.appendChild(el('label', '', '衣服顏色')); const s1 = el('div', 'swatches');
+    SHIRTS.forEach(c => { const b = el('button'); b.style.background = c; b.setAttribute('aria-label', '衣服 ' + c); b.setAttribute('aria-pressed', String(look.shirt === c)); b.addEventListener('click', () => { look.shirt = c; saveLook(); renderTab(); }); s1.appendChild(b); });
+    f1.appendChild(s1); body.appendChild(f1);
+    const f2 = el('div', 'field'); f2.appendChild(el('label', '', '帽子顏色')); const s2 = el('div', 'swatches');
+    HATS.forEach(c => { const b = el('button'); b.style.background = c; b.setAttribute('aria-label', '帽子 ' + c); b.setAttribute('aria-pressed', String(look.hat === c)); b.addEventListener('click', () => { look.hat = c; saveLook(); renderTab(); }); s2.appendChild(b); });
+    f2.appendChild(s2); body.appendChild(f2);
+    const f3 = el('div', 'field'); const lab = el('label', '', '暱稱'); lab.htmlFor = 'nickIn'; f3.appendChild(lab);
+    const inp = el('input', 'txt'); inp.id = 'nickIn'; inp.maxLength = 16; inp.value = nickname; inp.placeholder = (myId && profileNames[myId]) || '留空就用你的 claude.ai 名字';
+    inp.addEventListener('change', () => { nickname = inp.value.trim().slice(0, 16); LS.set('tide.nick', nickname); refreshMyName(); pushPresence(true); });
+    f3.appendChild(inp); f3.appendChild(el('p', 'sub', '其他玩家會在你頭上看到這個名字。'));
+    body.appendChild(f3);
+  } else if (curTab === 'help'){
+    body.appendChild(el('p', 'sub', '走進任一個發光圈就能釣魚。每個釣點有 4 種魚，其中 1 種是傳說魚。'));
+    const k = el('div', 'kbd');
+    [['移動', isTouch ? '左下搖桿' : 'WASD / 方向鍵（Shift 跑步）'], ['轉視角', isTouch ? '在畫面上拖曳' : '拖曳滑鼠・滾輪縮放'], ['拋竿', '按住蓄力，放開拋出；拋越遠越容易遇到稀有魚'], ['提竿', '浮標猛沉、出現「!」時馬上按'], ['拉線', '按住收線、放開卸力，讓拉力停在綠色區'], ['聊天', isTouch ? '💬 按鈕' : 'Enter'], ['表情', isTouch ? '右下表情按鈕' : '1 / 2 / 3']].forEach(([a, b]) => { k.appendChild(el('kbd', '', a)); k.appendChild(el('span', '', b)); });
+    body.appendChild(k);
+  }
+}
+function pjBox(){
+  const box = el('div', 'field');
+  if (room && pjMode){
+    box.appendChild(el('label', '', '房間代碼'));
+    const code = el('div', ''); code.style.cssText = 'font-family:var(--f-display);font-size:34px;letter-spacing:.3em;color:var(--sea)'; code.textContent = room.code || ''; box.appendChild(code);
+    box.appendChild(el('p', 'sub', '把這 5 個字母，或下面的連結傳給朋友。朋友在「玩家」分頁輸入代碼，或直接點連結就能進來。開房的人關掉頁面，大家就會斷線。'));
+    const row = el('div', ''); row.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap';
+    const share = el('button', 'pbtn', '分享連結'); share.style.cssText = 'margin:0;width:auto;padding:10px 16px';
+    share.addEventListener('click', async () => { const url = location.href.split('#')[0] + '#room=' + room.code; try { if (navigator.share) await navigator.share({ title:'潮汐釣魚村', text:'來一起釣魚！房間代碼 ' + room.code, url }); else { await navigator.clipboard.writeText(url); toast('已複製連結'); } } catch(e){} });
+    const leave = el('button', 'pbtn', '離開房間'); leave.style.cssText = 'margin:0;width:auto;padding:10px 16px;background:var(--paper-2);color:var(--ink)';
+    leave.addEventListener('click', () => { pjLeave(); renderTab(); });
+    row.append(share, leave); box.appendChild(row);
+    return box;
+  }
+  box.appendChild(el('p', 'sub', '目前是單人模式。開一個房間，或輸入朋友給的 5 個字母，就能一起釣魚、聊天。先到「造型」分頁取個暱稱，朋友才認得出你。'));
+  const host = el('button', 'pbtn', '開新房間'); host.style.marginTop = '0'; host.addEventListener('click', () => pjStart('host'));
+  box.appendChild(host);
+  const row = el('div', ''); row.style.cssText = 'display:flex;gap:8px;margin-top:12px';
+  const inp = el('input', 'txt'); inp.maxLength = 5; inp.placeholder = '房間代碼，例如 KMRTA'; inp.style.cssText = 'flex:1;min-width:0;text-transform:uppercase;letter-spacing:.15em';
+  const go = el('button', 'pbtn', '加入'); go.style.cssText = 'margin:0;width:auto;padding:10px 18px';
+  go.addEventListener('click', () => { const c = inp.value.toUpperCase().replace(/[^A-Z]/g, ''); if (c.length !== 5) { toast('房間代碼是 5 個英文字母'); return; } pjStart('join', c); });
+  row.append(inp, go); box.appendChild(row);
+  return box;
+}
+function saveLook(){ LS.set('tide.look', look); me.setLook(look.shirt, look.hat); pushPresence(true); }
+
+// landscape / fullscreen
+const portraitMQ = matchMedia('(orientation: portrait)');
+function syncOrient(){ document.body.classList.toggle('portrait', portraitMQ.matches); setTimeout(resize, 120); }
+(portraitMQ.addEventListener ? portraitMQ.addEventListener('change', syncOrient) : portraitMQ.addListener(syncOrient)); syncOrient();
+addEventListener('orientationchange', () => setTimeout(resize, 250));
+const fsEl = document.documentElement;
+const canFS = !!(fsEl.requestFullscreen || fsEl.webkitRequestFullscreen);
+if (canFS) $('#fsBtn').classList.add('ok');
+async function goLandscape(){
+  ensureAudio();
+  try { if (!document.fullscreenElement){ await (fsEl.requestFullscreen ? fsEl.requestFullscreen({ navigationUI:'hide' }) : fsEl.webkitRequestFullscreen()); } } catch(e){}
+  try { if (screen.orientation && screen.orientation.lock) await screen.orientation.lock('landscape'); } catch(e){}
+  setTimeout(() => { if (portraitMQ.matches) toast('這個瀏覽器不能自動轉向，請手動把手機轉成橫向，或關掉螢幕旋轉鎖定。'); }, 700);
+}
+$('#rotFull').addEventListener('click', goLandscape);
+$('#rotSkip').addEventListener('click', () => document.body.classList.add('allowPortrait'));
+$('#fsBtn').addEventListener('click', () => { if (document.fullscreenElement){ document.exitFullscreen().catch(() => {}); } else goLandscape(); });
+
+// hint
+if (isTouch) $('#hintTxt').textContent = '左下搖桿移動・拖曳畫面轉視角・走進發光圈按住按鈕拋竿';
+if (LS.get('tide.hintSeen', false)) $('#hint').hidden = true;
+$('#hintX').addEventListener('click', () => { $('#hint').hidden = true; LS.set('tide.hintSeen', true); });
+
+/* ================= LOOP ================= */
+let last = now(), frameNo = 0;
+camera.position.set(0, 5, 17);
+function frame(){
+  const t = now(); const dt = Math.min(0.05, t - last); last = t; frameNo++;
+  updatePlayer(dt); updateFishing(dt, t); me.update(dt, t); updateCamera(dt); me.placeTag();
+  updatePeers(dt, t); updateNpcs(dt, t); updateJumpers(dt, t); updateTank(t);
+  // water
+  for (const w of animWater){ const pos = w.m.geometry.attributes.position; const a = pos.array; const ox = w.m.position.x, oz = w.m.position.z; for (let i = 0; i < a.length; i += 3) a[i+1] = waterY(a[i] + ox, a[i+2] + oz, t) - 0.01; pos.needsUpdate = true; if (frameNo % 2 === 0) w.m.geometry.computeVertexNormals(); }
+  for (const s of schools){ s.g.rotation.y += dt * 0.28; s.g.children.forEach((f, i) => { if (f.userData.tail) f.userData.tail.rotation.y = Math.sin(t*7 + i)*0.5; }); }
+  for (const l of lanterns) l.material.emissiveIntensity = 1.0 + Math.sin(t*2 + l.position.x) * 0.25;
+  if (lhLight) lhLight.material.emissiveIntensity = 2.4 + Math.sin(t*1.5) * 1.2;
+  for (const s of SPOTS) if (s.ring) s.ring.material.emissiveIntensity = 1.4 + Math.sin(t*3 + s.pos.x)*0.5;
+  for (const c of clouds){ c.g.position.x += c.v * dt; if (c.g.position.x > 70) c.g.position.x = -70; }
+  for (const r of ripples){ if (r.t > 1.2){ r.m.visible = false; continue; } r.t += dt; const k = r.t / 1.2; r.m.scale.setScalar((1 + k*7) * r.big); r.m.material.opacity = (1 - k) * 0.8; }
+  sun.position.set(me.pos.x + 18, 30, me.pos.z + 14); sun.target.position.set(me.pos.x, 0, me.pos.z);
+  placeLabelsUpdate();
+  renderer.render(scene, camera);
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+logMsg('', '歡迎來到潮汐釣魚村！走進任一個發光圈就可以拋竿。', true);
+initSocial().catch(() => {});
+})();
+</script>
+
+</body></html>
