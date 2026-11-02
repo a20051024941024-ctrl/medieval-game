@@ -434,7 +434,7 @@ button{font:inherit;color:inherit}
     <div class="startmap" id="startmap" aria-hidden="true"></div>
     <div class="sc-in gx">
       <p class="eyebrow">MEDIEVAL: WORLD DOMINATION · 1096 AD</p>
-      <p class="muted small" id="verline">版本 v211 · 2026-11-02 · 地圖拉遠時國名旁有國家徽章（拉近時不畫）</p>
+      <p class="muted small" id="verline">版本 v212 · 2026-11-02 · 白手起家模式：開局只有首都（或首都加一圈），其他地都是中立地</p>
       <h1>中世紀：世界霸權</h1>
       <p class="lead">1095 年，教宗在克萊蒙發出號召，整個歐洲動了起來。選一個勢力（共 121 個），再從該文明歷史上的君主裡挑一位登基；在四千多個六角格地塊的世界裡，與基督教世界、伊斯蘭世界與即將到來的蒙古鐵騎周旋。可以結盟借道、派商隊與商船貿易、派密探、遠征遠方、研究科技升級時代、替自己的城市取名。沒有回合上限，直到有人稱霸，或你失去一切。</p>
       <div id="startopts"></div>
@@ -1622,6 +1622,26 @@ function newGame0(pid, diff) {
 }
 
 /* ---------- 經濟 ---------- */
+/* 白手起家：每國只留首都（mode 1 再加首都旁邊一圈），其他領土變成中立地 */
+function applyStartMode(g, mode) {
+  if (!(mode === 1 || mode === 2)) return;
+  g.startMode = mode;
+  FIDS.forEach(function (f) {
+    var fs = g.fac[f]; if (!fs || !fs.alive) return;
+    var c = CAPITAL[f], keep = {}; if (c == null || !g.p[c] || g.p[c].o !== f) c = owned(g, f)[0]; if (c == null) return;
+    keep[c] = 1; if (mode === 1) NB[c].forEach(function (n) { if (g.p[n] && g.p[n].o === f && LAND[n]) keep[n] = 1; });
+    owned(g, f).forEach(function (id) {
+      if (keep[id]) return;
+      var p = g.p[id], t = TERR[id];
+      p.o = null; delete p.fv; delete p.ord; p.ar = []; p.acted = false;
+      p.t = (p.L > 0 ? 2 + 2 * p.L : 2) + (t === 'm' ? 1 : 0) + (CITY[id] ? 1 : 0);
+    });
+    var cp = g.p[c]; cp.t = Math.max(cp.t, mode === 2 ? 12 : 10);
+    fs.gold += 120; fs.food += 60;
+  });
+  _own = null; if (typeof refreshAlive === 'function') refreshAlive(g);
+  g.apCap = apMax(g, g.player); g.ap = g.apCap;
+}
 function provYield(g, id, f) {
   var p = g.p[id], y = TERR_Y[TERR[id]], food = y[0], gold = y[1];
   if (p.L > 0) { food += 2 * p.L; gold += 3 * p.L; if (CITY[id] && CITY[id].port) gold += 1; }
@@ -4320,7 +4340,7 @@ function addRes(g, f, o) {
   if (o.gold) fs.gold = Math.max(0, fs.gold + o.gold);
   if (o.morale) fs.morale = clamp(fs.morale + o.morale, 0, 100);
 }
-function addTroops(g, id, n) { var p = g.p[id]; p.t = clamp(p.t + n, 1, Math.max(p.t, capOf(p, id))); }
+function addTroops(g, id, n) { var p = g.p[id]; if (!p) return; p.t = clamp(p.t + n, 1, Math.max(p.t, capOf(p, id))); }
 function randOwned(g, f) { var o = owned(g, f); return o[rint(o.length)]; }
 function randCity(g, f) {
   var o = owned(g, f).filter(function (id) { return g.p[id].L > 0; });
@@ -6456,7 +6476,7 @@ var G = {
   codex: codex, recruitCost: recruitCost, unitCost: unitCost, mercCost: mercCost, mixOf: mixOf, mercOf: mercOf, unitName: unitName, mercName: mercName, unitAllowed: unitAllowed, SPECIAL: SPECIAL, UNIT_NAMES: UNIT_NAMES, DEFMIX: DEFMIX, buildCost: buildCost, tradeGain: tradeGain, ritualCost: ritualCost, ritualGain: ritualGain,
   CV_COST: CV_COST, cvOf: cvOf, cvCap: cvCap, cvRouteOpts: cvRouteOpts, TAX_N: TAX_N, TAX_D: TAX_D, taxOf: taxOf, softCap: softCap, recLeft: recLeft, recLimit: recLimit, isMarried: isMarried, marryCost: marryCost, marryChance: marryChance, tributeCost: tributeCost, RESH: RESH, RES_N: RES_N, RES_D: RES_D, resCount: resCount, resFx: resFx, armySwap: armySwap, chainAdd: chainAdd, CHAIN: CHAIN, matchupHint: matchupHint, riverEdge: riverEdge, RIV_E: RIV_E, RIVERS: RIVERS, canPay: canPay, P: P, sendCount: sendCount, battleOdds: battleOdds, moveTargets: moveTargets, wallCost: wallCost, TECH: TECH, RUNIT: RUNIT, RSP: RSP, rulerGift: rulerGift, SPY: SPY, spyMods: spyMods, infOf: infOf, sancOf: sancOf, envoyLeft: envoyLeft, ENVOY_COST: ENVOY_COST, MERCH: MERCH, chron: chron, expState: expState, debtOf: debtOf, debtRate: debtRate, debtLimit: debtLimit, debtLenders: debtLenders, excommunicate: excommunicate, succWeak: succWeak, ORDS: ORDS, ORD_DON: ORD_DON, ordOn: ordOn, ordList: ordList, ordFav: ordFav, ordCanUse: ordCanUse, ordChapters: ordChapters, ordAidInfo: ordAidInfo, spyLeft: spyLeft, needRuler: needRuler, rulerChoices: rulerChoices, HIST_REL: HIST_REL, RULERS: RULERS, rulerOf: rulerOf, setRuler: setRuler, carOptions: carOptions, carActive: carActive, carMax: carMax, CAR_COST: CAR_COST, festLeft: festLeft, ROAD: ROAD, ROADSEG: ROADSEG, PASS: PASS, CAMEL: CAMEL, BLOCKED: BLOCKED, terrAtk: terrAtk, eraSync: eraSync, eraNum: eraNum, eraInfo: eraInfo, eraOf: eraOf, ERA_NAME: ERA_NAME, TECHS: TECHS, TBR: TBR, TECH_BY: TECH_BY, techLv: techLv, techState: techState, techHas: techHas, techFx: techFx, techCost: techCost, techWhy: techWhy, BLD: BLD, BLD_KEYS: BLD_KEYS, bldCount: bldCount, wallLv: wallLv, portOpen: portOpen, portsOpen: portsOpen, moveTroops: moveTroops,
   endTurn: endTurn, pickEvent: pickEvent, eventView: eventView, applyChoice: applyChoice, scoreOf: scoreOf,
-  setPNames: setPNames, cultOf: cultOf, lordsOf: lordsOf, FIEF_PER: FIEF_PER, fiefMax: fiefMax, fiefList: fiefList, cityN: cityN, FIEF_COST: FIEF_COST, FIEF_REWARD: FIEF_REWARD, isCapital: isCapital, msOf: msOf, NOHORSE: NOHORSE, deepOK: deepOK, msCap: msCap, MS_COST: MS_COST, nm: nm, aiTurn: aiTurn, portsOf: portsOf, genAt: genAt, resolveBattle: resolveBattle, citySiteBlock: citySiteBlock, buildCostG: buildCostG, settleName: settleName, isVillage: isVillage, RELICS: RELICS, REL_TXT: REL_TXT, relAt: relAt, gensOf: gensOf, genLv: genLv, genChoose: genChoose, genCandidates: genCandidates, LANDMARKS: LANDMARKS, LM_AT: LM_AT, lmInfo: lmInfo, lmBonus: lmBonus, callWarInfo: callWarInfo, culOf: culOf, culGain: culGain, CUL_WIN: CUL_WIN, msnTick: msnTick, surInfo: surInfo, moveCapCost: moveCapCost, syncCap: syncCap, xRate: xRate, xQuota: xQuota, genAvail: genAvail, genCost: genCost, GEN_MAX: GEN_MAX, GEN_TYPE: GEN_TYPE, GEN_TXT: GEN_TXT, GENS: GENS, shipsOf: shipsOf, fleets: fleets, fleetReach: seaReach, fleetStr: fleetStr, seaCapAt: seaCapAt, FLEET_MOVE: FLEET_MOVE, shipCap: shipCap, seaCapLeft: seaCapLeft, shipName: shipName, SHIP_COST: SHIP_COST, SHIP_CARRY: SHIP_CARRY, moraleMult: moraleMult, placeName: placeName, terrDef: terrDef,
+  setPNames: setPNames, applyStartMode: applyStartMode, cultOf: cultOf, lordsOf: lordsOf, FIEF_PER: FIEF_PER, fiefMax: fiefMax, fiefList: fiefList, cityN: cityN, FIEF_COST: FIEF_COST, FIEF_REWARD: FIEF_REWARD, isCapital: isCapital, msOf: msOf, NOHORSE: NOHORSE, deepOK: deepOK, msCap: msCap, MS_COST: MS_COST, nm: nm, aiTurn: aiTurn, portsOf: portsOf, genAt: genAt, resolveBattle: resolveBattle, citySiteBlock: citySiteBlock, buildCostG: buildCostG, settleName: settleName, isVillage: isVillage, RELICS: RELICS, REL_TXT: REL_TXT, relAt: relAt, gensOf: gensOf, genLv: genLv, genChoose: genChoose, genCandidates: genCandidates, LANDMARKS: LANDMARKS, LM_AT: LM_AT, lmInfo: lmInfo, lmBonus: lmBonus, callWarInfo: callWarInfo, culOf: culOf, culGain: culGain, CUL_WIN: CUL_WIN, msnTick: msnTick, surInfo: surInfo, moveCapCost: moveCapCost, syncCap: syncCap, xRate: xRate, xQuota: xQuota, genAvail: genAvail, genCost: genCost, GEN_MAX: GEN_MAX, GEN_TYPE: GEN_TYPE, GEN_TXT: GEN_TXT, GENS: GENS, shipsOf: shipsOf, fleets: fleets, fleetReach: seaReach, fleetStr: fleetStr, seaCapAt: seaCapAt, FLEET_MOVE: FLEET_MOVE, shipCap: shipCap, seaCapLeft: seaCapLeft, shipName: shipName, SHIP_COST: SHIP_COST, SHIP_CARRY: SHIP_CARRY, moraleMult: moraleMult, placeName: placeName, terrDef: terrDef,
   EVENTS: EVENTS, HIST: HIST, checkEnd: checkEnd, finish: finish, settle: settle, TERR_Y: TERR_Y,
   SAVE_VER: SAVE_VER, MAPSIG: MAPSIG, rel: rel, migrate: migrate, strength: strength, dipInfo: dipInfo, declareWar: declareWar, aiDiplomacy: aiDiplomacy,
   swapAmt: swapAmt, routeCands: routeCands, coastTarget: coastTarget, supplyDist: supplyDist, supRange: supRange, lordOf: lordOf, vassalsOf: vassalsOf, ownedTotal: ownedTotal, offerEvent: offerEvent, acceptChance: acceptChance,
@@ -6768,7 +6788,7 @@ if (typeof module !== 'undefined') module.exports = G;
     MP.facOf = {};
     ids.forEach(function (u) { MP.facOf[u] = MP.players[u].f; if (u !== MP.uid) guests.push(MP.players[u].f); });
     MP.phase = 'play'; MP.on = true; MP.role = 'host';
-    g = G.newGame(hostF, DIFF); g.noCul = !CULON;
+    g = G.newGame(hostF, DIFF); g.noCul = !CULON; if (STARTM) G.applyStartMode(g, STARTM);
     G.mpInit(g, guests);
     enterGame();
     MP.dirty = true;
@@ -7563,6 +7583,7 @@ if (typeof module !== 'undefined') module.exports = G;
     '<li><b>電腦會開發中立地</b>：電腦會把後方的兵集中到邊境，夠多了就合力拿下旁邊的中立地，國庫太滿也會多徵兵。</li>' +
     '<li><b>點地＝查看</b>：點別人的地或中立地只會顯示它的資料，不會自動出兵；面板上有「⚔ 從旁邊的某地出兵」按鈕，按了才會選好出兵。已經選了自己的地、再點旁邊的地，那塊地會變成出兵目標（箭頭）；同一塊再點一次，就改成只查看它。打不到的遠處只會提示你要先把部隊調到哪裡，不會自己幫你調兵扣行動點。</li>' +
     '<li><b>電腦會守首都</b>：首都或大城被你的大軍逼近時，電腦會從附近調兵回防、優先在那裡補兵；普通和困難難度下，首都告急還會緊急徵召民兵（每 4 回合一次），所以最好先削弱它周圍的部隊再攻城。</li>' +
+    '<li><b>白手起家模式</b>：開始畫面的「開局領地」可以選「首都＋一圈」或「只有首都」。所有國家（包含電腦）一開始都只有這一點點地，其他地全部變成中立地；原本地圖上的城市變成有守軍的中立城，要自己一塊塊打下來，再蓋村莊、升級城市慢慢擴張。每國會多發 120 金、60 糧當起步資金。開著新手引導時一律用正常開局；多人連線以房主的選擇為準。</li>' +
     '<li><b>國家徽章</b>：每個國家都有自己的盾牌徽章，出現在選國家的卡片、左上角、國家列表和外交名單上；地圖拉遠時，國名旁邊也會出現。歐洲多半是十字、鷹、百合花，伊斯蘭國家是新月與星，宋、遼、西夏、大理、高麗、大越用國號的字，日本是紅日，草原民族是部落符號，印度與東南亞是蓮花、法輪，美洲是金字塔與太陽。</li>' +
     '<li><b>點圖示看細節</b>：點地圖上的駱駝（商隊）或帶 $ 的小船（商船），會告訴你是哪一國的、從哪裡到哪裡、這趟賺了多少或在哪裡被劫。點有「封」字小旗的地，面板最上面會寫出這是哪一國分封給哪位領主的封地；你自己的封地還會顯示忠誠度。</li>' +
     '<li><b>多人連線的國名</b>：真人玩家控制的國家，名字後面會加上玩家暱稱，例如「北宋（阿明）」，地圖上方的國家列表、外交名單和戰報都看得到。</li>' +
@@ -8111,6 +8132,8 @@ if (typeof module !== 'undefined') module.exports = G;
   /* ---------- 開始畫面 ---------- */
   var DIFF_NAME = ['簡單', '普通', '困難'], DIFF_TXT = ['你的收入 +20%，AI 收入 −8%，有新手引導', '標準（沒有新手引導）', '你的收入 −12%，AI 收入 +10%（沒有新手引導）'];
   var GUIDE = true; try { GUIDE = localStorage.getItem('crusade-guide') !== '0'; } catch (e) {}
+  var STARTM = 0; try { STARTM = +localStorage.getItem('crusade-startm') || 0; if (!(STARTM >= 0 && STARTM <= 2)) STARTM = 0; } catch (e) {}
+  function startModeOn() { return STARTM > 0 && !(DIFF === 0 && GUIDE); }
   function slotHas(n) { try { return localStorage.getItem(SK(n)) !== null; } catch (e) { return false; } }
   function slotSum(n) { var sv = loadSave(n); return sv && sv.player && !sv.over ? G.FACTIONS[sv.player].name + ' · ' + dateLong(G.year(sv)) + ' · ' + DIFF_NAME[sv.diff === undefined ? 1 : sv.diff] : null; }
   /* ---------- 匯出／匯入存檔（換裝置用） ---------- */
@@ -8208,6 +8231,8 @@ if (typeof module !== 'undefined') module.exports = G;
     for (var n = 1; n <= 3; n++) h += '<button class="chip' + (SLOT === n ? ' on' : '') + '" data-act="slot" data-v="' + n + '">欄位 ' + n + (slotHas(n) ? ' ●' : ' ○') + '</button>';
     h += '<span class="muted small">' + (slotHas(SLOT) ? '<b style="color:var(--bad,#e0675a)">⚠ 欄位 ' + SLOT + ' 已有存檔，開新遊戲會蓋掉它</b>（● 有存檔 ○ 空的，想保留請換一個空欄位）' : '欄位 ' + SLOT + ' 是空的，新遊戲會存在這裡（● 有存檔 ○ 空的）') + '</span></div>';
     for (var k = 1; k <= 3; k++) { var sm = slotSum(k); if (sm) h += '<div class="row"><button class="btn primary" data-act="continue" data-slot="' + k + '">繼續欄位 ' + k + '</button><span class="muted small">' + esc(sm) + '</span></div>'; else if (LOADWHY === 'map') h += '<div class="row"><span class="muted small">欄位 ' + k + '：舊版地圖的存檔，無法繼續（地圖已更新）</span></div>'; }
+    h += '<div class="row"><b>開局領地</b>' + ['正常', '白手起家（首都＋一圈）', '白手起家（只有首都）'].map(function (t, i) { return '<button class="chip' + (STARTM === i ? ' on' : '') + '" data-act="startm" data-v="' + i + '">' + t + '</button>'; }).join('') +
+      '<span class="muted small">' + (STARTM === 0 ? '各國照歷史上的領土開局' : (DIFF === 0 && GUIDE ? '⚠ 開著新手引導時一律用正常開局；想玩白手起家請關掉引導' : '所有國家（包含電腦）開局只有首都' + (STARTM === 1 ? '和旁邊一圈' : '') + '，其他地都是中立地，原本的城市變成有守軍的中立城，要自己一塊塊打下來、自己建城')) + '</span></div>';
     h += '<div class="row"><b>換手機／電腦</b><button class="chip" data-act="xpexp">匯出存檔</button><button class="chip" data-act="xpimp">匯入存檔</button><span class="muted small">把存檔存成小檔案，傳到另一台裝置再匯入</span></div>';
     if (CLOUD.avail) {
       h += '<div class="row"><b>雲端存檔</b>';
@@ -8321,7 +8346,7 @@ if (typeof module !== 'undefined') module.exports = G;
   }
   function startGame(pid) {
     clearSave(); MUSIC.auto();
-    ui.moved = false; g = G.newGame(pid, DIFF); g.noCul = !CULON; g.guide = DIFF === 0 && GUIDE ? 1 : 0;
+    ui.moved = false; g = G.newGame(pid, DIFF); g.noCul = !CULON; g.guide = DIFF === 0 && GUIDE ? 1 : 0; if (!g.guide && STARTM) G.applyStartMode(g, STARTM);
     enterGame();
     /* 新遊戲一開始要拉近到首都：簡單模式先關掉「大」模式，並在畫面排版完成後重算尺寸再對焦 */
     if (g.guide) { try { document.documentElement.classList.remove('bigmap'); document.documentElement.classList.remove('bigsel'); } catch (e) {} }
@@ -9779,6 +9804,7 @@ if (typeof module !== 'undefined') module.exports = G;
     if (a === 'xpcopy') return xpCopy();
     if (a === 'xpread') { var xt = $('#xptxt'); return xpParse(xt ? xt.value : ''); }
     if (a === 'xpput') return xpPutSp(+b.getAttribute('data-n'), b);
+    if (a === 'startm') { STARTM = +b.getAttribute('data-v') || 0; try { localStorage.setItem('crusade-startm', String(STARTM)); } catch (e) {} return renderOpts(); }
     if (a === 'slot') { SLOT = +b.getAttribute('data-v'); try { localStorage.setItem('crusade-slot', SLOT); } catch (e) {} return renderOpts(); }
     if (a === 'continue') { var cs = +b.getAttribute('data-slot'); if (cs) { SLOT = cs; try { localStorage.setItem('crusade-slot', SLOT); } catch (e) {} } return continueGame(); }
     if (a === 'restart' && MP.on) { location.reload(); return; }
