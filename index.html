@@ -434,7 +434,7 @@ button{font:inherit;color:inherit}
     <div class="startmap" id="startmap" aria-hidden="true"></div>
     <div class="sc-in gx">
       <p class="eyebrow">MEDIEVAL: WORLD DOMINATION · 1096 AD</p>
-      <p class="muted small" id="verline">版本 v217 · 2026-11-02 · 移除「電腦版網頁」提醒</p>
+      <p class="muted small" id="verline">版本 v218 · 2026-11-03 · 被劫商隊、沉沒商船在地圖上標示狀態</p>
       <h1>中世紀：世界霸權</h1>
       <p class="lead">1095 年，教宗在克萊蒙發出號召，整個歐洲動了起來。選一個勢力（共 121 個），再從該文明歷史上的君主裡挑一位登基；在四千多個六角格地塊的世界裡，與基督教世界、伊斯蘭世界與即將到來的蒙古鐵騎周旋。可以結盟借道、派商隊與商船貿易、派密探、遠征遠方、研究科技升級時代、替自己的城市取名。沒有回合上限，直到有人稱霸，或你失去一切。</p>
       <div id="startopts"></div>
@@ -8113,7 +8113,7 @@ if (typeof module !== 'undefined') module.exports = G;
       g.ctr.forEach(function (m) {
         if (!vis(m.h)) return;
         s += '<g data-cvi="c' + g.ctr.indexOf(m) + '" style="cursor:pointer" transform="translate(' + (HX[m.h] - 10).toFixed(1) + ',' + (HY[m.h] - 12).toFixed(1) + ') scale(' + (z1 ? 1.6 : 1.25) + ')"><circle r="14" fill="transparent" style="pointer-events:all"/>' + (m.x ?
-          '<text y="6" text-anchor="middle" font-size="20" font-weight="900" fill="#ff6b5a" stroke="rgba(0,0,0,.8)" stroke-width="2.4" paint-order="stroke">\u2716</text>' :
+          '<text y="6" text-anchor="middle" font-size="20" font-weight="900" fill="#ff6b5a" stroke="rgba(0,0,0,.8)" stroke-width="2.4" paint-order="stroke">\u2716</text>' + '<rect x="-24" y="12" width="48" height="14" rx="5" fill="#3a0d09" fill-opacity=".92" stroke="' + (NC[m.f] || '#ff6b5a') + '" stroke-width="1.6"/><text y="23" text-anchor="middle" font-size="10" font-weight="800" fill="#ffd7cf">商隊被劫</text>' :
           '<circle r="13" fill="' + (NC[m.f] || '#888') + '" stroke="#f4ead0" stroke-width="2"/><text y="6" text-anchor="middle" font-size="17">🐪</text>') + '</g>';
       });
     }
@@ -8122,7 +8122,7 @@ if (typeof module !== 'undefined') module.exports = G;
         if (!vis(m.h)) return;
         var col = NC[m.f] || '#888';
         s += '<g data-cvi="m' + g.mtr.indexOf(m) + '" style="cursor:pointer" transform="translate(' + HX[m.h].toFixed(1) + ',' + HY[m.h].toFixed(1) + ') scale(' + (z1 ? 1.3 : 1.05) + ')"><circle r="12" fill="transparent" style="pointer-events:all"/>' + (m.x ?
-          '<text y="6" text-anchor="middle" font-size="20" font-weight="900" fill="#ff6b5a" stroke="rgba(0,0,0,.8)" stroke-width="2.4" paint-order="stroke">\u2716</text>' :
+          '<text y="6" text-anchor="middle" font-size="20" font-weight="900" fill="#ff6b5a" stroke="rgba(0,0,0,.8)" stroke-width="2.4" paint-order="stroke">\u2716</text>' + '<rect x="-24" y="12" width="48" height="14" rx="5" fill="#3a0d09" fill-opacity=".92" stroke="' + (NC[m.f] || '#ff6b5a') + '" stroke-width="1.6"/><text y="23" text-anchor="middle" font-size="10" font-weight="800" fill="#ffd7cf">商船沉沒</text>' :
           '<path d="M-8,2 H8 L5,7 H-5 Z" fill="' + col + '" stroke="#f4ead0" stroke-width="1.2"/><path d="M0,-7 V2" stroke="#f4ead0" stroke-width="1.3"/><path d="M0,-7 L6,-1 H0Z" fill="#f4ead0" stroke="#2a2418" stroke-width=".8"/><circle cx="8" cy="-8" r="4.6" fill="#f1d48c" stroke="#7a5a1a" stroke-width="1"/><text x="8" y="-5.6" text-anchor="middle" font-size="7" font-weight="900" fill="#5a3d0a">$</text>') + '</g>';
       });
     }
