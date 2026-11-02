@@ -393,6 +393,11 @@ button{font:inherit;color:inherit}
 #ticker .tkx{flex:none;width:30px;height:30px;margin-right:2px;border:0;border-radius:50%;background:transparent;color:#d8ccb2;font-size:14px;cursor:pointer}
 @keyframes tkscroll{from{transform:translateX(0)}to{transform:translateX(-100%)}}
 @media (prefers-reduced-motion:reduce){#ticker .tkm{animation:none;padding-left:10px;white-space:normal}}
+/*crest1*/.crest{display:inline-block;vertical-align:middle;flex:none;filter:drop-shadow(0 1px 2px rgba(0,0,0,.45))}
+.cr-card{margin-right:8px;vertical-align:-6px}
+.cr-leg{margin-right:4px;vertical-align:-3px}
+.cr-dip{margin-right:6px;vertical-align:-4px}
+.cr-hud{width:30px;height:36px}
 </style>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
@@ -429,7 +434,7 @@ button{font:inherit;color:inherit}
     <div class="startmap" id="startmap" aria-hidden="true"></div>
     <div class="sc-in gx">
       <p class="eyebrow">MEDIEVAL: WORLD DOMINATION · 1096 AD</p>
-      <p class="muted small" id="verline">版本 v209 · 2026-11-02 · 點商隊、商船看是哪國的；封地資訊顯示在面板</p>
+      <p class="muted small" id="verline">版本 v210 · 2026-11-02 · 國家徽章：選國家、左上角、國家列表、外交名單、地圖上的首都都有自己的盾牌徽章</p>
       <h1>中世紀：世界霸權</h1>
       <p class="lead">1095 年，教宗在克萊蒙發出號召，整個歐洲動了起來。選一個勢力（共 121 個），再從該文明歷史上的君主裡挑一位登基；在四千多個六角格地塊的世界裡，與基督教世界、伊斯蘭世界與即將到來的蒙古鐵騎周旋。可以結盟借道、派商隊與商船貿易、派密探、遠征遠方、研究科技升級時代、替自己的城市取名。沒有回合上限，直到有人稱霸，或你失去一切。</p>
       <div id="startopts"></div>
@@ -6451,7 +6456,7 @@ var G = {
   codex: codex, recruitCost: recruitCost, unitCost: unitCost, mercCost: mercCost, mixOf: mixOf, mercOf: mercOf, unitName: unitName, mercName: mercName, unitAllowed: unitAllowed, SPECIAL: SPECIAL, UNIT_NAMES: UNIT_NAMES, DEFMIX: DEFMIX, buildCost: buildCost, tradeGain: tradeGain, ritualCost: ritualCost, ritualGain: ritualGain,
   CV_COST: CV_COST, cvOf: cvOf, cvCap: cvCap, cvRouteOpts: cvRouteOpts, TAX_N: TAX_N, TAX_D: TAX_D, taxOf: taxOf, softCap: softCap, recLeft: recLeft, recLimit: recLimit, isMarried: isMarried, marryCost: marryCost, marryChance: marryChance, tributeCost: tributeCost, RESH: RESH, RES_N: RES_N, RES_D: RES_D, resCount: resCount, resFx: resFx, armySwap: armySwap, chainAdd: chainAdd, CHAIN: CHAIN, matchupHint: matchupHint, riverEdge: riverEdge, RIV_E: RIV_E, RIVERS: RIVERS, canPay: canPay, P: P, sendCount: sendCount, battleOdds: battleOdds, moveTargets: moveTargets, wallCost: wallCost, TECH: TECH, RUNIT: RUNIT, RSP: RSP, rulerGift: rulerGift, SPY: SPY, spyMods: spyMods, infOf: infOf, sancOf: sancOf, envoyLeft: envoyLeft, ENVOY_COST: ENVOY_COST, MERCH: MERCH, chron: chron, expState: expState, debtOf: debtOf, debtRate: debtRate, debtLimit: debtLimit, debtLenders: debtLenders, excommunicate: excommunicate, succWeak: succWeak, ORDS: ORDS, ORD_DON: ORD_DON, ordOn: ordOn, ordList: ordList, ordFav: ordFav, ordCanUse: ordCanUse, ordChapters: ordChapters, ordAidInfo: ordAidInfo, spyLeft: spyLeft, needRuler: needRuler, rulerChoices: rulerChoices, HIST_REL: HIST_REL, RULERS: RULERS, rulerOf: rulerOf, setRuler: setRuler, carOptions: carOptions, carActive: carActive, carMax: carMax, CAR_COST: CAR_COST, festLeft: festLeft, ROAD: ROAD, ROADSEG: ROADSEG, PASS: PASS, CAMEL: CAMEL, BLOCKED: BLOCKED, terrAtk: terrAtk, eraSync: eraSync, eraNum: eraNum, eraInfo: eraInfo, eraOf: eraOf, ERA_NAME: ERA_NAME, TECHS: TECHS, TBR: TBR, TECH_BY: TECH_BY, techLv: techLv, techState: techState, techHas: techHas, techFx: techFx, techCost: techCost, techWhy: techWhy, BLD: BLD, BLD_KEYS: BLD_KEYS, bldCount: bldCount, wallLv: wallLv, portOpen: portOpen, portsOpen: portsOpen, moveTroops: moveTroops,
   endTurn: endTurn, pickEvent: pickEvent, eventView: eventView, applyChoice: applyChoice, scoreOf: scoreOf,
-  setPNames: setPNames, lordsOf: lordsOf, FIEF_PER: FIEF_PER, fiefMax: fiefMax, fiefList: fiefList, cityN: cityN, FIEF_COST: FIEF_COST, FIEF_REWARD: FIEF_REWARD, isCapital: isCapital, msOf: msOf, NOHORSE: NOHORSE, deepOK: deepOK, msCap: msCap, MS_COST: MS_COST, nm: nm, aiTurn: aiTurn, portsOf: portsOf, genAt: genAt, resolveBattle: resolveBattle, citySiteBlock: citySiteBlock, buildCostG: buildCostG, settleName: settleName, isVillage: isVillage, RELICS: RELICS, REL_TXT: REL_TXT, relAt: relAt, gensOf: gensOf, genLv: genLv, genChoose: genChoose, genCandidates: genCandidates, LANDMARKS: LANDMARKS, LM_AT: LM_AT, lmInfo: lmInfo, lmBonus: lmBonus, callWarInfo: callWarInfo, culOf: culOf, culGain: culGain, CUL_WIN: CUL_WIN, msnTick: msnTick, surInfo: surInfo, moveCapCost: moveCapCost, syncCap: syncCap, xRate: xRate, xQuota: xQuota, genAvail: genAvail, genCost: genCost, GEN_MAX: GEN_MAX, GEN_TYPE: GEN_TYPE, GEN_TXT: GEN_TXT, GENS: GENS, shipsOf: shipsOf, fleets: fleets, fleetReach: seaReach, fleetStr: fleetStr, seaCapAt: seaCapAt, FLEET_MOVE: FLEET_MOVE, shipCap: shipCap, seaCapLeft: seaCapLeft, shipName: shipName, SHIP_COST: SHIP_COST, SHIP_CARRY: SHIP_CARRY, moraleMult: moraleMult, placeName: placeName, terrDef: terrDef,
+  setPNames: setPNames, cultOf: cultOf, lordsOf: lordsOf, FIEF_PER: FIEF_PER, fiefMax: fiefMax, fiefList: fiefList, cityN: cityN, FIEF_COST: FIEF_COST, FIEF_REWARD: FIEF_REWARD, isCapital: isCapital, msOf: msOf, NOHORSE: NOHORSE, deepOK: deepOK, msCap: msCap, MS_COST: MS_COST, nm: nm, aiTurn: aiTurn, portsOf: portsOf, genAt: genAt, resolveBattle: resolveBattle, citySiteBlock: citySiteBlock, buildCostG: buildCostG, settleName: settleName, isVillage: isVillage, RELICS: RELICS, REL_TXT: REL_TXT, relAt: relAt, gensOf: gensOf, genLv: genLv, genChoose: genChoose, genCandidates: genCandidates, LANDMARKS: LANDMARKS, LM_AT: LM_AT, lmInfo: lmInfo, lmBonus: lmBonus, callWarInfo: callWarInfo, culOf: culOf, culGain: culGain, CUL_WIN: CUL_WIN, msnTick: msnTick, surInfo: surInfo, moveCapCost: moveCapCost, syncCap: syncCap, xRate: xRate, xQuota: xQuota, genAvail: genAvail, genCost: genCost, GEN_MAX: GEN_MAX, GEN_TYPE: GEN_TYPE, GEN_TXT: GEN_TXT, GENS: GENS, shipsOf: shipsOf, fleets: fleets, fleetReach: seaReach, fleetStr: fleetStr, seaCapAt: seaCapAt, FLEET_MOVE: FLEET_MOVE, shipCap: shipCap, seaCapLeft: seaCapLeft, shipName: shipName, SHIP_COST: SHIP_COST, SHIP_CARRY: SHIP_CARRY, moraleMult: moraleMult, placeName: placeName, terrDef: terrDef,
   EVENTS: EVENTS, HIST: HIST, checkEnd: checkEnd, finish: finish, settle: settle, TERR_Y: TERR_Y,
   SAVE_VER: SAVE_VER, MAPSIG: MAPSIG, rel: rel, migrate: migrate, strength: strength, dipInfo: dipInfo, declareWar: declareWar, aiDiplomacy: aiDiplomacy,
   swapAmt: swapAmt, routeCands: routeCands, coastTarget: coastTarget, supplyDist: supplyDist, supRange: supRange, lordOf: lordOf, vassalsOf: vassalsOf, ownedTotal: ownedTotal, offerEvent: offerEvent, acceptChance: acceptChance,
@@ -7558,6 +7563,7 @@ if (typeof module !== 'undefined') module.exports = G;
     '<li><b>電腦會開發中立地</b>：電腦會把後方的兵集中到邊境，夠多了就合力拿下旁邊的中立地，國庫太滿也會多徵兵。</li>' +
     '<li><b>點地＝查看</b>：點別人的地或中立地只會顯示它的資料，不會自動出兵；面板上有「⚔ 從旁邊的某地出兵」按鈕，按了才會選好出兵。已經選了自己的地、再點旁邊的地，那塊地會變成出兵目標（箭頭）；同一塊再點一次，就改成只查看它。打不到的遠處只會提示你要先把部隊調到哪裡，不會自己幫你調兵扣行動點。</li>' +
     '<li><b>電腦會守首都</b>：首都或大城被你的大軍逼近時，電腦會從附近調兵回防、優先在那裡補兵；普通和困難難度下，首都告急還會緊急徵召民兵（每 4 回合一次），所以最好先削弱它周圍的部隊再攻城。</li>' +
+    '<li><b>國家徽章</b>：每個國家都有自己的盾牌徽章，出現在選國家的卡片、左上角、國家列表和外交名單上。歐洲多半是十字、鷹、百合花，伊斯蘭國家是新月與星，宋、遼、西夏、大理、高麗、大越用國號的字，日本是紅日，草原民族是部落符號，印度與東南亞是蓮花、法輪，美洲是金字塔與太陽。</li>' +
     '<li><b>點圖示看細節</b>：點地圖上的駱駝（商隊）或帶 $ 的小船（商船），會告訴你是哪一國的、從哪裡到哪裡、這趟賺了多少或在哪裡被劫。點有「封」字小旗的地，面板最上面會寫出這是哪一國分封給哪位領主的封地；你自己的封地還會顯示忠誠度。</li>' +
     '<li><b>多人連線的國名</b>：真人玩家控制的國家，名字後面會加上玩家暱稱，例如「北宋（阿明）」，地圖上方的國家列表、外交名單和戰報都看得到。</li>' +
     '<li><b>多人選勢力</b>：房間裡先按地區（歐洲、東亞、美洲……），下拉選單就只列那一區的國家，比較好找。</li>' +
@@ -8047,6 +8053,13 @@ if (typeof module !== 'undefined') module.exports = G;
           '<text y="-11" x="9" font-size="12" font-weight="700" fill="' + (pir ? '#ff6b5a' : '#fff') + '" stroke="rgba(0,0,0,.75)" stroke-width="2.4" paint-order="stroke">' + (pir ? '☠' : '') + fl.n + '</text>' + (fl.c ? '<g transform="translate(-13,-12)"><rect x="-2" y="-9" width="' + (10 + String(fl.c).length * 7) + '" height="13" rx="6" fill="#8a2a1d" stroke="#f4ead0" stroke-width="1"/><text x="' + (3 + String(fl.c).length * 3.5) + '" y="1" font-size="10" font-weight="700" fill="#fff" text-anchor="middle">兵' + fl.c + '</text></g>' : '') + '</g>';
       });
     }
+    if (!o.demo && !LITE) {
+      /* 每國首都插一面徽章 */
+      G.FIDS.forEach(function (cf) {
+        var cid = G.CAPITAL[cf]; if (cid == null || !g.fac[cf] || !g.fac[cf].alive || !g.p[cid] || g.p[cid].o !== cf || !vis(cid)) return;
+        s += '<g pointer-events="none" transform="translate(' + (HX[cid] + 14).toFixed(1) + ',' + (HY[cid] - 58).toFixed(1) + ')"><path d="M2,6 V44" stroke="#2a1d05" stroke-width="2.4"/>' + crestSVG(cf, 26).replace('<svg ', '<svg x="3" y="0" ') + '</g>';
+      });
+    }
     if (!o.demo && g.exp && g.exp[g.player]) { var et = g.exp[g.player].t; if (vis(et)) s += '<g pointer-events="none" transform="translate(' + (HX[et] + 12).toFixed(1) + ',' + (HY[et] - 22).toFixed(1) + ')"><path d="M0,0 V26" stroke="#2a1d05" stroke-width="2.4"/><path d="M0,0 L18,6 L0,12 Z" fill="#ff5a3c" stroke="#2a1d05" stroke-width="1.4"/></g>'; }
     if (!o.demo && g.ctr) {
       g.ctr.forEach(function (m) {
@@ -8092,7 +8105,7 @@ if (typeof module !== 'undefined') module.exports = G;
         var st = G.rel(g, g.player, f).state;
         tag = st === 'war' ? '<b class="tg war">交戰</b>' : st === 'ally' ? '<b class="tg ally">' + (G.lordOf(g, f) === g.player ? '附庸' : G.lordOf(g, g.player) === f ? '宗主' : '同盟') + '</b>' : '';
       }
-      return '<span><span class="dot" style="background:' + NC[f] + '"></span>' + G.nm(f) + ' ' + G.owned(g, f).length + tag + '</span>';
+      return '<span>' + crestSVG(f, 14, 'cr-leg') + G.nm(f) + ' ' + G.owned(g, f).length + tag + '</span>';
     }).join('') + '<span><span class="dot neu"></span>中立 ' + neu + '</span>';
   }
 
@@ -8266,7 +8279,7 @@ if (typeof module !== 'undefined') module.exports = G;
       var F = G.FACTIONS[f];
       if (HEAD[f]) h += '<h2 class="gh">' + HEAD[f] + '</h2>';
       h += '<button class="fcard" data-act="start" data-f="' + f + '" style="--fc:' + NC[f] + '">' +
-        '<span class="fname">' + F.name + '</span><span class="muted small">' + ({ cath: '天主教', orth: '東正教', isl: '伊斯蘭' }[F.rel] || F.faith || '') + ' · 難度：' + F.diff + (F.rec ? ' · <b style="color:#f1d48c">新手推薦</b>' : '') + '</span><span class="fblurb">' + F.blurb + '</span>' +
+        '<span class="fname">' + crestSVG(f, 30, 'cr-card') + F.name + '</span><span class="muted small">' + ({ cath: '天主教', orth: '東正教', isl: '伊斯蘭' }[F.rel] || F.faith || '') + ' · 難度：' + F.diff + (F.rec ? ' · <b style="color:#f1d48c">新手推薦</b>' : '') + '</span><span class="fblurb">' + F.blurb + '</span>' +
         '<ul class="ftraits">' + F.traits.map(function (t) { return '<li>' + t + '</li>'; }).join('') + '</ul>' +
         '<span class="fgo">選擇' + F.name + ' &rsaquo;</span></button>';
     });
@@ -8886,6 +8899,68 @@ if (typeof module !== 'undefined') module.exports = G;
     if (MP.on && MP.players) Object.keys(MP.players).forEach(function (u) { var q = MP.players[u]; if (q && q.f && q.name) m[q.f] = String(q.name).slice(0, 12); });
     var k = JSON.stringify(m); if (k !== ui.pnKey) { ui.pnKey = k; G.setPNames(m); }
   }
+
+  /* ---------- 國家徽章：盾牌＋各文化的符號（全部自己畫的向量圖） ---------- */
+  var CH = {
+    cross: '<path d="M43,22H57V44H76V58H57V96H43V58H24V44H43Z"/>',
+    greek: '<path d="M42,30H58V48H76V64H58V84H42V64H24V48H42Z"/>',
+    george: '<path d="M43,8H57V48H90V62H57V112H43V62H10V48H43Z"/>',
+    nordic: '<path d="M30,8H44V48H90V62H44V112H30V62H10V48H30Z"/>',
+    saltire: '<path d="M10,16 L20,8 50,40 80,8 90,16 59,52 90,90 80,100 50,64 20,100 10,90 41,52Z"/>',
+    double: '<path d="M45,20H55V98H45Z M32,34H68V42H32Z M24,54H76V62H24Z"/>',
+    crescent: '<path d="M58,28 A28,28 0 1 0 58,86 A22,22 0 1 1 58,28Z"/><path d="M71,47 l3,8 8,0 -6.5,5 2.5,8 -7,-5 -7,5 2.5,-8 -6.5,-5 8,0z"/>',
+    star8: '<rect x="33" y="39" width="34" height="34"/><rect x="33" y="39" width="34" height="34" transform="rotate(45 50 56)"/>',
+    star5: '<path d="M50,24 L58,46 82,46 63,60 70,84 50,70 30,84 37,60 18,46 42,46Z"/>',
+    sun: '<circle cx="50" cy="56" r="15"/><g fill="none" stroke-width="5" stroke-linecap="round"><path d="M50,26V34M50,78V86M20,56H28M72,56H80M29,35L35,41M65,71L71,77M71,35L65,41M35,71L29,77"/></g>',
+    disc: '<circle cx="50" cy="56" r="22"/>',
+    eagle: '<path d="M50,26c-5,0-8,4-7,8l-3,4-22-10 5,12-9-2 7,11-7,3 12,4 11,1v13l-7,13h8l3-7 2,7 2-7 3,7h8l-7-13v-13l11-1 12-4-7-3 7-11-9,2 5-12-22,10-3-4c1-4-2-8-7-8z"/>',
+    crown: '<path d="M24,72 L20,38 34,52 42,30 50,48 58,30 66,52 80,38 76,72Z"/><rect x="24" y="76" width="52" height="9"/>',
+    keys: '<g fill="none" stroke-width="6" stroke-linecap="round"><path d="M32,86 L66,38 M68,86 L34,38 M60,80 l8,4 M40,80 l-8,4"/><circle cx="70" cy="32" r="7"/><circle cx="30" cy="32" r="7"/></g>',
+    fleur: '<path d="M50,22 C41,35 41,48 50,62 C59,48 59,35 50,22Z M50,62 C40,46 26,44 24,56 C24,64 32,66 36,60 C34,68 42,70 46,64Z M50,62 C60,46 74,44 76,56 C76,64 68,66 64,60 C66,68 58,70 54,64Z"/><rect x="34" y="64" width="32" height="6"/><path d="M45,70h10l-5,20z"/>',
+    tower: '<path d="M30,90 V48 H35 V38 H42 V48 H46 V38 H54 V48 H58 V38 H65 V48 H70 V90Z"/>',
+    bars: '<rect x="20" y="8" width="9" height="100"/><rect x="38" y="8" width="9" height="104"/><rect x="56" y="8" width="9" height="104"/><rect x="74" y="8" width="9" height="96"/>',
+    trident: '<g fill="none" stroke-width="7" stroke-linecap="round"><path d="M50,24V92 M30,30 V58 Q30,72 50,72 Q70,72 70,58 V30"/></g>',
+    tamga: '<g fill="none" stroke-width="7" stroke-linecap="round"><path d="M50,26 V88 M28,40 Q50,60 72,40 M34,88 H66"/></g>',
+    lotus: '<path d="M50,28 C43,42 43,58 50,72 C57,58 57,42 50,28Z M50,72 C38,66 27,55 25,44 C38,46 46,57 50,72Z M50,72 C62,66 73,55 75,44 C62,46 54,57 50,72Z"/><rect x="30" y="76" width="40" height="6" rx="3"/>',
+    wheel: '<g fill="none" stroke-width="5"><circle cx="50" cy="56" r="23"/><circle cx="50" cy="56" r="5"/><path d="M50,33V79M27,56H73M34,40L66,72M66,40L34,72"/></g>',
+    spears: '<g fill="none" stroke-width="5" stroke-linecap="round"><path d="M30,90 L68,26 M70,90 L32,26"/></g><ellipse cx="50" cy="58" rx="13" ry="21"/>',
+    pyramid: '<path d="M20,88 H80 L72,76 H28Z M30,74 H70 L63,62 H37Z M38,60 H62 L56,48 H44Z"/><rect x="45" y="36" width="10" height="10"/>',
+    mountain: '<path d="M18,86 L40,46 50,60 62,38 84,86Z"/>',
+    tree: '<rect x="45" y="58" width="10" height="32"/><circle cx="50" cy="42" r="16"/><circle cx="34" cy="54" r="12"/><circle cx="66" cy="54" r="12"/><rect x="30" y="88" width="40" height="6" rx="3"/>',
+    ship: '<path d="M20,70 H80 L70,86 H30Z"/><path d="M48,26 V68 H52 V26Z"/><path d="M53,30 L74,60 H53Z"/>'
+  };
+  var CREST_SET = {
+    byz: ['eagle', '#5b2a7a', '#f1d48c'], hre: ['eagle', '#e3c04f', '#1b1b1b'], fra: ['fleur', '#1f4fa0', '#f1d48c'], eng: ['george', '#f3ecdc', '#c0262d'],
+    pap: ['keys', '#b3242a', '#f1d48c'], ita: ['ship', '#9c2a2a', '#f1d48c'], norm: ['crown', '#2a5ea8', '#f1d48c'], cas: ['tower', '#b3242a', '#f1d48c'],
+    arag: ['bars', '#e5c24a', '#b3242a'], por: ['greek', '#f3ecdc', '#1f4fa0'], hung: ['double', '#b3242a', '#f3ecdc'], pol: ['eagle', '#b3242a', '#f3ecdc'],
+    boh: ['crown', '#b3242a', '#f3ecdc'], scand: ['nordic', '#b3242a', '#f3ecdc'], nor: ['nordic', '#b3242a', '#2a4f9a'], swe: ['nordic', '#2a5ea8', '#f1d48c'],
+    ire: ['cross', '#2f7a3c', '#f1d48c'], sco: ['saltire', '#1f4fa0', '#f3ecdc'], jer: ['greek', '#f3ecdc', '#c9a227'], geo: ['george', '#f3ecdc', '#b3242a'],
+    arm: ['cross', '#b3242a', '#f1d48c'], kiev: ['trident', '#2a5ea8', '#f1d48c'], nov: ['double', '#2a5ea8', '#f3ecdc'], ice: ['nordic', '#2a5ea8', '#f3ecdc'],
+    grn: ['nordic', '#f3ecdc', '#b3242a'], seljuk: ['crescent', '#2c6e8f', '#f3ecdc'], fat: ['star8', '#2f7a3c', '#f3ecdc'], abb: ['star8', '#1b1b1b', '#f3ecdc'],
+    rum: ['crescent', '#b3242a', '#f3ecdc'], almor: ['crescent', '#c58a2a', '#f3ecdc'], tib: ['mountain', '#a04a2a', '#f3ecdc'], jpn: ['disc', '#f3ecdc', '#c0262d'],
+    mongol: ['tamga', '#2a4f9a', '#f1d48c'], cus: ['sun', '#2a5ea8', '#f1d48c'], may: ['pyramid', '#2f7a3c', '#f1d48c'], tol: ['pyramid', '#a04a2a', '#f1d48c'],
+    eth: ['cross', '#2f7a3c', '#f1d48c'], mak: ['cross', '#c58a2a', '#f3ecdc'], alo: ['cross', '#7a3c8f', '#f3ecdc'], qoc: ['wheel', '#c58a2a', '#f3ecdc'], kas: ['lotus', '#7a3c8f', '#f3ecdc']
+  };
+  var CREST_CHAR = { song: '宋', liao: '遼', jin: '金', xia: '夏', dali: '理', gor: '麗', dai: '越' };
+  function crestOf(f) {
+    if (CREST_SET[f]) return CREST_SET[f];
+    var c = G.cultOf ? G.cultOf(f) : 'oth', h = 0; for (var i = 0; i < f.length; i++) h = (h * 31 + f.charCodeAt(i)) % 997;
+    var pick = function (a) { return a[h % a.length]; };
+    var F = G.FACTIONS[f] || {}, fa = F.faith || '';
+    var k = c === 'eu' ? pick(['cross', 'crown', 'greek', 'eagle', 'star5']) : c === 'isl' ? pick(['crescent', 'star8', 'star5']) : c === 'st' ? pick(['tamga', 'sun']) :
+      /佛/.test(fa) ? pick(['wheel', 'lotus']) : /印度/.test(fa) ? pick(['lotus', 'sun', 'wheel']) : /基督|正教/.test(fa) ? 'cross' : pick(['sun', 'spears', 'tree', 'star5', 'mountain']);
+    return [k, NC[f] || '#666', '#f3ecdc'];
+  }
+  var crestN = 0;
+  window.__crest = function (f, px) { return crestSVG(f, px); };
+  function crestSVG(f, px, cls) {
+    var cs = crestOf(f), bg = cs[1] || NC[f] || '#666', fg = cs[2] || '#f3ecdc', id = 'cr' + (++crestN), ch = CREST_CHAR[f];
+    var shield = 'M10,8 H90 V56 C90,86 72,104 50,113 C28,104 10,86 10,56 Z';
+    var inner = ch ? '<text x="50" y="74" text-anchor="middle" font-size="54" font-weight="900" font-family="\'Noto Serif TC\',serif" fill="' + fg + '">' + ch + '</text>' : (CH[cs[0]] || CH.star5);
+    return '<svg class="crest' + (cls ? ' ' + cls : '') + '" viewBox="0 0 100 120" width="' + px + '" height="' + Math.round(px * 1.2) + '" aria-hidden="true"><defs><clipPath id="' + id + '"><path d="' + shield + '"/></clipPath></defs>' +
+      '<path d="' + shield + '" fill="' + bg + '"/><g clip-path="url(#' + id + ')" fill="' + fg + '" stroke="' + fg + '">' + inner.replace(/<g fill="none"/g, '<g fill="none" stroke="' + fg + '"') + '</g>' +
+      '<path d="M18,14 H82 V30 C60,24 40,24 18,30Z" fill="#fff" opacity=".13"/><path d="' + shield + '" fill="none" stroke="#2a1d05" stroke-width="5"/><path d="' + shield + '" fill="none" stroke="#e9cf8a" stroke-width="2" opacity=".85" transform="translate(50 60) scale(.9) translate(-50 -60)"/></svg>';
+  }
   function renderTop() {
     try { pnSync(); } catch (e) {}
     renderTop0();
@@ -8906,6 +8981,7 @@ if (typeof module !== 'undefined') module.exports = G;
     try { goalBar(f, fs); } catch (e) {}
     try { tutBar(); } catch (e) {}
     $('#fac-line').textContent = G.FACTIONS[f].name;
+    try { var fl0 = document.getElementById('flag'); if (fl0 && fl0.getAttribute('data-cr') !== f) { fl0.setAttribute('data-cr', f); fl0.outerHTML = crestSVG(f, 30, 'hflag cr-hud').replace('<svg ', '<svg id="flag" data-cr="' + f + '" '); } } catch (e) {}
     var ri = G.rulerInfo(g, g.player);
     $('#turnline').textContent = '第 ' + g.turn + ' 年 · 君主 Lv' + ri.lv + (ri.next ? '（' + ri.xp + '/' + ri.next + '）' : '（滿級）');
     $('#flag').style.color = NC[f];
@@ -9360,7 +9436,7 @@ if (typeof module !== 'undefined') module.exports = G;
     if (note) h += '<p class="mtext"><b>' + esc(note) + '</b></p>';
     list.slice(0, 12).forEach(function (x) {
       var st = G.rel(g, f, x).state;
-      h += '<div class="gh" style="margin:10px 0 4px">' + esc(G.nm(x)) + (st === 'war' ? '（交戰中）' : bord[x] ? '（鄰國）' : '') + '</div><div style="display:flex;gap:6px;flex-wrap:wrap">';
+      h += '<div class="gh" style="margin:10px 0 4px">' + crestSVG(x, 20, 'cr-dip') + esc(G.nm(x)) + (st === 'war' ? '（交戰中）' : bord[x] ? '（鄰國）' : '') + '</div><div style="display:flex;gap:6px;flex-wrap:wrap">';
       ['scout', 'incite', 'kill'].forEach(function (k) { var K = G.SPY[k], sm = G.spyMods(g, f, x, k); h += '<button class="btn" data-act="spygo" data-x="' + x + '" data-k="' + k + '"' + (!left || fs.gold < K.gold ? ' disabled' : '') + ' style="display:block;text-align:left;width:100%"><span style="display:block">' + K.n + ' ' + K.gold + '金・成功率約 <b>' + Math.round(sm.p * 100) + '%</b></span>' + (sm.why.length ? '<small class="muted" style="display:block;margin-top:2px">' + sm.why.join('、') + '</small>' : '') + '</button>'; });
       h += '</div>';
     });
@@ -9428,7 +9504,7 @@ if (typeof module !== 'undefined') module.exports = G;
     G.FIDS.filter(function (x) { return x !== f && g.fac[x].alive; }).sort(function (a, b) { var da = G.dipInfo(g, f, a), db = G.dipInfo(g, f, b); return (db.alive - da.alive) || ((db.state === 'war') - (da.state === 'war')) || (db.border - da.border); }).forEach(function (x) {
       var d = G.dipInfo(g, f, x);
       var stTxt = d.state === 'war' ? '交戰中 · 第 ' + d.warT + ' 回合' : d.state === 'ally' ? (d.lord === f ? '你的附庸' : d.lord === x ? '你的宗主' : '同盟') : '和平';
-      h += '<div class="dcard" data-n="' + esc(G.nm(x)) + '" data-st="' + d.state + '" data-al="' + (d.alive ? 1 : 0) + '" data-bd="' + (d.border ? 1 : 0) + '"><div class="dh"><button class="dn dgo" data-act="dipgo" data-f="' + x + '" aria-label="前往' + esc(G.nm(x)) + '的領土"><span class="dot" style="background:' + NC[x] + '"></span>' + G.nm(x) + ' 📍</button><span class="st ' + d.state + '">' + stTxt + '</span></div>';
+      h += '<div class="dcard" data-n="' + esc(G.nm(x)) + '" data-st="' + d.state + '" data-al="' + (d.alive ? 1 : 0) + '" data-bd="' + (d.border ? 1 : 0) + '"><div class="dh"><button class="dn dgo" data-act="dipgo" data-f="' + x + '" aria-label="前往' + esc(G.nm(x)) + '的領土">' + crestSVG(x, 22, 'cr-dip') + G.nm(x) + ' 📍</button><span class="st ' + d.state + '">' + stTxt + '</span></div>';
       var kk = (g.kl && g.kl[x]) || [], kline = kk.length ? '<p class="dmeta" style="width:100%">⚔ 消滅過 ' + kk.length + ' 國：' + kk.map(function (z) { return esc(G.nm(z.f)) + '（' + z.y + '）'; }).join('、') + '</p>' : '';
       if (!d.alive) { h += '<p class="dmeta">已經滅亡。</p>' + kline + '</div>'; return; }
       var meta = ['對方信譽 ' + d.rep, '地塊 ' + G.owned(g, x).length, d.border ? '與你接壤' : '不接壤'];
