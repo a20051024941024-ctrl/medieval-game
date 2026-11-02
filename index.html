@@ -434,7 +434,7 @@ button{font:inherit;color:inherit}
     <div class="startmap" id="startmap" aria-hidden="true"></div>
     <div class="sc-in gx">
       <p class="eyebrow">MEDIEVAL: WORLD DOMINATION · 1096 AD</p>
-      <p class="muted small" id="verline">版本 v215 · 2026-11-02 · 修正事件結果標題；軍團不能解編再集結重複出擊</p>
+      <p class="muted small" id="verline">版本 v216 · 2026-11-02 · 繼續多人存檔時大家重新選國家（首都還在的都能選）</p>
       <h1>中世紀：世界霸權</h1>
       <p class="lead">1095 年，教宗在克萊蒙發出號召，整個歐洲動了起來。選一個勢力（共 121 個），再從該文明歷史上的君主裡挑一位登基；在四千多個六角格地塊的世界裡，與基督教世界、伊斯蘭世界與即將到來的蒙古鐵騎周旋。可以結盟借道、派商隊與商船貿易、派密探、遠征遠方、研究科技升級時代、替自己的城市取名。沒有回合上限，直到有人稱霸，或你失去一切。</p>
       <div id="startopts"></div>
@@ -6399,6 +6399,27 @@ function mpBegin(g) {
   if (!g.hs) return;
   Object.keys(g.hs).forEach(function (f) { mpBeginOne(g, f); });
 }
+/* 多人存檔重新開局：首都還在自己手上的國家都能選；重新分配誰是玩家 */
+function mpEligible(g) {
+  return PLAYABLE.filter(function (f) { var fs = g.fac[f], c = CAPITAL[f]; return fs && fs.alive && c != null && g.p[c] && g.p[c].o === f; });
+}
+function mpReassign(g, hostF, guests) {
+  var old = {}, hp = {};
+  var mk = function (f) { var h = { ap: 0, apCap: 0, evResolved: true, evData: null, log: [], evView: null }; h.apCap = apMax(g, f); h.ap = h.apCap; return h; };
+  MP_SW.forEach(function (k) { hp[k] = g[k]; }); old[g.player] = hp;
+  if (g.hs) Object.keys(g.hs).forEach(function (f) { old[f] = g.hs[f]; });
+  Object.keys(HQ).forEach(function (k) { delete HQ[k]; });
+  var H = old[hostF] || mk(hostF);
+  g.player = hostF; g.host = hostF; MP_SW.forEach(function (k) { g[k] = H[k]; });
+  if (!old[hostF]) logMsg(g, '西元 ' + year(g) + ' 年。你接手了' + FACTIONS[hostF].full + '。', 'info');
+  g.hs = {}; g.offs = g.offs || {}; g.ended = {}; g.mp = true;
+  guests.forEach(function (f) {
+    g.hs[f] = old[f] || mk(f); g.offs[f] = g.offs[f] || [];
+    if (!old[f]) asPlayer(g, f, function () { logMsg(g, '西元 ' + year(g) + ' 年。你接手了' + FACTIONS[f].full + '。', 'info'); });
+  });
+  _own = null;
+  mpResume(g);
+}
 function mpResume(g) {
   if (!g.hs) return;
   Object.keys(g.hs).forEach(function (f) {
@@ -6482,7 +6503,7 @@ var G = {
   EVENTS: EVENTS, HIST: HIST, checkEnd: checkEnd, finish: finish, settle: settle, TERR_Y: TERR_Y,
   SAVE_VER: SAVE_VER, MAPSIG: MAPSIG, rel: rel, migrate: migrate, strength: strength, dipInfo: dipInfo, declareWar: declareWar, aiDiplomacy: aiDiplomacy,
   swapAmt: swapAmt, routeCands: routeCands, coastTarget: coastTarget, supplyDist: supplyDist, supRange: supRange, lordOf: lordOf, vassalsOf: vassalsOf, ownedTotal: ownedTotal, offerEvent: offerEvent, acceptChance: acceptChance,
-  fleetCap: fleetCap, isHum: isHum, humansOf: humansOf, asPlayer: asPlayer, mpInit: mpInit, mpChoose: mpChoose, mpEnd: mpEnd, mpAllEnded: mpAllEnded, mpWaiting: mpWaiting, mpAdvance: mpAdvance, mpMirror: mpMirror, mpView: mpView, mpResume: mpResume,
+  fleetCap: fleetCap, isHum: isHum, humansOf: humansOf, asPlayer: asPlayer, mpInit: mpInit, mpEligible: mpEligible, mpReassign: mpReassign, mpChoose: mpChoose, mpEnd: mpEnd, mpAllEnded: mpAllEnded, mpWaiting: mpWaiting, mpAdvance: mpAdvance, mpMirror: mpMirror, mpView: mpView, mpResume: mpResume,
   holyKind: holyKind, armies: armies, garrisonOf: garrisonOf, armyReach: armyReach, armyDijk: armyDijk, zocAt: zocAt, armyPlan: armyPlan, armyRaidTargets: armyRaidTargets, armyMP: armyMP, armyRem: armyRem, mvCost: mvCost, rulerLv: rulerLv, rulerInfo: rulerInfo, vetLv: vetLv, RX_T: RX_T, holyKind: holyKind, holyCost: holyCost, canHoly: canHoly, isChristian: isChristian, START_YEAR: START_YEAR, LON: LON, LAT: LAT, WORLD: WORLD
 };
 if (typeof module !== 'undefined') module.exports = G;
@@ -6705,9 +6726,9 @@ if (typeof module !== 'undefined') module.exports = G;
     if (!START_RG) return out;
     START_RG.order.forEach(function (f) {
       if (START_RG.head[f]) { cur = { t: START_RG.head[f], fs: [] }; out.push(cur); }
-      if (!cur || G.PLAYABLE.indexOf(f) < 0 || seen[f]) return; seen[f] = 1; cur.fs.push(f);
+      if (!cur || G.PLAYABLE.indexOf(f) < 0 || (MP.elig && MP.elig.indexOf(f) < 0) || seen[f]) return; seen[f] = 1; cur.fs.push(f);
     });
-    var rest = G.PLAYABLE.filter(function (f) { return !seen[f]; }); if (rest.length) out.push({ t: '其他', fs: rest });
+    var rest = G.PLAYABLE.filter(function (f) { return !seen[f] && (!MP.elig || MP.elig.indexOf(f) >= 0); }); if (rest.length) out.push({ t: '其他', fs: rest });
     return out.filter(function (x) { return x.fs.length; });
   }
   function mpRgInit() {
@@ -6739,7 +6760,7 @@ if (typeof module !== 'undefined') module.exports = G;
     ids.forEach(function (u) { if (MP.players[u].f) taken[MP.players[u].f] = u; });
     if (!MP.shell || !$('#mplist')) {
       var opts = '<option value="">— 選擇你的勢力 —</option>';
-      G.PLAYABLE.forEach(function (f) { opts += '<option value="' + f + '">' + esc(F[f].name) + '</option>'; });
+      G.PLAYABLE.forEach(function (f) { if (MP.elig && MP.elig.indexOf(f) < 0) return; opts += '<option value="' + f + '">' + esc(F[f].name) + '</option>'; });
       $('#mbody').innerHTML = '<div class="mtag">多人連線 · ' + (MP.role === 'host' ? '房主' : '玩家') + '</div><h2 id="mtitle">' + (MP.mode === 'p2p' ? '直連房間' : '房間代碼　<span class="num" style="letter-spacing:4px;color:#f1d48c">' + esc(MP.code.toUpperCase()) + '</span>') + '</h2>' +
         (MP.mode === 'p2p' ? (MP.role === 'host' ? '<div id="pjbox"></div><p class="muted small">或按「新增朋友」產生長邀請碼。每個人選一個不同的勢力。</p><div id="p2pslots" class="flist" style="flex-direction:column;align-items:stretch"></div><button class="btn" data-act="p2padd">＋ 新增朋友</button>' : '<p class="muted small">已連上房主。選一個勢力，等房主開始。</p>') : '<p class="muted small">把代碼告訴朋友（需要登入 Claude，且分享者要開放 Contributor 權限）。每個人選一個不同的勢力。</p>') +
         '<div class="flist"><b>你的勢力</b><select id="mpfac" style="flex:1;min-width:0;padding:10px;border-radius:8px;border:1px solid var(--line);background:#1c1a14;color:inherit;font:inherit">' + opts + '</select></div>' +
@@ -6755,6 +6776,8 @@ if (typeof module !== 'undefined') module.exports = G;
         $('#mplist').insertAdjacentHTML('beforebegin', '<div class="flist"><b>開局領地</b><select id="mpstartm" style="flex:1;min-width:0;padding:8px;border-radius:8px;border:1px solid var(--line);background:#1c1a14;color:inherit;font:inherit"><option value="0">正常（照歷史上的領土）</option><option value="1">白手起家：首都＋旁邊一圈</option><option value="2">白手起家：只有首都</option></select></div><p class="muted small" style="margin-top:-4px">白手起家：所有國家（包含電腦）開局只有首都附近，其他地都是中立地，要自己一塊塊打、自己建城。</p>');
         var sm0 = $('#mpstartm'); sm0.value = String(STARTM || 0); sm0.addEventListener('change', function () { STARTM = +this.value || 0; try { localStorage.setItem('crusade-startm', String(STARTM)); } catch (e) {} });
       }
+      if (MP.resG) { var sm1 = $('#mpstartm'); if (sm1) { var fl1 = sm1.closest('.flist'), nx1 = fl1.nextElementSibling; if (nx1 && nx1.tagName === 'P') nx1.remove(); fl1.remove(); } }
+      if (MP.elig && $('#mplist')) $('#mplist').insertAdjacentHTML('beforebegin', '<p class="muted small" style="border:1px solid var(--line);border-radius:8px;padding:8px"><b>繼續之前的遊戲（西元 ' + (MP.resY || '?') + ' 年）</b>：每個人重新選國家。首都還在自己手上的國家都能選（共 ' + MP.elig.length + ' 個），之前是電腦控制的也可以；首都被別國占走的就不能選。</p>');
       try { mpRgInit(); } catch (e) {}
       $('#mpfac').addEventListener('change', function () {
         var v = this.value || null;
@@ -6792,14 +6815,16 @@ if (typeof module !== 'undefined') module.exports = G;
     MP.facOf = {};
     ids.forEach(function (u) { MP.facOf[u] = MP.players[u].f; if (u !== MP.uid) guests.push(MP.players[u].f); });
     MP.phase = 'play'; MP.on = true; MP.role = 'host';
-    g = G.newGame(hostF, DIFF); g.noCul = !CULON; if (STARTM) G.applyStartMode(g, STARTM);
-    G.mpInit(g, guests);
+    var resumed = !!MP.resG;
+    if (resumed) { g = MP.resG; MP.resG = null; G.mpReassign(g, hostF, guests); g.evResolved = true; }
+    else { g = G.newGame(hostF, DIFF); g.noCul = !CULON; if (STARTM) G.applyStartMode(g, STARTM); G.mpInit(g, guests); }
     enterGame();
     MP.dirty = true;
     mpDoPublish(function () {
       if (MP.mode === 'p2p') { MP.info.status = 'playing'; p2pBroadcastLobby(); return; }
       MP.db.doc('rooms/' + MP.code).update({ status: 'playing', diff: DIFF }).catch(function () {});
     });
+    if (resumed) { renderAll(); if (G.needRuler(g, hostF)) return showRulerPick(hostF); $('#modal').hidden = true; toast('繼續之前的遊戲，西元 ' + G.year(g) + ' 年。'); return; }
     return showRulerPick(hostF);
   }
   function mpHostResume() {
@@ -6914,17 +6939,13 @@ if (typeof module !== 'undefined') module.exports = G;
     var st; try { st = JSON.parse(s.state); } catch (e) { return p2pMenu('這個多人存檔壞掉了。'); }
     if (x.k === 'L') { var pk = mpPickSlot(); MP.svSlot = pk.k; MP.svDropL = 1; } else MP.svSlot = +x.k;
     var nick = mpReadNick();
-    MP.mode = 'p2p'; MP.role = 'host'; MP.uid = 'host'; MP.nick = nick; MP.shell = false;
+    MP.mode = 'p2p'; MP.role = 'host'; MP.uid = 'host'; MP.nick = nick; MP.phase = 'lobby'; MP.shell = false; MP.on = false;
     P2P.slots = []; P2P.n = 0; P2P.lobbyKey = '';
     MP.room = { emit: function (topic, data) { if (topic === 'r') p2pReply(data); return Promise.resolve(); } };
-    MP.players = {}; MP.facOf = {};
-    Object.keys(s.players).forEach(function (u) { var q = s.players[u]; MP.players[u] = { f: q.f, name: u === 'host' ? nick : q.name, pid: q.pid || '', off: u !== 'host' }; MP.facOf[u] = q.f; });
-    MP.info = { host: 'host', status: 'playing' };
-    g = st; G.mpResume(g); g.evResolved = true; MP.phase = 'play'; MP.on = true; MP.v = Date.now();
-    enterGame(); renderAll(); $('#modal').hidden = true;
-    pjHostStart(s.code || null);
-    toast('已載入上次的多人遊戲。' + (s.code ? '朋友用原本的房間代碼 ' + s.code + ' 就能回來；' : '') + '也可以按上方的「＋邀請」產生連結。');
-    setTimeout(function () { try { p2pInvite(); } catch (e) {} }, 600);
+    MP.resG = st; MP.resPl = s.players || {}; MP.elig = G.mpEligible(st); MP.resY = G.year(st);
+    var hf = MP.resPl.host && MP.resPl.host.f;
+    MP.players = { host: { f: MP.elig.indexOf(hf) >= 0 ? hf : null, name: nick } }; MP.info = { host: 'host', status: 'lobby' };
+    mpRenderLobby(); p2pRenderSlots(); pjHostStart(s.code || null);
   }
   function mpPublish(force) {
     if (!MP.on || MP.role !== 'host') return;
@@ -7145,7 +7166,7 @@ if (typeof module !== 'undefined') module.exports = G;
   function p2pHost() {
     if (!p2pOk()) return p2pMenu(p2pWhy());
     var nick = mpReadNick();
-    MP.mode = 'p2p'; MP.role = 'host'; MP.uid = 'host'; MP.nick = nick; MP.phase = 'lobby'; MP.shell = false; MP.svSlot = 0; MP.svDropL = 0;
+    MP.mode = 'p2p'; MP.role = 'host'; MP.uid = 'host'; MP.nick = nick; MP.phase = 'lobby'; MP.shell = false; MP.svSlot = 0; MP.svDropL = 0; MP.resG = null; MP.resPl = null; MP.elig = null; MP.resY = 0;
     MP.players = { host: { f: null, name: nick } }; MP.info = { host: 'host', status: 'lobby' };
     P2P.slots = []; P2P.n = 0; P2P.lobbyKey = '';
     MP.room = { emit: function (topic, data) { if (topic === 'r') p2pReply(data); return Promise.resolve(); } };
@@ -7154,7 +7175,7 @@ if (typeof module !== 'undefined') module.exports = G;
   function p2pReply(d) {
     P2P.slots.forEach(function (s) { if (s.id === d.to) p2pSendTo(s.dc, { t: 'r', d: d }); });
   }
-  function p2pLobbyMsg(id) { return { t: 'lobby', players: MP.players, you: id, status: MP.info.status, host: 'host', spec: !!(MP.specs && MP.specs[id]) }; }
+  function p2pLobbyMsg(id) { return { t: 'lobby', players: MP.players, you: id, status: MP.info.status, host: 'host', spec: !!(MP.specs && MP.specs[id]), elig: MP.elig || null, resY: MP.resY || 0 }; }
   function p2pBroadcastLobby() {
     P2P.slots.forEach(function (s) { if (s.state === 'open') p2pSendTo(s.dc, p2pLobbyMsg(s.id)); });
   }
@@ -7189,7 +7210,7 @@ if (typeof module !== 'undefined') module.exports = G;
     if (m.t === 'hello') {
       if (String(m.ver || '') !== PVER) { p2pSendTo(s.dc, { t: 'ver', host: PVER }); return; }
       var name = String(m.name || '玩家').slice(0, 12);
-      if (MP.phase === 'lobby') MP.players[s.id] = { f: null, name: name, pid: String(m.pid || '') };
+      if (MP.phase === 'lobby') { var pf = null, mpid = String(m.pid || ''); if (MP.resPl && MP.elig && mpid) Object.keys(MP.resPl).forEach(function (u) { var q = MP.resPl[u]; if (u !== 'host' && q.pid === mpid && MP.elig.indexOf(q.f) >= 0) pf = q.f; }); if (pf) Object.keys(MP.players).forEach(function (u) { if (MP.players[u].f === pf) pf = null; }); MP.players[s.id] = { f: pf, name: name, pid: mpid }; }
       else if (s.spec) {
         (MP.specs || (MP.specs = {}))[s.id] = name;
         toast(name + ' 以觀戰者身分加入了。');
@@ -7206,7 +7227,7 @@ if (typeof module !== 'undefined') module.exports = G;
       }
       p2pBroadcastLobby(); if (MP.phase === 'lobby') mpRenderLobby(); else renderBar();
     } else if (m.t === 'pick' && MP.phase === 'lobby' && MP.players[s.id]) {
-      var f = m.f && G.PLAYABLE.indexOf(m.f) >= 0 ? m.f : null, dup = false;
+      var f = m.f && G.PLAYABLE.indexOf(m.f) >= 0 && (!MP.elig || MP.elig.indexOf(m.f) >= 0) ? m.f : null, dup = false;
       Object.keys(MP.players).forEach(function (u) { if (u !== s.id && f && MP.players[u].f === f) dup = true; });
       if (!dup) MP.players[s.id].f = f;
       p2pBroadcastLobby(); mpRenderLobby();
@@ -7365,7 +7386,7 @@ if (typeof module !== 'undefined') module.exports = G;
     var m; try { m = JSON.parse(raw); } catch (e) { return; }
     P2P.lastMsg = Date.now(); P2P.gotHost = true;
     if (m.t === 'lobby') {
-      MP.players = m.players || {}; MP.uid = m.you; MP.info = { host: m.host, status: m.status }; MP.spec = !!m.spec;
+      MP.players = m.players || {}; MP.elig = m.elig || null; MP.resY = m.resY || 0; MP.uid = m.you; MP.info = { host: m.host, status: m.status }; MP.spec = !!m.spec;
       if (MP.phase === 'lobby') mpRenderLobby(); else if (MP.on) renderBar();
     } else if (m.t === 'dl') { MP.left = m.left; MP.leftAt = Date.now();
     } else if (m.t === 'r') mpOnReply({ data: m.d });
@@ -7386,6 +7407,7 @@ if (typeof module !== 'undefined') module.exports = G;
   }
   function p2pPick(f) {
     if (MP.role === 'host') {
+      if (f && (G.PLAYABLE.indexOf(f) < 0 || (MP.elig && MP.elig.indexOf(f) < 0))) f = null;
       var dup = false; Object.keys(MP.players).forEach(function (u) { if (u !== 'host' && f && MP.players[u].f === f) dup = true; });
       if (!dup) MP.players.host.f = f;
       p2pBroadcastLobby(); mpRenderLobby();
@@ -7586,6 +7608,7 @@ if (typeof module !== 'undefined') module.exports = G;
     '<li><b>各國有各自的說法</b>：同一類事件會依你的國家換說法，例如歐洲是「騎士比武大會」、宋朝是「大閱與武舉」、伊斯蘭國家是「騎射競技」、草原是「那達慕」；繼承危機裡的貴族也會換成朝臣、埃米爾或那顏。女真建國、遼國滅亡、靖康之變這些史實事件，要遊戲裡真的發生了才會出現。</li>' +
     '<li><b>電腦會開發中立地</b>：電腦會把後方的兵集中到邊境，夠多了就合力拿下旁邊的中立地，國庫太滿也會多徵兵。</li>' +
     '<li><b>軍團不能重複出擊</b>：今年行軍或打過仗的軍團解編後，士兵回到駐軍，但這塊地今年不能再出兵；用已經行動過的駐軍編成或補進軍團，那個軍團也要等明年才能出動。</li>' +
+    '<li><b>繼續多人存檔</b>：讀取多人存檔後會先回到房間，每個人重新選國家；只要首都還在自己手上的國家都能選，之前是電腦控制的也可以，首都被別國占走的就不能選。之前玩過的人回來會自動先幫他選好原本的國家，想換可以再改。</li>' +
     '<li><b>點地＝查看</b>：點別人的地或中立地只會顯示它的資料，不會自動出兵；面板上有「⚔ 從旁邊的某地出兵」按鈕，按了才會選好出兵。已經選了自己的地、再點旁邊的地，那塊地會變成出兵目標（箭頭）；同一塊再點一次，就改成只查看它。打不到的遠處只會提示你要先把部隊調到哪裡，不會自己幫你調兵扣行動點。</li>' +
     '<li><b>電腦會守首都</b>：首都或大城被你的大軍逼近時，電腦會從附近調兵回防、優先在那裡補兵；普通和困難難度下，首都告急還會緊急徵召民兵（每 4 回合一次），所以最好先削弱它周圍的部隊再攻城。</li>' +
     '<li><b>白手起家模式（多人連線限定）</b>：房主在多人房間裡的「開局領地」可以選「首都＋一圈」或「只有首都」。所有國家（包含電腦）一開始都只有這一點點地，其他地全部變成中立地；原本地圖上的城市變成有守軍的中立城，要自己一塊塊打下來，再蓋村莊、升級城市慢慢擴張。每國會多發 120 金、60 糧當起步資金。單人遊戲一律照歷史上的領土開局。</li>' +
