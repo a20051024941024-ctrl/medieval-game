@@ -434,7 +434,7 @@ button{font:inherit;color:inherit}
     <div class="startmap" id="startmap" aria-hidden="true"></div>
     <div class="sc-in gx">
       <p class="eyebrow">MEDIEVAL: WORLD DOMINATION · 1096 AD</p>
-      <p class="muted small" id="verline">版本 v218 · 2026-11-03 · 被劫商隊、沉沒商船在地圖上標示狀態</p>
+      <p class="muted small" id="verline">版本 v219 · 2026-11-03 · 地上的盾牌換成國家徽章；被劫商隊、沉沒商船標示狀態</p>
       <h1>中世紀：世界霸權</h1>
       <p class="lead">1095 年，教宗在克萊蒙發出號召，整個歐洲動了起來。選一個勢力（共 121 個），再從該文明歷史上的君主裡挑一位登基；在四千多個六角格地塊的世界裡，與基督教世界、伊斯蘭世界與即將到來的蒙古鐵騎周旋。可以結盟借道、派商隊與商船貿易、派密探、遠征遠方、研究科技升級時代、替自己的城市取名。沒有回合上限，直到有人稱霸，或你失去一切。</p>
       <div id="startopts"></div>
@@ -7609,6 +7609,7 @@ if (typeof module !== 'undefined') module.exports = G;
     '<li><b>電腦會開發中立地</b>：電腦會把後方的兵集中到邊境，夠多了就合力拿下旁邊的中立地，國庫太滿也會多徵兵。</li>' +
     '<li><b>軍團不能重複出擊</b>：今年行軍或打過仗的軍團解編後，士兵回到駐軍，但這塊地今年不能再出兵；用已經行動過的駐軍編成或補進軍團，那個軍團也要等明年才能出動。</li>' +
     '<li><b>繼續多人存檔</b>：讀取多人存檔後會先回到房間，每個人重新選國家；只要首都還在自己手上的國家都能選，之前是電腦控制的也可以，首都被別國占走的就不能選。之前玩過的人回來會自動先幫他選好原本的國家，想換可以再改。</li>' +
+    '<li><b>地上的徽章</b>：每塊地上的盾牌就是擁有它的國家的徽章；盾牌左邊的小圓圈是那裡主要的兵種（交叉的劍＝步兵、弓＝弓兵、馬＝騎兵），下面的數字是兵力。</li>' +
     '<li><b>點地＝查看</b>：點別人的地或中立地只會顯示它的資料，不會自動出兵；面板上有「⚔ 從旁邊的某地出兵」按鈕，按了才會選好出兵。已經選了自己的地、再點旁邊的地，那塊地會變成出兵目標（箭頭）；同一塊再點一次，就改成只查看它。打不到的遠處只會提示你要先把部隊調到哪裡，不會自己幫你調兵扣行動點。</li>' +
     '<li><b>電腦會守首都</b>：首都或大城被你的大軍逼近時，電腦會從附近調兵回防、優先在那裡補兵；普通和困難難度下，首都告急還會緊急徵召民兵（每 4 回合一次），所以最好先削弱它周圍的部隊再攻城。</li>' +
     '<li><b>白手起家模式（多人連線限定）</b>：房主在多人房間裡的「開局領地」可以選「首都＋一圈」或「只有首都」。所有國家（包含電腦）一開始都只有這一點點地，其他地全部變成中立地；原本地圖上的城市變成有守軍的中立城，要自己一塊塊打下來，再蓋村莊、升級城市慢慢擴張。每國會多發 120 金、60 糧當起步資金。單人遊戲一律照歷史上的領土開局。</li>' +
@@ -7950,7 +7951,33 @@ if (typeof module !== 'undefined') module.exports = G;
     SEAPOS.forEach(function (s) { var dx = G.LON[s.id] - G.LON[h], dy = G.LAT[s.id] - G.LAT[h], dd = dx * dx + dy * dy; if (dd < bd) { bd = dd; best = s.n; } });
     return best;
   }
-  function tokSVG(col, k1, k2, stars, num, dx, dy, sc, sel, gen) {
+  var TOKF = {}, TOKURI = {};
+  function tokDefs() {
+    var cs0 = 'M10,8 H90 V56 C90,86 72,104 50,113 C28,104 10,86 10,56 Z', d = '<defs>';
+    Object.keys(TOKF).forEach(function (f) {
+      var cs = crestOf(f), fg = cs[2] || '#f3ecdc', ch = CREST_CHAR[f];
+      var inner = ch ? '<text x="50" y="80" text-anchor="middle" font-size="64" font-weight="900" font-family="\'Noto Serif TC\',serif" fill="' + fg + '" stroke="none">' + ch + '</text>' : (CH[cs[0]] || CH.star5);
+      if (!TOKURI[f]) TOKURI[f] = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 120"><defs><clipPath id="c"><path d="' + cs0 + '"/></clipPath></defs><path d="' + cs0 + '" fill="' + (cs[1] || NC[f] || '#666') + '"/><g clip-path="url(#c)" fill="' + fg + '" stroke="' + fg + '">' + inner.replace(/<g fill="none"/g, '<g fill="none" stroke="' + fg + '"') + '</g></svg>');
+      d += '<image id="tkc-' + f + '" x="-14" y="-14.6" width="28" height="33.6" href="' + TOKURI[f] + '"/>';
+    });
+    TOKF = {};
+    return d + '</defs>';
+  }
+  function tokSVG(col, k1, k2, stars, num, dx, dy, sc, sel, gen, f) {
+    if (f && NC[f]) {
+      TOKF[f] = 1;
+      var cbg = crestOf(f)[1] || NC[f];
+      return '<g transform="translate(' + dx + ',' + dy + ') scale(' + sc + ')">' +
+        '<path d="M-14,-13 H14 V3 Q14,13 0,18 Q-14,13 -14,3 Z" fill="' + cbg + '"/>' +
+        '<use href="#tkc-' + f + '"/>' +
+        '<path d="M-14,-13 H14 V-6 H-14 Z" fill="#fff" fill-opacity=".12"/>' +
+        '<path d="M-14,-13 H14 V3 Q14,13 0,18 Q-14,13 -14,3 Z" fill="none" stroke="' + (sel ? '#ffd96a' : '#0d1114') + '" stroke-width="' + (sel ? 3.6 : 2) + '"/>' +
+        '<g transform="translate(-15,1)"><circle r="7.2" fill="#0d1114" stroke="' + NC[f] + '" stroke-width="1.6"/><use href="#gl' + k1 + '" transform="scale(.52)"/></g>' +
+        (stars ? '<text x="-12" y="-14" font-size="9" fill="#ffd96a" stroke="#0d1114" stroke-width="1.6" paint-order="stroke" font-weight="700">' + stars + '</text>' : '') +
+        (gen ? '<circle cx="14" cy="-12" r="6.5" fill="#d2b04c" stroke="#2a2418" stroke-width="1.2"/><text x="14" y="-8.8" font-size="8.5" text-anchor="middle" fill="#2a2418" font-weight="800">將</text>' : '') +
+        '<rect x="-13" y="10" width="26" height="13" rx="4" fill="#0d1114" fill-opacity=".9" stroke="' + NC[f] + '" stroke-opacity=".9" stroke-width="1.2"/>' +
+        '<text x="0" y="20.5" font-size="11.5" font-weight="800" fill="#fff" text-anchor="middle">' + num + '</text></g>';
+    }
     return '<g transform="translate(' + dx + ',' + dy + ') scale(' + sc + ')">' +
       '<path d="M-14,-13 H14 V3 Q14,13 0,18 Q-14,13 -14,3 Z" fill="' + col + '" stroke="' + (sel ? '#ffd96a' : '#0d1114') + '" stroke-width="' + (sel ? 3.6 : 2) + '"/>' +
       '<path d="M-14,-13 H14 V-6 H-14 Z" fill="#fff" fill-opacity=".14"/>' +
@@ -8071,14 +8098,14 @@ if (typeof module !== 'undefined') module.exports = G;
         var vl2 = G.vetLv(p), stars = '';
         for (kk = 0; kk < vl2; kk++) stars += '★';
         var arsT = p.o === g.player ? G.armies(g, id) : [];
-        if (!arsT.length) s += '<g class="tok">' + tokSVG(col2, k1, k2, stars, knownTroops(id), 0, 0, 1, false, false) + '</g>';
+        if (!arsT.length) s += '<g class="tok">' + tokSVG(col2, k1, k2, stars, knownTroops(id), 0, 0, 1, false, false, p.o) + '</g>';
         else {
           var gar2 = G.garrisonOf(g, id), mainA = null;
           arsT.forEach(function (a3) { if (ui.army === a3.id && ui.sel === id) mainA = a3; });
           if (!mainA) mainA = arsT.slice().sort(function (x, y) { return y.n - x.n; })[0];
           s += '<g class="tok">';
           if (arsT.length > 1) s += '<path d="M-14,-13 H14 V3 Q14,13 0,18 Q-14,13 -14,3 Z" fill="' + col2 + '" fill-opacity=".55" stroke="#0d1114" stroke-width="2" transform="translate(5,-4)"/>';
-          s += tokSVG(col2, k1, k2, stars, mainA.n, 0, 0, 1, ui.army === mainA.id && ui.sel === id, !!mainA.gen);
+          s += tokSVG(col2, k1, k2, stars, mainA.n, 0, 0, 1, ui.army === mainA.id && ui.sel === id, !!mainA.gen, p.o);
           s += '<g transform="translate(-14,-13)"><rect x="-6" y="-5" width="' + (arsT.length > 9 ? 25 : 21) + '" height="11" rx="4" fill="#0d1114" stroke="#f1d48c" stroke-width="1"/><text x="' + (arsT.length > 9 ? 6.5 : 4.5) + '" y="3.2" font-size="8.5" font-weight="800" fill="#f1d48c" text-anchor="middle">軍' + arsT.length + '</text></g>';
           s += '<rect x="-17" y="24" width="34" height="11" rx="4" fill="#0d1114" fill-opacity=".88"/><text x="0" y="32.5" font-size="9.5" font-weight="800" fill="#f4ead0" text-anchor="middle">守' + gar2 + '</text></g>';
         }
@@ -8137,7 +8164,7 @@ if (typeof module !== 'undefined') module.exports = G;
     }
     if (!o.demo) s += '<g id="hlg">' + hlMarkup() + '</g>';
     g = gg;
-    return s + '</svg>';
+    return s + tokDefs() + '</svg>';
   }
 
   function renderMapOnly() { $('#map').innerHTML = mapSVG(g); fnUpdate(document.querySelector('#map svg')); }
