@@ -434,7 +434,7 @@ button{font:inherit;color:inherit}
     <div class="startmap" id="startmap" aria-hidden="true"></div>
     <div class="sc-in gx">
       <p class="eyebrow">MEDIEVAL: WORLD DOMINATION · 1096 AD</p>
-      <p class="muted small" id="verline">版本 v210 · 2026-11-02 · 國家徽章：選國家、左上角、國家列表、外交名單、地圖上的首都都有自己的盾牌徽章</p>
+      <p class="muted small" id="verline">版本 v211 · 2026-11-02 · 地圖拉遠時國名旁有國家徽章（拉近時不畫）</p>
       <h1>中世紀：世界霸權</h1>
       <p class="lead">1095 年，教宗在克萊蒙發出號召，整個歐洲動了起來。選一個勢力（共 121 個），再從該文明歷史上的君主裡挑一位登基；在四千多個六角格地塊的世界裡，與基督教世界、伊斯蘭世界與即將到來的蒙古鐵騎周旋。可以結盟借道、派商隊與商船貿易、派密探、遠征遠方、研究科技升級時代、替自己的城市取名。沒有回合上限，直到有人稱霸，或你失去一切。</p>
       <div id="startopts"></div>
@@ -7563,7 +7563,7 @@ if (typeof module !== 'undefined') module.exports = G;
     '<li><b>電腦會開發中立地</b>：電腦會把後方的兵集中到邊境，夠多了就合力拿下旁邊的中立地，國庫太滿也會多徵兵。</li>' +
     '<li><b>點地＝查看</b>：點別人的地或中立地只會顯示它的資料，不會自動出兵；面板上有「⚔ 從旁邊的某地出兵」按鈕，按了才會選好出兵。已經選了自己的地、再點旁邊的地，那塊地會變成出兵目標（箭頭）；同一塊再點一次，就改成只查看它。打不到的遠處只會提示你要先把部隊調到哪裡，不會自己幫你調兵扣行動點。</li>' +
     '<li><b>電腦會守首都</b>：首都或大城被你的大軍逼近時，電腦會從附近調兵回防、優先在那裡補兵；普通和困難難度下，首都告急還會緊急徵召民兵（每 4 回合一次），所以最好先削弱它周圍的部隊再攻城。</li>' +
-    '<li><b>國家徽章</b>：每個國家都有自己的盾牌徽章，出現在選國家的卡片、左上角、國家列表和外交名單上。歐洲多半是十字、鷹、百合花，伊斯蘭國家是新月與星，宋、遼、西夏、大理、高麗、大越用國號的字，日本是紅日，草原民族是部落符號，印度與東南亞是蓮花、法輪，美洲是金字塔與太陽。</li>' +
+    '<li><b>國家徽章</b>：每個國家都有自己的盾牌徽章，出現在選國家的卡片、左上角、國家列表和外交名單上；地圖拉遠時，國名旁邊也會出現。歐洲多半是十字、鷹、百合花，伊斯蘭國家是新月與星，宋、遼、西夏、大理、高麗、大越用國號的字，日本是紅日，草原民族是部落符號，印度與東南亞是蓮花、法輪，美洲是金字塔與太陽。</li>' +
     '<li><b>點圖示看細節</b>：點地圖上的駱駝（商隊）或帶 $ 的小船（商船），會告訴你是哪一國的、從哪裡到哪裡、這趟賺了多少或在哪裡被劫。點有「封」字小旗的地，面板最上面會寫出這是哪一國分封給哪位領主的封地；你自己的封地還會顯示忠誠度。</li>' +
     '<li><b>多人連線的國名</b>：真人玩家控制的國家，名字後面會加上玩家暱稱，例如「北宋（阿明）」，地圖上方的國家列表、外交名單和戰報都看得到。</li>' +
     '<li><b>多人選勢力</b>：房間裡先按地區（歐洲、東亞、美洲……），下拉選單就只列那一區的國家，比較好找。</li>' +
@@ -7603,7 +7603,8 @@ if (typeof module !== 'undefined') module.exports = G;
     if (!svg) return;
     try { svg.style.setProperty('--zs', zsVar()); } catch (e) {}
     var zs = +svg.style.getPropertyValue('--zs') || 1, z1 = !!ui.view && ui.view.s < 4.6;
-    var els = [].slice.call(svg.querySelectorAll('.fn'));
+    var els = [].slice.call(svg.querySelectorAll('.fn')), crs = {};
+    [].forEach.call(svg.querySelectorAll('svg.fnc'), function (c) { crs[c.getAttribute('data-f')] = c; c.style.display = 'none'; });
     els.forEach(function (e) { svg.appendChild(e); e.style.display = z1 ? 'inline' : 'none'; });
     if (!z1) return;
     els.sort(function (a, b) { return (b.getAttribute('data-tw') === '999' ? 1e9 : +b.getAttribute('data-n')) - (a.getAttribute('data-tw') === '999' ? 1e9 : +a.getAttribute('data-n')); });
@@ -7611,8 +7612,12 @@ if (typeof module !== 'undefined') module.exports = G;
     els.forEach(function (e) {
       var r = e.getBoundingClientRect(), bad = false;
       if (!r.width || !r.height) { e.style.display = 'none'; return; }
+      var cw = r.height * 0.95; r = { left: r.left - cw, right: r.right, top: r.top, bottom: r.bottom };
       for (var j = 0; j < taken.length; j++) { var t = taken[j]; if (r.left < t.right && r.right > t.left && r.top < t.bottom && r.bottom > t.top) { bad = true; break; } }
-      if (bad) e.style.display = 'none'; else taken.push(r);
+      if (bad) { e.style.display = 'none'; return; }
+      taken.push(r);
+      var cr = crs[e.getAttribute('data-f')];
+      if (cr) { try { var bb = e.getBBox(), hh = bb.height * 1.05, ww = hh / 1.2; cr.setAttribute('x', (bb.x - ww - bb.height * 0.12).toFixed(1)); cr.setAttribute('y', (bb.y + (bb.height - hh) / 2).toFixed(1)); cr.setAttribute('width', ww.toFixed(1)); cr.setAttribute('height', hh.toFixed(1)); cr.style.display = 'inline'; svg.appendChild(cr); } catch (x) {} }
     });
   }
   function zsVar() { var sz = mvSize(), k = fitK(sz) * Math.max(1, Math.min(20, ui.view.s)); return (1 / k).toFixed(4); }
@@ -7984,7 +7989,8 @@ if (typeof module !== 'undefined') module.exports = G;
         var mx = 0, my = 0; cp.forEach(function (h) { mx += HX[h]; my += HY[h]; }); mx /= cp.length; my /= cp.length;
         var bh = cp[0], bd2 = 1e18; cp.forEach(function (h) { var d = (HX[h] - mx) * (HX[h] - mx) + (HY[h] - my) * (HY[h] - my); if (d < bd2) { bd2 = d; bh = h; } });
         var nmx = G.nm(ff), tw = Math.sqrt(cp.length) * 52 * 0.95 / Math.max(2, nmx.length);
-        s += '<text class="fn' + (ff === g.player ? ' me' : '') + '" x="' + HX[bh].toFixed(1) + '" y="' + (HY[bh] + 4).toFixed(1) + '" dominant-baseline="middle" data-tw="' + (ff === g.player ? 999 : tw.toFixed(1)) + '" data-n="' + cp.length + '" text-anchor="middle" style="fill:' + NC[ff] + ';font-size:' + (ff === g.player ? 'max(calc(11px * var(--zs)), ' : '') + 'max(calc(13px * var(--zs)), min(calc(' + (21 * Math.min(2.6, 0.7 + 0.12 * Math.sqrt(cp.length))).toFixed(1) + 'px * var(--zs)), ' + (tw * 2).toFixed(1) + 'px))' + (ff === g.player ? ')' : '') + '">' + esc(nmx) + '</text>';
+        s += crestSVG(ff, 10, 'fnc').replace('<svg ', '<svg data-f="' + ff + '" style="display:none;pointer-events:none" ');
+        s += '<text class="fn' + (ff === g.player ? ' me' : '') + '" data-f="' + ff + '" x="' + HX[bh].toFixed(1) + '" y="' + (HY[bh] + 4).toFixed(1) + '" dominant-baseline="middle" data-tw="' + (ff === g.player ? 999 : tw.toFixed(1)) + '" data-n="' + cp.length + '" text-anchor="middle" style="fill:' + NC[ff] + ';font-size:' + (ff === g.player ? 'max(calc(11px * var(--zs)), ' : '') + 'max(calc(13px * var(--zs)), min(calc(' + (21 * Math.min(2.6, 0.7 + 0.12 * Math.sqrt(cp.length))).toFixed(1) + 'px * var(--zs)), ' + (tw * 2).toFixed(1) + 'px))' + (ff === g.player ? ')' : '') + '">' + esc(nmx) + '</text>';
       });
     }
     /* 徽章 */
@@ -8051,13 +8057,6 @@ if (typeof module !== 'undefined') module.exports = G;
           '<path d="M-8,9 L-10,13 M-3,9 L-5,13 M2,9 L0,13 M7,9 L5,13" stroke="' + (pir ? '#c0392b' : '#f4ead0') + '" stroke-width="1.2" stroke-linecap="round"/>' +
           '<path d="M-1,-9 V2" stroke="' + (pir ? '#c0392b' : '#f4ead0') + '" stroke-width="1.3"/><path d="M-1,-9 L8,-6 L-1,-3 Z" fill="' + (pir ? '#1a1a1a' : '#c0392b') + '" stroke="' + (pir ? '#c0392b' : '#2a2418') + '" stroke-width=".9"/>' +
           '<text y="-11" x="9" font-size="12" font-weight="700" fill="' + (pir ? '#ff6b5a' : '#fff') + '" stroke="rgba(0,0,0,.75)" stroke-width="2.4" paint-order="stroke">' + (pir ? '☠' : '') + fl.n + '</text>' + (fl.c ? '<g transform="translate(-13,-12)"><rect x="-2" y="-9" width="' + (10 + String(fl.c).length * 7) + '" height="13" rx="6" fill="#8a2a1d" stroke="#f4ead0" stroke-width="1"/><text x="' + (3 + String(fl.c).length * 3.5) + '" y="1" font-size="10" font-weight="700" fill="#fff" text-anchor="middle">兵' + fl.c + '</text></g>' : '') + '</g>';
-      });
-    }
-    if (!o.demo && !LITE) {
-      /* 每國首都插一面徽章 */
-      G.FIDS.forEach(function (cf) {
-        var cid = G.CAPITAL[cf]; if (cid == null || !g.fac[cf] || !g.fac[cf].alive || !g.p[cid] || g.p[cid].o !== cf || !vis(cid)) return;
-        s += '<g pointer-events="none" transform="translate(' + (HX[cid] + 14).toFixed(1) + ',' + (HY[cid] - 58).toFixed(1) + ')"><path d="M2,6 V44" stroke="#2a1d05" stroke-width="2.4"/>' + crestSVG(cf, 26).replace('<svg ', '<svg x="3" y="0" ') + '</g>';
       });
     }
     if (!o.demo && g.exp && g.exp[g.player]) { var et = g.exp[g.player].t; if (vis(et)) s += '<g pointer-events="none" transform="translate(' + (HX[et] + 12).toFixed(1) + ',' + (HY[et] - 22).toFixed(1) + ')"><path d="M0,0 V26" stroke="#2a1d05" stroke-width="2.4"/><path d="M0,0 L18,6 L0,12 Z" fill="#ff5a3c" stroke="#2a1d05" stroke-width="1.4"/></g>'; }
