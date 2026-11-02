@@ -1,5 +1,9 @@
 <!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>潮汐釣魚村</title>
+<link rel="manifest" href="manifest.json">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#2f89c7">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -259,6 +263,7 @@ body.touch.portrait:not(.allowPortrait) #rotate{display:flex}
 #rotate button{padding:11px 18px;border-radius:14px;font-weight:700;font-size:15px}
 #rotFull{background:var(--gold);color:var(--ink)}
 #rotSkip{background:rgba(255,255,255,.18);color:#fff}
+#musicBtn.off{opacity:.45}
 #fsBtn{display:none}
 body.touch #fsBtn.ok{display:flex}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
@@ -279,6 +284,7 @@ body.touch #fsBtn.ok{display:flex}
     <button class="mbtn panel" data-tab="people" aria-label="玩家"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14a5 5 0 0 1 3.5 6"/></svg><span>玩家</span></button>
     <button class="mbtn panel" data-tab="style" aria-label="造型"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 15h18M6 15c0-4 2.7-7 6-7s6 3 6 7"/><path d="M12 8V5"/></svg><span>造型</span></button>
     <button class="mbtn panel" id="fsBtn" aria-label="全螢幕"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+    <button class="mbtn panel" id="musicBtn" aria-label="音樂開關"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg></button>
     <button class="mbtn panel" id="soundBtn" aria-label="音效開關"><svg id="soundIco" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M17 9a4 4 0 0 1 0 6"/></svg></button>
   </div>
 </div>
@@ -347,9 +353,10 @@ body.touch #fsBtn.ok{display:flex}
 
 <div id="rotate" role="dialog" aria-label="請轉成橫向">
   <div class="ph" aria-hidden="true"></div>
-  <h2>把手機轉成橫向</h2>
-  <p>潮汐釣魚村是橫向遊戲，左手搖桿、右手拋竿最順手。</p>
-  <div class="row"><button id="rotFull">全螢幕橫向玩</button><button id="rotSkip">先用直向</button></div>
+  <h2>點一下，轉成橫向開始玩</h2>
+  <p>潮汐釣魚村是橫向遊戲，左手搖桿、右手拋竿最順手。點畫面任何地方就會自動全螢幕、轉成橫向。</p>
+  <div class="row"><button id="rotFull">開始玩</button><button id="rotSkip">先用直向</button></div>
+  <p style="font-size:12px;opacity:.75;max-width:30ch">小技巧：用瀏覽器選單「加到主畫面」，之後從主畫面圖示打開就會直接橫向。</p>
 </div>
 
 <script>
@@ -857,8 +864,8 @@ function placeLabelsUpdate(){
 }
 
 /* ================= SOUND ================= */
-let actx = null, soundOn = LS.get('tide.sound', true);
-function ensureAudio(){ if (!actx && soundOn){ try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){} } if (actx && actx.state === 'suspended') actx.resume(); }
+let actx = null, soundOn = LS.get('tide.sound', true), musicOn = LS.get('tide.music', true);
+function ensureAudio(){ if (!actx && (soundOn || musicOn)){ try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){} } if (actx && actx.state === 'suspended') actx.resume(); if (actx && musicOn && typeof MUSIC !== 'undefined' && !MUSIC.playing()) MUSIC.start(); }
 function tone(freq, dur, type, vol, slide){ if (!soundOn || !actx) return; const t = actx.currentTime; const o = actx.createOscillator(), g = actx.createGain(); o.type = type || 'sine'; o.frequency.setValueAtTime(freq, t); if (slide) o.frequency.exponentialRampToValueAtTime(slide, t + dur); g.gain.setValueAtTime(vol || 0.15, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur); o.connect(g).connect(actx.destination); o.start(t); o.stop(t + dur); }
 const SFX = {
   cast(){ tone(900, 0.25, 'triangle', 0.08, 300); },
@@ -871,6 +878,61 @@ const SFX = {
 function renderSoundIcon(){ $('#soundIco').innerHTML = soundOn ? '<path d="M4 9v6h4l5 4V5L8 9z"/><path d="M17 9a4 4 0 0 1 0 6"/>' : '<path d="M4 9v6h4l5 4V5L8 9z"/><path d="M17 9l5 6M22 9l-5 6"/>'; }
 renderSoundIcon();
 $('#soundBtn').addEventListener('click', () => { soundOn = !soundOn; LS.set('tide.sound', soundOn); if (soundOn) ensureAudio(); renderSoundIcon(); });
+
+/* ================= MUSIC：程式即時演奏的海島背景音樂 ================= */
+const MUSIC = (() => {
+  let master = null, timer = null, next = 0, step = 0, sea = null, mel = 4, section = 0;
+  const SPB = 60 / 84 / 2; // 每個八分音符的秒數（每分鐘 84 拍）
+  const PROGS = [
+    [[48,52,55,60],[45,48,52,57],[41,45,48,53],[43,47,50,55]],   // C  Am F  G
+    [[41,45,48,53],[43,47,50,55],[48,52,55,60],[45,48,52,57]],   // F  G  C  Am
+    [[48,52,55,60],[40,43,47,52],[41,45,48,53],[43,47,50,55]]    // C  Em F  G
+  ];
+  const PENT = [60,62,64,67,69,72,74,76,79];
+  const hz = m => 440 * Math.pow(2, (m - 69) / 12);
+  function note(m, t, dur, type, vol, cut){
+    const o = actx.createOscillator(), g = actx.createGain(), f = actx.createBiquadFilter();
+    o.type = type; o.frequency.value = hz(m); f.type = 'lowpass'; f.frequency.value = cut || 2400;
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.012); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(f); f.connect(g); g.connect(master); o.start(t); o.stop(t + dur + 0.05);
+  }
+  function seaStart(){
+    const len = actx.sampleRate * 4, buf = actx.createBuffer(1, len, actx.sampleRate), d = buf.getChannelData(0); let b = 0;
+    for (let i = 0; i < len; i++){ b = (b + 0.02 * (Math.random() * 2 - 1)) / 1.02; d[i] = b * 3.5; }
+    const src = actx.createBufferSource(); src.buffer = buf; src.loop = true;
+    const f = actx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 520;
+    const g = actx.createGain(); g.gain.value = 0.22;
+    const lfo = actx.createOscillator(), lg = actx.createGain(); lfo.frequency.value = 0.11; lg.gain.value = 0.16;
+    lfo.connect(lg); lg.connect(g.gain); src.connect(f); f.connect(g); g.connect(master); src.start(); lfo.start(); sea = { src, lfo };
+  }
+  function tick(){
+    if (!actx || !master) return;
+    if (next < actx.currentTime - 0.1) next = actx.currentTime + 0.05; // 分頁切回來時不要一次補一大堆音
+    while (next < actx.currentTime + 0.3){
+      const bar = Math.floor(step / 8), beat = step % 8, t = next;
+      if (beat === 0 && bar % 8 === 0) section = Math.floor(Math.random() * PROGS.length);
+      const ch = PROGS[section][bar % 4];
+      if (beat === 0) note(ch[0] - 12, t, SPB * 7, 'sine', 0.2, 500);
+      if (beat === 4) note(ch[0] - 5, t, SPB * 3.5, 'sine', 0.1, 500);
+      const arp = [0,2,1,3,2,1,3,2][beat];
+      note(ch[arp] + 12, t, SPB * 2.4, 'triangle', 0.055, 2400);
+      if (beat % 2 === 0 && Math.random() < (bar % 8 < 4 ? 0.55 : 0.4)){
+        mel = clamp(mel + [-2,-1,-1,0,1,1,2][Math.floor(Math.random() * 7)], 0, PENT.length - 1);
+        note(PENT[mel] + 12, t, SPB * (Math.random() < 0.3 ? 3.6 : 1.8), 'sine', 0.05, 3200);
+      }
+      next += SPB; step++;
+    }
+  }
+  return {
+    start(){ if (!actx || master) return; master = actx.createGain(); master.gain.value = 0.0001; master.connect(actx.destination); master.gain.exponentialRampToValueAtTime(0.4, actx.currentTime + 2.5); next = actx.currentTime + 0.1; seaStart(); timer = setInterval(tick, 100); },
+    stop(){ if (!master) return; clearInterval(timer); const m = master, s = sea; m.gain.setTargetAtTime(0.0001, actx.currentTime, 0.25); setTimeout(() => { try { s && s.src.stop(); s && s.lfo.stop(); m.disconnect(); } catch(e){} }, 1500); master = null; sea = null; },
+    playing(){ return !!master; }
+  };
+})();
+function renderMusicIcon(){ $('#musicBtn').classList.toggle('off', !musicOn); $('#musicBtn').setAttribute('aria-pressed', String(musicOn)); }
+renderMusicIcon();
+$('#musicBtn').addEventListener('click', () => { musicOn = !musicOn; LS.set('tide.music', musicOn); if (musicOn){ ensureAudio(); MUSIC.start(); } else MUSIC.stop(); renderMusicIcon(); });
+document.addEventListener('visibilitychange', () => { if (!actx) return; if (document.hidden) actx.suspend().catch(() => {}); else actx.resume().catch(() => {}); });
 
 /* ================= PLAYER ================= */
 const look = LS.get('tide.look', { shirt: SHIRTS[Math.floor(Math.random()*SHIRTS.length)], hat: HATS[0] });
@@ -1448,7 +1510,7 @@ function renderTab(){
   } else if (curTab === 'help'){
     body.appendChild(el('p', 'sub', '走進任一個發光圈就能釣魚。每個釣點有 4 種魚，其中 1 種是傳說魚。'));
     const k = el('div', 'kbd');
-    [['移動', isTouch ? '左下搖桿' : 'WASD / 方向鍵（Shift 跑步）'], ['轉視角', isTouch ? '在畫面上拖曳' : '拖曳滑鼠・滾輪縮放'], ['拋竿', '按住蓄力，放開拋出；拋越遠越容易遇到稀有魚'], ['提竿', '浮標猛沉、出現「!」時馬上按'], ['拉線', '按住收線、放開卸力，讓拉力停在綠色區'], ['聊天', isTouch ? '💬 按鈕' : 'Enter'], ['表情', isTouch ? '右下表情按鈕' : '1 / 2 / 3']].forEach(([a, b]) => { k.appendChild(el('kbd', '', a)); k.appendChild(el('span', '', b)); });
+    [['移動', isTouch ? '左下搖桿' : 'WASD / 方向鍵（Shift 跑步）'], ['轉視角', isTouch ? '在畫面上拖曳' : '拖曳滑鼠・滾輪縮放'], ['拋竿', '按住蓄力，放開拋出；拋越遠越容易遇到稀有魚'], ['提竿', '浮標猛沉、出現「!」時馬上按'], ['拉線', '按住收線、放開卸力，讓拉力停在綠色區'], ['聊天', isTouch ? '💬 按鈕' : 'Enter'], ['表情', isTouch ? '右下表情按鈕' : '1 / 2 / 3'], ['音樂', '右上角音符按鈕開關背景音樂（喇叭按鈕是音效）']].forEach(([a, b]) => { k.appendChild(el('kbd', '', a)); k.appendChild(el('span', '', b)); });
     body.appendChild(k);
   }
 }
@@ -1493,6 +1555,7 @@ async function goLandscape(){
   setTimeout(() => { if (portraitMQ.matches) toast('這個瀏覽器不能自動轉向，請手動把手機轉成橫向，或關掉螢幕旋轉鎖定。'); }, 700);
 }
 $('#rotFull').addEventListener('click', goLandscape);
+$('#rotate').addEventListener('click', e => { if (e.target.id !== 'rotSkip') goLandscape(); });
 $('#rotSkip').addEventListener('click', () => document.body.classList.add('allowPortrait'));
 $('#fsBtn').addEventListener('click', () => { if (document.fullscreenElement){ document.exitFullscreen().catch(() => {}); } else goLandscape(); });
 
