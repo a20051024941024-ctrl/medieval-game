@@ -383,6 +383,16 @@ button{font:inherit;color:inherit}
   .zb[data-act=nextready]{font-size:calc(11px * var(--fs,1))!important}
   .zb[data-act=terr],.zb[data-act=locate],.zb[data-act=bigmap]{font-size:calc(14px * var(--fs,1))!important}
 }
+/*ticker1*/#ticker{position:absolute;left:8px;right:56px;bottom:8px;z-index:4;display:flex;align-items:center;height:34px;border-radius:999px;background:rgba(12,24,29,.9);border:1px solid rgba(214,173,85,.55);box-shadow:0 4px 14px rgba(0,0,0,.45);cursor:pointer;overflow:hidden;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+#ticker[hidden]{display:none}
+#ticker.tkbad{border-color:rgba(244,121,107,.75)}
+#ticker .tkw{flex:1;overflow:hidden;white-space:nowrap;-webkit-mask-image:linear-gradient(90deg,transparent,#000 4%,#000 96%,transparent);mask-image:linear-gradient(90deg,transparent,#000 4%,#000 96%,transparent)}
+#ticker .tkm{display:inline-block;padding-left:100%;animation:tkscroll linear infinite;font-size:calc(13px * var(--fs,1));font-weight:700;color:#f1d48c}
+#ticker .tki.bad{color:#ff9a8c}
+#ticker .tksep{color:rgba(214,173,85,.6);margin:0 14px}
+#ticker .tkx{flex:none;width:30px;height:30px;margin-right:2px;border:0;border-radius:50%;background:transparent;color:#d8ccb2;font-size:14px;cursor:pointer}
+@keyframes tkscroll{from{transform:translateX(0)}to{transform:translateX(-100%)}}
+@media (prefers-reduced-motion:reduce){#ticker .tkm{animation:none;padding-left:10px;white-space:normal}}
 </style>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
@@ -419,7 +429,7 @@ button{font:inherit;color:inherit}
     <div class="startmap" id="startmap" aria-hidden="true"></div>
     <div class="sc-in gx">
       <p class="eyebrow">MEDIEVAL: WORLD DOMINATION · 1096 AD</p>
-      <p class="muted small" id="verline">版本 v207 · 2026-11-02 · 介面整理：開始畫面拿掉版本說明、手機上方三行提示縮成一行、地圖按鈕變小變透明、往下滑提示不再壓字</p>
+      <p class="muted small" id="verline">版本 v208 · 2026-11-02 · 事件依國家文化換說法、史實事件要真的發生才出現、盜匪人數 undefined、電腦會開發中立地、地圖下方的捲動公告、多人連線國名加上玩家暱稱</p>
       <h1>中世紀：世界霸權</h1>
       <p class="lead">1095 年，教宗在克萊蒙發出號召，整個歐洲動了起來。選一個勢力（共 121 個），再從該文明歷史上的君主裡挑一位登基；在四千多個六角格地塊的世界裡，與基督教世界、伊斯蘭世界與即將到來的蒙古鐵騎周旋。可以結盟借道、派商隊與商船貿易、派密探、遠征遠方、研究科技升級時代、替自己的城市取名。沒有回合上限，直到有人稱霸，或你失去一切。</p>
       <div id="startopts"></div>
@@ -1452,10 +1462,12 @@ var TITLES = {
   khw: ['花剌子模王朝', '花剌子模帝國'], ghu: ['古爾蘇丹國', '古爾帝國'], pala: ['波羅王朝', '波羅帝國'], chal: ['西遮婁其王國', '西遮婁其帝國'], jpn: ['日本', '日本帝國'],
   bul: ['保加爾汗國', '保加爾帝國'], abb: ['阿拔斯哈里發國', '阿拔斯帝國'], sco: ['蘇格蘭王國', '不列顛王國'], ire: ['愛爾蘭王國', '愛爾蘭帝國']
 };
+var PNAME = {};
+function setPNames(m) { PNAME = m || {}; }
 function nm(f) {
   if (f === 'pir') return '海盜'; if (!f) return '盜匪';
   var t = _TT[f], T = TITLES[f];
-  return (t && T && T[t - 1]) ? T[t - 1] : FACTIONS[f].name;
+  return ((t && T && T[t - 1]) ? T[t - 1] : FACTIONS[f].name) + (PNAME[f] ? '（' + PNAME[f] + '）' : '');
 }
 function chron(g, f, t) {
   if (!f || !isHum(g, f)) return;
@@ -3692,11 +3704,55 @@ function aiDefend(g, f) {
     }
   });
 }
+/* 開發中立地：從後方把兵集中到邊境，夠了就合力拿下；國庫太滿就多徵兵 */
+function aiExpand(g, f) {
+  var dif = g.diff === undefined ? 1 : g.diff, fs = g.fac[f], own = owned(g, f);
+  if (!own.length) return;
+  var maxN = (dif === 0 ? 2 : dif === 1 ? 3 : 4) + Math.min(4, Math.floor(own.length / 15));
+  var rc = AI_REACH[f] || 28, cand = {}, list = [];
+  own.forEach(function (id) { NB[id].forEach(function (n) { var q = g.p[n]; if (q && !q.o && LAND[n] && !BLOCKED[n] && hexDist(CAPITAL[f], n) <= rc * rc) cand[n] = 1; }); });
+  var keepOf = function (n) { var s = g.p[n], E = aiEnemyNear(g, f, n); return Math.max(isCapital(n) ? 4 : (s.L > 0 ? 3 : 1), AIDANG[n] || 0, E ? Math.ceil(E * 0.6) : 0); };
+  Object.keys(cand).forEach(function (k) {
+    var to = +k, t = g.p[to], defv = Math.max(1, t.t) * 1.15 * terrDef(g, to, null), at = [], sum = 0;
+    NB[to].forEach(function (n) { var s = g.p[n]; if (!s || s.o !== f || s.acted || s.t < 3) return; var av = s.t - keepOf(n); if (av >= 2) { at.push({ from: n, av: av }); sum += av; } });
+    list.push({ to: to, at: at, sum: sum, defv: defv, v: (targetValue(g, to) + (TERR[to] === 'd' ? -1 : 0)) / Math.max(1, defv) });
+  });
+  list.sort(function (a, b) { return b.v - a.v; });
+  var done = 0, staged = 0, used = {};
+  list.forEach(function (c) {
+    if (done >= maxN && staged >= maxN) return;
+    if (done < maxN && c.at.length && c.sum >= c.defv * 1.05 && !c.at.some(function (x) { return used[x.from]; })) {
+      done++; c.at.sort(function (a, b) { return b.av - a.av; });
+      for (var i = 0; i < c.at.length; i++) { used[c.at[i].from] = 1; if (g.p[c.to].o === f) break; moveTroops(g, f, c.at[i].from, c.to, c.at[i].av); }
+      return;
+    }
+    if (staged >= maxN) return;
+    var st = null; NB[c.to].forEach(function (n) { var s = g.p[n]; if (s && s.o === f && !used[n] && (st == null || s.t > g.p[st].t)) st = n; });
+    if (st == null) return;
+    var need = c.defv * 1.3 - c.sum, got = 0, par = {}, dep = {}, q = [st], seen = {}; seen[st] = 1; dep[st] = 0;
+    while (q.length) { var x = q.shift(); if (dep[x] >= 5) continue; NB[x].forEach(function (n) { if (!seen[n] && g.p[n] && g.p[n].o === f) { seen[n] = 1; par[n] = x; dep[n] = dep[x] + 1; q.push(n); } }); }
+    var dn = Object.keys(seen).map(Number).filter(function (n) { var s = g.p[n]; return n !== st && !s.acted && !used[n] && !AIDANG[n] && !aiEnemyNear(g, f, n) && s.t - (s.L > 0 ? 3 : 1) - (isCapital(n) ? 3 : 0) >= 4; });
+    dn.sort(function (a, b) { return (g.p[b].t - dep[b] * 2) - (g.p[a].t - dep[a] * 2); });
+    for (var di = 0; di < dn.length && di < 4 && got < need; di++) {
+      var n = dn[di], s0 = g.p[n], send = s0.t - (s0.L > 0 ? 3 : 1) - (isCapital(n) ? 3 : 0);
+      if (moveTroops(g, f, n, par[n], send).ok) { got += send; used[n] = 1; used[par[n]] = used[par[n]] || 0; }
+    }
+    if (got) { staged++; used[st] = 1; }
+  });
+  /* 國庫太滿：在靠近邊境的城市多徵兵 */
+  var extra = fs.gold > 1500 ? 3 : fs.gold > 600 ? 2 : fs.gold > 300 ? 1 : 0;
+  if (extra) {
+    var fd = frontierDist(g, f), cs = own.filter(function (id) { var p = g.p[id]; return p.L > 0 && p.t < capOf(p, id); });
+    cs.sort(function (a, b) { return (fd[a] === undefined ? 99 : fd[a]) - (fd[b] === undefined ? 99 : fd[b]); });
+    for (var j = 0; j < cs.length && extra > 0; j++) { var ty = pickUnitType(g, f, cs[j]); if (!canPay(g, f, unitCost(f, ty))) ty = 0; if (actRecruit(g, f, cs[j], ty).ok) extra--; }
+  }
+}
 function aiTurn(g, f) {
   aiHoly(g, f);
   aiDefend(g, f);
   aiEconomy(g, f);
   aiAssault(g, f);
+  aiExpand(g, f);
   aiMoves(g, f);
   aiFleets(g, f);
   aiExtras(g, f);
@@ -4665,11 +4721,11 @@ var EVENTS = [
       { label: '聽天由命', hint: '損失 6 名士兵，民心 −5', run: function (g, f) { var n = loseTroops(g, f, 6); addRes(g, f, { morale: -5 }); return '疫情擴散，折損 ' + n + ' 名士兵，民心 −5。'; } }
     ] },
   { id: 'raid', title: '盜匪劫掠', tag: '事件', w: 2,
-    text: function (g) { return '一夥盜匪與流寇逼近' + placeName(g.evData.id) + '，約有 ' + g.evData.str + ' 人。'; },
+    text: function (g) { var d = g.evData || {}; if (d.str == null) d.str = 3 + Math.floor(g.turn / 6); if (d.id == null || !g.p[d.id] || g.p[d.id].o !== g.player) d.id = randOwned(g, g.player); g.evData = d; return '一夥盜匪與流寇逼近' + placeName(d.id) + '，約有 ' + d.str + ' 人。'; },
     prep: function (g, f) { g.evData = { id: randOwned(g, f), str: 3 + Math.floor(g.turn / 6) }; },
     choices: [
       { label: '迎戰', hint: '以當地守軍交戰；敗則損兵失金', run: function (g, f) {
-        var d = g.evData || {}, p = g.p[d.id];
+        var d = g.evData || {}, p = g.p[d.id]; if (d.str == null) d.str = 3 + Math.floor(g.turn / 6);
         if (!p || p.o !== f) return '盜匪見你早有防備，自己散去了。';
         var b = resolveBattle(g, null, f, d.str, p.t, d.id, false);
         if (!b.win) { p.t = b.defLeft; addRes(g, f, { morale: 3 }); return '守軍擊退了劫掠者，民心 +3。'; }
@@ -4892,6 +4948,89 @@ EVENTS.push(
     ] }
 );
 var CH_URGENT = { c_pope: 1,  c_succ: 1, c_exp: 1, c_ordrich: 1, c_sea: 1, c_jk: 1, c_mon: 1, c_dp: 1, c_sx: 1 };
+var CULT_EA = { song: 1, liao: 1, jin: 1, xia: 1, dali: 1, gor: 1, jpn: 1, dai: 1 };
+var CULT_ST = { ker: 1, nai: 1, tat: 1, mer: 1, cum: 1, mongol: 1 };
+function cultOf(f) { if (CULT_EA[f]) return 'ea'; if (CULT_ST[f]) return 'st'; var r = FACTIONS[f] && FACTIONS[f].rel; if (r === 'cath' || r === 'orth' || r === 'pag') return 'eu'; if (r === 'isl') return 'isl'; return 'oth'; }
+function evS(g, x) { return typeof x === 'function' ? x(g) : x; }
+function cv(m) { return function (g) { var c = cultOf(g.player); return m[c] !== undefined ? m[c] : m.eu; }; }
+function cvF(f, m) { var c = cultOf(f); return m[c] !== undefined ? m[c] : m.eu; }
+(function () {
+  var E = function (id) { for (var i = 0; i < EVENTS.length; i++) if (EVENTS[i].id === id) return EVENTS[i]; return null; };
+  var e;
+  if ((e = E('tourney'))) {
+    e.title = cv({ eu: '騎士比武大會', ea: '大閱與武舉', isl: '騎射競技大會', st: '那達慕大會', oth: '武藝競技大會' });
+    e.text = cv({ eu: e.text, ea: '武臣們奏請舉行大閱、開設武舉，讓將士展示騎射武藝，也替朝廷選拔將才。', isl: '埃米爾們請求舉辦騎射與長槍競技，讓騎兵展示武藝，也讓各地將領聚在一起宴飲。', st: '各部首領請求舉行那達慕，比賽摔跤、賽馬與射箭，讓勇士們展示本領。', oth: '將領們請求舉辦盛大的武藝競技，讓戰士展示本領，也讓各地首領聚在一起宴飲。' });
+    var r0 = e.choices[0].run, r1 = e.choices[1].run;
+    e.choices[0].run = function (g, f) { r0(g, f); return cvF(f, { eu: '大會辦得風光，騎士們士氣高昂。', ea: '大閱辦得隆重，將士士氣高昂。', st: '那達慕熱鬧非凡，勇士們士氣高昂。', oth: '競技辦得風光，戰士們士氣高昂。', isl: '競技辦得風光，騎兵們士氣高昂。' }); };
+    e.choices[1].run = function (g, f) { r1(g, f); return cvF(f, { eu: '貴族們有些失望。', ea: '武臣們有些失望。', st: '各部首領有些失望。', oth: '將領們有些失望。', isl: '埃米爾們有些失望。' }); };
+  }
+  var K = CHAIN.c_knight;
+  if (K) {
+    K.title = cv({ eu: '騎士團請求封地', ea: '武舉將才請求授官', isl: '勇士請求伊克塔', st: '勇士請求分封牧場', oth: '勇士請求封賞' });
+    K.text = cv({ eu: K.text, ea: '大閱與武舉中脫穎而出的將才，盼望朝廷授予官職與俸祿，為國效力。', isl: '競技中表現突出的騎兵將領，請求你賜予伊克塔（以一塊土地的稅收當作軍餉），作為效忠的回報。', st: '那達慕上勝出的勇士們，請求你賜予牧場與部眾，作為效忠的回報。', oth: '競技中表現突出的戰士們，請求你賜予土地與頭銜，作為效忠的回報。' });
+    K.choices[0].label = cv({ eu: '授予封地', ea: '授予官職', isl: '賜予伊克塔', st: '分封牧場', oth: '授予封賞' });
+    var k0 = K.choices[0].run, k1 = K.choices[1].run;
+    K.choices[0].run = function (g, f) { k0(g, f); return cvF(f, { eu: '騎士們宣誓效忠。', ea: '新授官的武將感恩戴德，願為朝廷效力。', st: '勇士們宣誓追隨。', oth: '戰士們宣誓效忠。', isl: '將領們宣誓效忠。' }); };
+    K.choices[1].run = function (g, f) { k1(g, f); return cvF(f, { eu: '騎士們懷著怨氣離去。', ea: '落空的將才心生不滿。', st: '勇士們懷著怨氣離去。', oth: '戰士們懷著怨氣離去。', isl: '將領們懷著怨氣離去。' }); };
+  }
+  var C = CHAIN.c_succ;
+  if (C) {
+    var WHO = { eu: '貴族', ea: '朝中大臣與地方將帥', isl: '埃米爾', st: '各部那顏', oth: '各地首領' };
+    var PRE = { eu: '先王', ea: '先帝', isl: '先蘇丹', st: '大汗', oth: '先王' };
+    C.tag = cv({ eu: '王位', ea: '皇位', isl: '王位', st: '汗位', oth: '王位' });
+    C.text = function (g) { var d = g.evData || {}, c = cultOf(g.player); return (PRE[c] || '先王') + (d.old || '') + '駕崩，新君剛即位。' + WHO[c] + '都在觀望，鄰國也在打量你：接下來幾年如果國內不穩，他們很可能趁機宣戰。你要怎麼坐穩' + (c === 'ea' ? '皇位' : c === 'st' ? '汗位' : '王位') + '？'; };
+    C.choices[0].label = cv({ eu: '賞賜貴族，換取效忠', ea: '厚賞百官與將帥，換取效忠', isl: '賞賜埃米爾，換取效忠', st: '賞賜各部那顏，換取效忠', oth: '賞賜各地首領，換取效忠' });
+    C.choices[1].label = cv({ eu: '鐵腕即位，不跟貴族妥協', ea: '鐵腕即位，整肅朝綱', isl: '鐵腕即位，不跟埃米爾妥協', st: '鐵腕即位，不跟那顏妥協', oth: '鐵腕即位，不跟首領妥協' });
+    C.choices[2].label = cv({ eu: '召開貴族會議，共商國是', ea: '召集群臣廷議，共商國是', isl: '召開諮議會（舒拉），共商國是', st: '召開忽里勒台，共商大事', oth: '召集首領會議，共商國是' });
+    var s0 = C.choices[0].run, s1 = C.choices[1].run, s2 = C.choices[2].run;
+    C.choices[0].run = function (g, f) { s0(g, f); return cvF(f, { eu: '貴族們收下賞賜，紛紛宣誓效忠新君。', ea: '百官與將帥收下賞賜，紛紛上表效忠新君。', isl: '埃米爾們收下賞賜，紛紛宣誓效忠新君。', st: '那顏們收下賞賜，紛紛宣誓追隨新汗。', oth: '首領們收下賞賜，紛紛宣誓效忠新君。' }); };
+    C.choices[1].run = function (g, f) { s1(g, f); return cvF(f, { eu: '禁軍效忠新君，但不少貴族心懷不滿。', ea: '禁軍效忠新君，但不少大臣與將帥心懷不滿。', isl: '親衛軍效忠新君，但不少埃米爾心懷不滿。', st: '怯薛親衛效忠新汗，但不少那顏心懷不滿。', oth: '親衛效忠新君，但不少首領心懷不滿。' }); };
+    C.choices[2].run = function (g, f) { s2(g, f); return cvF(f, { eu: '會議之後，國內暫時安定，但外國覺得新君得看貴族臉色。', ea: '廷議之後，朝局暫時安定，但外國覺得新君得看權臣臉色。', isl: '諮議之後，國內暫時安定，但外國覺得新君得看埃米爾臉色。', st: '忽里勒台之後，各部暫時安定，但外人覺得新汗得看那顏臉色。', oth: '會議之後，國內暫時安定，但外國覺得新君得看首領臉色。' }); };
+  }
+  if ((e = E('succession'))) {
+    e.text = cv({ eu: e.text, ea: '皇帝突然駕崩，沒有明確的繼承人。幾位宗室與權臣各自拉攏支持者，朝廷裡劍拔弩張。', isl: '蘇丹突然去世，沒有明確的繼承人。幾位王子與埃米爾各自拉攏支持者，宮廷裡劍拔弩張。', st: '大汗突然去世，沒有明確的繼承人。幾位宗王與那顏各自拉攏支持者，帳殿裡劍拔弩張。', oth: '統治者突然去世，沒有明確的繼承人。幾位親屬與首領各自拉攏支持者，宮廷裡劍拔弩張。' });
+    e.choices[1].label = cv({ eu: e.choices[1].label, ea: '召集群臣，許以官爵', isl: '召集埃米爾，承諾封賞', st: '召開忽里勒台，承諾分封', oth: '召集首領，承諾特權' });
+    var u1 = e.choices[1].run; e.choices[1].run = function (g, f) { u1(g, f); return cvF(f, { eu: '貴族們各得好處，爭端平息。', ea: '群臣各得官爵，爭端平息。', isl: '埃米爾們各得好處，爭端平息。', st: '宗王與那顏各得分封，爭端平息。', oth: '首領們各得好處，爭端平息。' }); };
+  }
+  var CV = CHAIN.c_civil;
+  if (CV) {
+    CV.title = cv({ eu: '貴族叛亂', ea: '藩將作亂', isl: '埃米爾叛亂', st: '宗王叛亂', oth: '首領叛亂' });
+    CV.text = cv({ eu: CV.text, ea: '那些被你以武力壓服的將帥與權臣並未死心，他們據守一座城池，打起反旗。', isl: '那些被你以武力壓服的埃米爾並未死心，他們聚集在一座城堡裡，打起反旗。', st: '那些被你以武力壓服的宗王並未死心，他們召集部眾，打起反旗。', oth: '那些被你以武力壓服的首領並未死心，他們聚集在一座城寨裡，打起反旗。' });
+  }
+  if ((e = E('heresy'))) {
+    e.title = cv({ eu: '異端的傳播', ea: '民間教派興起', isl: '異端思想的傳播', st: '新教派的傳播', oth: '新教派的傳播' });
+    e.text = cv({ eu: e.text, ea: '一位遊方道人在鄉間傳授與正統不同的教義（像是明教），信眾越來越多，地方官員奏請朝廷表態。', isl: '一位魅力十足的傳道者在鄉間宣講與正統教法不同的主張，聽眾越來越多，宗教學者（烏理瑪）要求你表態。', st: '一位外來的傳教士在各部之間宣講新的信仰，跟隨的人越來越多，薩滿們要求你表態。', oth: '一位魅力十足的祭司在鄉間宣講與傳統信仰不同的教義，信眾越來越多，祭司們要求你表態。' });
+    e.choices[0].label = cv({ eu: '召開宗教會議', ea: '召集僧道辯論', isl: '召集宗教學者議論', st: '召集薩滿與傳教士辯論', oth: '召集祭司議論' });
+    var h2 = e.choices[2].run; e.choices[2].run = function (g, f) { h2(g, f); return cvF(f, { eu: '傳教士被處決，但追隨者把他視為殉道者。', ea: '教首被處斬，但信眾把他奉為神明，暗中傳教。', oth: '傳教者被處死，但追隨者把他視為殉道者。', isl: '傳道者被處死，但追隨者把他視為殉道者。', st: '傳教士被處死，但追隨者把他視為殉道者。' }); };
+  }
+  var SE = CHAIN.c_sect;
+  if (SE) {
+    SE.text = cv({ eu: SE.text, ea: '先前流傳的民間教派已經在好幾個縣城扎根，信眾結社聚會，連地方小吏也有人加入。', isl: '先前傳播的異端主張已經在好幾個城鎮扎根，信徒集會，連清真寺的伊瑪目也開始分裂。', oth: '先前傳播的新教義已經在好幾個城鎮扎根，信徒集會，連祭司們也開始分裂。', st: '先前傳播的新信仰已經在好幾個部落扎根，信徒聚會，連薩滿們也開始分裂。' });
+    SE.choices[0].label = cv({ eu: '派傳教士辯論', ea: '派高僧名道講經', isl: '派宗教學者辯論', oth: '派祭司辯論', st: '派薩滿辯論' });
+    var c0 = SE.choices[0].run; SE.choices[0].run = function (g, f) { c0(g, f); return cvF(f, { eu: '辯論之後，不少人回到正統教會。', ea: '講經之後，不少信眾回歸正道。', isl: '辯論之後，不少人回到正統教法。', oth: '辯論之後，不少人回到傳統信仰。', st: '辯論之後，不少人回到祖先的信仰。' }); };
+  }
+  if ((e = E('loan'))) {
+    e.text = cv({ eu: e.text, ea: '京城的大商號與錢莊願意借你一筆錢，利息不低，要在六年後連本帶利歸還。', isl: '巴格達與開羅的大商人願意借你一筆錢，利息不低，要在六年後連本帶利歸還。', st: '往來絲路的回鶻商人願意借你一筆錢，利息不低，要在六年後連本帶利歸還。', oth: '遠道而來的大商人願意借你一筆錢，利息不低，要在六年後連本帶利歸還。' });
+    e.title = cv({ eu: '銀行家的借款', ea: '錢莊的借款', isl: '大商人的借款', st: '商人的借款', oth: '商人的借款' });
+  }
+  if (CHAIN.c_debt) { CHAIN.c_debt.title = cv({ eu: '銀行家上門討債', ea: '錢莊上門討債', oth: '商人上門討債', isl: '商人上門討債', st: '商人上門討債' }); CHAIN.c_debt.text = cv({ eu: CHAIN.c_debt.text, ea: '約定的六年到了，錢莊的掌櫃帶著借據來到宮中。', oth: '約定的六年到了，商人的代理人帶著借據來到宮中。', isl: '約定的六年到了，商人的代理人帶著借據來到宮中。', st: '約定的六年到了，商人的代理人帶著借據來到帳殿。' }); }
+  if ((e = E('pilgrims'))) {
+    e.title = cv({ eu: '朝聖者經過', ea: '香客與求法僧經過', isl: '朝覲者經過', st: '朝聖者經過', oth: '朝聖者經過' });
+    e.text = cv({ eu: e.text, ea: '大批香客與遠行求法的僧人路過你的領地，前往名山古剎。他們需要食宿，也帶來了布施與消息。', isl: '大批朝覲者路過你的領地，前往麥加與各地聖墓。他們需要食宿，也帶來了捐獻與消息。', oth: '大批朝聖者路過你的領地，前往聖山與神廟。他們需要食宿，也帶來了供品與消息。', st: '大批朝聖者路過你的牧地，前往聖山與寺院。他們需要食宿，也帶來了供品與消息。' });
+  }
+  /* 東亞史實事件：要真的發生了才跳出來 */
+  for (var t in HIST) HIST[t].forEach(function (h) {
+    var ea = function (g) { return g.ea || {}; };
+    if (h.id === 'jin1115') h.cond = function (g) { return eaOK(g, 'jin') && eaOK(g, 'liao') && !ea(g).liaoEnd; };
+    if (h.id === 'liao_fall') h.cond = function (g) { return !!ea(g).liaoEnd; };
+    if (h.id === 'jingkang') h.cond = function (g) { return !!ea(g).jk && g.player !== 'song'; };
+    if (h.id === 'shaoxing') h.cond = function (g) { return !!ea(g).sx && g.player !== 'song'; };
+    if (h.id === 'jin_fall') h.cond = function (g) { return !!ea(g).jinEnd; };
+    if (h.id === 'temujin' || h.id === 'chinggis_death') h.cond = function (g) { return eaOK(g, 'mongol'); };
+    if (h.id === 'yuan' || h.id === 'bunei' || h.id === 'koan') h.cond = function (g) { return eaOK(g, 'mongol') && ownedTotal(g, 'mongol') >= 40; };
+    if (h.id === 'yaishan') h.cond = function (g) { return eaOK(g, 'mongol') && !(isHum(g, 'song') && eaOK(g, 'song')) && (!eaOK(g, 'song') || ownedTotal(g, 'song') < 15); };
+  });
+})();
 function pickEvent(g) {
   /* 繼承危機、遠征提議這類一定要讓玩家看到的後續事件，排在史實事件前面 */
   if (g.chain) for (var ui0 = 0; ui0 < g.chain.length; ui0++) { var cu = g.chain[ui0]; if (CH_URGENT[cu.id] && cu.t <= g.turn && !(cu.d && cu.d.f && cu.d.f !== g.player) && CHAIN[cu.id]) { g.chain.splice(ui0, 1); if (cu.d) g.evData = cu.d; var evu = Object.create(CHAIN[cu.id]); evu._d = cu.d || null; evu._urgent = 1; return evu; } }
@@ -4918,9 +5057,9 @@ function eventView(g, ev) {
   if (ev && ev._d) g.evData = ev._d;
   var f = g.player;
   return {
-    title: ev.title, tag: ev.tag,
+    title: evS(g, ev.title), tag: evS(g, ev.tag),
     text: typeof ev.text === 'function' ? ev.text(g) : ev.text,
-    choices: ev.choices.map(function (c) { return { label: c.label, hint: c.hint, disabled: c.need ? !canPay(g, f, c.need) : false }; })
+    choices: ev.choices.map(function (c) { return { label: evS(g, c.label), hint: evS(g, c.hint), disabled: c.need ? !canPay(g, f, c.need) : false }; })
   };
 }
 function applyChoice(g, ev, i) {
@@ -4929,9 +5068,9 @@ function applyChoice(g, ev, i) {
   if (c.need && !canPay(g, f, c.need)) return fail('資源不足。');
   if (c.need) pay(g, f, c.need);
   var text = c.run(g, f);
-  if (ev._urgent || (HIST[g.turn] || []).indexOf(ev) >= 0) chron(g, f, ev.title + '：' + text);
+  if (ev._urgent || (HIST[g.turn] || []).indexOf(ev) >= 0) chron(g, f, evS(g, ev.title) + '：' + text);
   if (ev.after) ev.after(g);
-  logMsg(g, ev.title + '：' + text, 'info');
+  logMsg(g, evS(g, ev.title) + '：' + text, 'info');
   g.evResolved = true;
   return good(text);
 }
@@ -6312,7 +6451,7 @@ var G = {
   codex: codex, recruitCost: recruitCost, unitCost: unitCost, mercCost: mercCost, mixOf: mixOf, mercOf: mercOf, unitName: unitName, mercName: mercName, unitAllowed: unitAllowed, SPECIAL: SPECIAL, UNIT_NAMES: UNIT_NAMES, DEFMIX: DEFMIX, buildCost: buildCost, tradeGain: tradeGain, ritualCost: ritualCost, ritualGain: ritualGain,
   CV_COST: CV_COST, cvOf: cvOf, cvCap: cvCap, cvRouteOpts: cvRouteOpts, TAX_N: TAX_N, TAX_D: TAX_D, taxOf: taxOf, softCap: softCap, recLeft: recLeft, recLimit: recLimit, isMarried: isMarried, marryCost: marryCost, marryChance: marryChance, tributeCost: tributeCost, RESH: RESH, RES_N: RES_N, RES_D: RES_D, resCount: resCount, resFx: resFx, armySwap: armySwap, chainAdd: chainAdd, CHAIN: CHAIN, matchupHint: matchupHint, riverEdge: riverEdge, RIV_E: RIV_E, RIVERS: RIVERS, canPay: canPay, P: P, sendCount: sendCount, battleOdds: battleOdds, moveTargets: moveTargets, wallCost: wallCost, TECH: TECH, RUNIT: RUNIT, RSP: RSP, rulerGift: rulerGift, SPY: SPY, spyMods: spyMods, infOf: infOf, sancOf: sancOf, envoyLeft: envoyLeft, ENVOY_COST: ENVOY_COST, MERCH: MERCH, chron: chron, expState: expState, debtOf: debtOf, debtRate: debtRate, debtLimit: debtLimit, debtLenders: debtLenders, excommunicate: excommunicate, succWeak: succWeak, ORDS: ORDS, ORD_DON: ORD_DON, ordOn: ordOn, ordList: ordList, ordFav: ordFav, ordCanUse: ordCanUse, ordChapters: ordChapters, ordAidInfo: ordAidInfo, spyLeft: spyLeft, needRuler: needRuler, rulerChoices: rulerChoices, HIST_REL: HIST_REL, RULERS: RULERS, rulerOf: rulerOf, setRuler: setRuler, carOptions: carOptions, carActive: carActive, carMax: carMax, CAR_COST: CAR_COST, festLeft: festLeft, ROAD: ROAD, ROADSEG: ROADSEG, PASS: PASS, CAMEL: CAMEL, BLOCKED: BLOCKED, terrAtk: terrAtk, eraSync: eraSync, eraNum: eraNum, eraInfo: eraInfo, eraOf: eraOf, ERA_NAME: ERA_NAME, TECHS: TECHS, TBR: TBR, TECH_BY: TECH_BY, techLv: techLv, techState: techState, techHas: techHas, techFx: techFx, techCost: techCost, techWhy: techWhy, BLD: BLD, BLD_KEYS: BLD_KEYS, bldCount: bldCount, wallLv: wallLv, portOpen: portOpen, portsOpen: portsOpen, moveTroops: moveTroops,
   endTurn: endTurn, pickEvent: pickEvent, eventView: eventView, applyChoice: applyChoice, scoreOf: scoreOf,
-  lordsOf: lordsOf, FIEF_PER: FIEF_PER, fiefMax: fiefMax, fiefList: fiefList, cityN: cityN, FIEF_COST: FIEF_COST, FIEF_REWARD: FIEF_REWARD, isCapital: isCapital, msOf: msOf, NOHORSE: NOHORSE, deepOK: deepOK, msCap: msCap, MS_COST: MS_COST, nm: nm, aiTurn: aiTurn, portsOf: portsOf, genAt: genAt, resolveBattle: resolveBattle, citySiteBlock: citySiteBlock, buildCostG: buildCostG, settleName: settleName, isVillage: isVillage, RELICS: RELICS, REL_TXT: REL_TXT, relAt: relAt, gensOf: gensOf, genLv: genLv, genChoose: genChoose, genCandidates: genCandidates, LANDMARKS: LANDMARKS, LM_AT: LM_AT, lmInfo: lmInfo, lmBonus: lmBonus, callWarInfo: callWarInfo, culOf: culOf, culGain: culGain, CUL_WIN: CUL_WIN, msnTick: msnTick, surInfo: surInfo, moveCapCost: moveCapCost, syncCap: syncCap, xRate: xRate, xQuota: xQuota, genAvail: genAvail, genCost: genCost, GEN_MAX: GEN_MAX, GEN_TYPE: GEN_TYPE, GEN_TXT: GEN_TXT, GENS: GENS, shipsOf: shipsOf, fleets: fleets, fleetReach: seaReach, fleetStr: fleetStr, seaCapAt: seaCapAt, FLEET_MOVE: FLEET_MOVE, shipCap: shipCap, seaCapLeft: seaCapLeft, shipName: shipName, SHIP_COST: SHIP_COST, SHIP_CARRY: SHIP_CARRY, moraleMult: moraleMult, placeName: placeName, terrDef: terrDef,
+  setPNames: setPNames, lordsOf: lordsOf, FIEF_PER: FIEF_PER, fiefMax: fiefMax, fiefList: fiefList, cityN: cityN, FIEF_COST: FIEF_COST, FIEF_REWARD: FIEF_REWARD, isCapital: isCapital, msOf: msOf, NOHORSE: NOHORSE, deepOK: deepOK, msCap: msCap, MS_COST: MS_COST, nm: nm, aiTurn: aiTurn, portsOf: portsOf, genAt: genAt, resolveBattle: resolveBattle, citySiteBlock: citySiteBlock, buildCostG: buildCostG, settleName: settleName, isVillage: isVillage, RELICS: RELICS, REL_TXT: REL_TXT, relAt: relAt, gensOf: gensOf, genLv: genLv, genChoose: genChoose, genCandidates: genCandidates, LANDMARKS: LANDMARKS, LM_AT: LM_AT, lmInfo: lmInfo, lmBonus: lmBonus, callWarInfo: callWarInfo, culOf: culOf, culGain: culGain, CUL_WIN: CUL_WIN, msnTick: msnTick, surInfo: surInfo, moveCapCost: moveCapCost, syncCap: syncCap, xRate: xRate, xQuota: xQuota, genAvail: genAvail, genCost: genCost, GEN_MAX: GEN_MAX, GEN_TYPE: GEN_TYPE, GEN_TXT: GEN_TXT, GENS: GENS, shipsOf: shipsOf, fleets: fleets, fleetReach: seaReach, fleetStr: fleetStr, seaCapAt: seaCapAt, FLEET_MOVE: FLEET_MOVE, shipCap: shipCap, seaCapLeft: seaCapLeft, shipName: shipName, SHIP_COST: SHIP_COST, SHIP_CARRY: SHIP_CARRY, moraleMult: moraleMult, placeName: placeName, terrDef: terrDef,
   EVENTS: EVENTS, HIST: HIST, checkEnd: checkEnd, finish: finish, settle: settle, TERR_Y: TERR_Y,
   SAVE_VER: SAVE_VER, MAPSIG: MAPSIG, rel: rel, migrate: migrate, strength: strength, dipInfo: dipInfo, declareWar: declareWar, aiDiplomacy: aiDiplomacy,
   swapAmt: swapAmt, routeCands: routeCands, coastTarget: coastTarget, supplyDist: supplyDist, supRange: supRange, lordOf: lordOf, vassalsOf: vassalsOf, ownedTotal: ownedTotal, offerEvent: offerEvent, acceptChance: acceptChance,
@@ -7414,8 +7553,12 @@ if (typeof module !== 'undefined') module.exports = G;
     '<li><b>新手提示</b>：畫面上方綠字的 💡 會依目前狀況告訴你下一步可以做什麼，點一下可以關掉。</li>' +
     '<li><b>地圖</b>：拖曳移動，滾輪或雙指縮放。只看得到相鄰地塊的確切守軍，遠處只有約數。</li>' +
     '<li><b>換手機／電腦</b>：開始畫面按「匯出存檔」，選一個存檔做成小檔案，用 LINE、Email 或雲端硬碟傳到另一台裝置；在那台按「匯入存檔」選這個檔案，再選要放進哪個欄位，就能接著玩。多人存檔也能這樣搬。兩台裝置的遊戲版本要一樣（或匯入那台比較新）。</li>' +
+    '<li><b>系統公告</b>：每年一開始，地圖下方會有一條捲動的公告：商隊、商船賺了多少或被劫、你的城市被誰攻占、有科技可以研究（還沒研究的話每 3 年再提醒一次）。點公告會帶你去看被占的城市，或打開科技樹、戰報；按 ✕ 關掉。</li>' +
+    '<li><b>各國有各自的說法</b>：同一類事件會依你的國家換說法，例如歐洲是「騎士比武大會」、宋朝是「大閱與武舉」、伊斯蘭國家是「騎射競技」、草原是「那達慕」；繼承危機裡的貴族也會換成朝臣、埃米爾或那顏。女真建國、遼國滅亡、靖康之變這些史實事件，要遊戲裡真的發生了才會出現。</li>' +
+    '<li><b>電腦會開發中立地</b>：電腦會把後方的兵集中到邊境，夠多了就合力拿下旁邊的中立地，國庫太滿也會多徵兵。</li>' +
     '<li><b>點地＝查看</b>：點別人的地或中立地只會顯示它的資料，不會自動出兵；面板上有「⚔ 從旁邊的某地出兵」按鈕，按了才會選好出兵。已經選了自己的地、再點旁邊的地，那塊地會變成出兵目標（箭頭）；同一塊再點一次，就改成只查看它。打不到的遠處只會提示你要先把部隊調到哪裡，不會自己幫你調兵扣行動點。</li>' +
     '<li><b>電腦會守首都</b>：首都或大城被你的大軍逼近時，電腦會從附近調兵回防、優先在那裡補兵；普通和困難難度下，首都告急還會緊急徵召民兵（每 4 回合一次），所以最好先削弱它周圍的部隊再攻城。</li>' +
+    '<li><b>多人連線的國名</b>：真人玩家控制的國家，名字後面會加上玩家暱稱，例如「北宋（阿明）」，地圖上方的國家列表、外交名單和戰報都看得到。</li>' +
     '<li><b>多人選勢力</b>：房間裡先按地區（歐洲、東亞、美洲……），下拉選單就只列那一區的國家，比較好找。</li>' +
     '<li><b>5 碼房間代碼（測試版）</b>：房主開房後會看到一組 5 個英文字母，朋友按「多人連線 → 我是朋友」輸入這 5 個字就能加入，遊戲中斷線也能用同一組代碼回來。這個功能要借用網路上的免費連線服務，連不上時畫面會說明，請改用下面的長邀請碼。</li>' +
     '<li><b>手機比較順</b>：地圖拉得很遠時，不畫地形圖案，兵力數字只顯示自己的地和選到的地附近；放大後細節就會出現。</li>' +
@@ -7940,6 +8083,7 @@ if (typeof module !== 'undefined') module.exports = G;
     renderMapOnly();
     var neu = 0;
     G.LANDIDS.forEach(function (id) { if (!g.p[id].o) neu++; });
+    try { pnSync(); } catch (e) {}
     var order = G.FIDS.filter(function (f) { return g.fac[f].alive; }).sort(function (a, b) { return G.owned(g, b).length - G.owned(g, a).length; });
     $('#legend').innerHTML = order.slice(0, 14).map(function (f) {
       var tag = '';
@@ -8693,8 +8837,58 @@ if (typeof module !== 'undefined') module.exports = G;
     gb.textContent = hide ? '💡 提示已關閉（點這裡重新開啟）' : '💡 ' + goalAdvice(f, fs) + '（點此關閉）';
     gb.style.opacity = hide ? '0.55' : '1';
   }
+  /* ---------- 流動的系統公告：商隊商船、城市被占、可研究科技 ---------- */
+  function tkMyCities() { var m = {}; G.owned(g, g.player).forEach(function (id) { var p = g.p[id]; if (p.L > 0 || G.CITY[id]) m[id] = 1; }); return m; }
+  function tkTechN() { try { var f = g.player; return G.techState(g, f).avail.filter(function (x) { return G.canPay(g, f, G.techCost(g, f, x.id)); }).length; } catch (e) { return 0; } }
+  function tickerUpdate() {
+    if (!g || g.over || !g.player) return;
+    var key = g.player + ':' + g.turn;
+    if (ui.tkKey === key) { if (ui.tkTurnSeen === g.turn) { ui.tkSnap = tkMyCities(); ui.tkTech = tkTechN(); } return; }
+    var first = !ui.tkKey || ui.tkKey.split(':')[0] !== g.player;
+    ui.tkKey = key; ui.tkTurnSeen = g.turn;
+    if (first) { ui.tkSnap = tkMyCities(); ui.tkTech = tkTechN(); return; }
+    var items = [];
+    /* 城市被占 */
+    Object.keys(ui.tkSnap || {}).forEach(function (k) { var id = +k, p = g.p[id]; if (p && p.o !== g.player) items.push({ t: '⚠ 你的城市「' + G.placeName(id) + '」被' + (p.o ? G.nm(p.o) : '叛軍') + '攻占了！', bad: true, id: id }); });
+    /* 商隊、商船 */
+    (g.log || []).forEach(function (e) {
+      if (e.t !== g.turn) return;
+      if (/^商隊貿易|^商船貿易|商隊從.*歸來|商隊在路上被|商船在航線上被|劫掠了你的一艘商船|商隊遇襲/.test(e.text)) items.push({ t: (/商船/.test(e.text) ? '⛵ ' : '🐪 ') + e.text, bad: e.kind === 'bad' });
+    });
+    /* 科技 */
+    var tn = tkTechN(); if (tn > 0 && (tn > (ui.tkTech || 0) || g.turn - (ui.tkTechAt || -99) >= 3)) { ui.tkTechAt = g.turn; items.push({ t: '🔬 有 ' + tn + ' 項科技可以研究了，按下面的「科技樹」', tech: true }); }
+    ui.tkTech = tn; ui.tkSnap = tkMyCities();
+    if (items.length) tickerShow(items);
+  }
+  function tickerShow(items) {
+    var mw = document.querySelector('.mapwrap'); if (!mw) return;
+    var el = document.getElementById('ticker');
+    if (!el) { el = document.createElement('div'); el.id = 'ticker'; mw.appendChild(el);
+      el.addEventListener('click', function (e) {
+        if (e.target.closest('.tkx')) { el.hidden = true; return; }
+        var it = ui.tkItems || [], bad = it.filter(function (x) { return x.id != null; })[0];
+        if (bad) { try { focusOn(bad.id, Math.max(ui.view && ui.view.s || 6, 6)); applyView(); renderMap(); } catch (x) {} }
+        else if (it.some(function (x) { return x.tech; }) && !it.some(function (x) { return !x.tech; })) { var tb = document.querySelector('.actscroll [data-act=tech]'); if (tb) tb.click(); }
+        else { var lb = document.querySelector('.actscroll [data-act=log]'); if (lb) lb.click(); }
+      }); }
+    ui.tkItems = items;
+    var txt = items.map(function (x) { return '<span class="tki' + (x.bad ? ' bad' : '') + '">' + esc(x.t) + '</span>'; }).join('<span class="tksep">◆</span>');
+    var len = items.reduce(function (a, x) { return a + x.t.length; }, 0), dur = Math.max(10, Math.min(40, 6 + len * 0.28));
+    el.innerHTML = '<div class="tkw"><div class="tkm" style="animation-duration:' + dur.toFixed(1) + 's">' + txt + '</div></div><button class="tkx" aria-label="關閉公告">✕</button>';
+    el.className = items.some(function (x) { return x.bad; }) ? 'tkbad' : '';
+    el.hidden = false;
+    clearTimeout(ui.tkHide); ui.tkHide = setTimeout(function () { el.hidden = true; }, dur * 3 * 1000);
+  }
+  /* 多人連線：國名後面加上玩家名，例如「北宋（阿明）」 */
+  function pnSync() {
+    var m = {};
+    if (MP.on && MP.players) Object.keys(MP.players).forEach(function (u) { var q = MP.players[u]; if (q && q.f && q.name) m[q.f] = String(q.name).slice(0, 12); });
+    var k = JSON.stringify(m); if (k !== ui.pnKey) { ui.pnKey = k; G.setPNames(m); }
+  }
   function renderTop() {
+    try { pnSync(); } catch (e) {}
     renderTop0();
+    try { tickerUpdate(); } catch (e) {}
     try { var mw = document.querySelector('.mapwrap'), br = document.getElementById('bigres'), rs = document.getElementById('res'); if (mw && rs) { if (!br) { mw.insertAdjacentHTML('beforeend', '<dl class="res bigres" id="bigres" aria-hidden="true"></dl>'); br = document.getElementById('bigres'); } br.innerHTML = rs.innerHTML; } } catch (e) {}
   }
   function renderTop0() {
@@ -9164,7 +9358,7 @@ if (typeof module !== 'undefined') module.exports = G;
     if (note) h += '<p class="mtext"><b>' + esc(note) + '</b></p>';
     list.slice(0, 12).forEach(function (x) {
       var st = G.rel(g, f, x).state;
-      h += '<div class="gh" style="margin:10px 0 4px">' + esc(G.FACTIONS[x].name) + (st === 'war' ? '（交戰中）' : bord[x] ? '（鄰國）' : '') + '</div><div style="display:flex;gap:6px;flex-wrap:wrap">';
+      h += '<div class="gh" style="margin:10px 0 4px">' + esc(G.nm(x)) + (st === 'war' ? '（交戰中）' : bord[x] ? '（鄰國）' : '') + '</div><div style="display:flex;gap:6px;flex-wrap:wrap">';
       ['scout', 'incite', 'kill'].forEach(function (k) { var K = G.SPY[k], sm = G.spyMods(g, f, x, k); h += '<button class="btn" data-act="spygo" data-x="' + x + '" data-k="' + k + '"' + (!left || fs.gold < K.gold ? ' disabled' : '') + ' style="display:block;text-align:left;width:100%"><span style="display:block">' + K.n + ' ' + K.gold + '金・成功率約 <b>' + Math.round(sm.p * 100) + '%</b></span>' + (sm.why.length ? '<small class="muted" style="display:block;margin-top:2px">' + sm.why.join('、') + '</small>' : '') + '</button>'; });
       h += '</div>';
     });
