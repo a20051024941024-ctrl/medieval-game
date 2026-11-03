@@ -434,7 +434,7 @@ button{font:inherit;color:inherit}
     <div class="startmap" id="startmap" aria-hidden="true"></div>
     <div class="sc-in gx">
       <p class="eyebrow">MEDIEVAL: WORLD DOMINATION · 1096 AD</p>
-      <p class="muted small" id="verline">版本 v232 · 2026-11-03 · 多人同步只傳有變動的部分（流量大幅減少）</p>
+      <p class="muted small" id="verline">版本 v233 · 2026-11-03 · 檢舉與管理員、名字過濾、身分確認、你不在時的報告、名人堂</p>
       <h1>中世紀：世界霸權</h1>
       <p class="lead">1095 年，教宗在克萊蒙發出號召，整個歐洲動了起來。選一個勢力（共 121 個），再從該文明歷史上的君主裡挑一位登基；在四千多個六角格地塊的世界裡，與基督教世界、伊斯蘭世界與即將到來的蒙古鐵騎周旋。可以結盟借道、派商隊與商船貿易、派密探、遠征遠方、研究科技升級時代、替自己的城市取名。沒有回合上限，直到有人稱霸，或你失去一切。</p>
       <div id="startopts"></div>
@@ -6562,6 +6562,13 @@ function srvCatchUp(g, f) {
 }
 /* 每年：宣戰書生效、閒置收回 */
 /* ===== 伺服器全服事件 ===== */
+/* 管理員收回國家 */
+function srvReclaim(g, f) {
+  if (!g.hs || !g.hs[f]) return fail('這個國家目前沒有玩家。');
+  delete g.hs[f]; if (g.offs) delete g.offs[f]; if (g.ended) delete g.ended[f]; if (g.prot) delete g.prot[f]; if (g.act) delete g.act[f]; delete HQ[f];
+  logMsg(g, nm(f) + '被管理員收回，其他人可以選它了。', 'war');
+  return good('已收回' + nm(f) + '。');
+}
 function srvAnn(g, text, big) {
   (g.ann || (g.ann = [])).push({ t: g.turn, text: text, big: !!big }); if (g.ann.length > 40) g.ann.shift();
   logMsg(g, text, 'war'); try { chronAll(g, text.replace(/^[^\u4e00-\u9fff]+/, '')); } catch (e) {}
@@ -6755,7 +6762,7 @@ var G = {
   EVENTS: EVENTS, HIST: HIST, checkEnd: checkEnd, finish: finish, settle: settle, TERR_Y: TERR_Y,
   SAVE_VER: SAVE_VER, MAPSIG: MAPSIG, rel: rel, migrate: migrate, strength: strength, dipInfo: dipInfo, declareWar: declareWar, aiDiplomacy: aiDiplomacy,
   swapAmt: swapAmt, routeCands: routeCands, coastTarget: coastTarget, supplyDist: supplyDist, supRange: supRange, lordOf: lordOf, vassalsOf: vassalsOf, ownedTotal: ownedTotal, offerEvent: offerEvent, acceptChance: acceptChance,
-  fleetCap: fleetCap, isHum: isHum, humansOf: humansOf, asPlayer: asPlayer, mpInit: mpInit, mpEligible: mpEligible, mpAddHuman: mpAddHuman, rpTick: rpTick, srvProt: srvProt, srvStanding: srvStanding, FAMOUS: FAMOUS, FAMOUS_AT: FAMOUS_AT, srvWarBlock: srvWarBlock, mpReassign: mpReassign, mpChoose: mpChoose, mpEnd: mpEnd, mpAllEnded: mpAllEnded, mpWaiting: mpWaiting, mpAdvance: mpAdvance, mpMirror: mpMirror, mpView: mpView, mpResume: mpResume,
+  fleetCap: fleetCap, isHum: isHum, humansOf: humansOf, asPlayer: asPlayer, mpInit: mpInit, mpEligible: mpEligible, mpAddHuman: mpAddHuman, rpTick: rpTick, srvReclaim: srvReclaim, srvAnn: srvAnn, srvProt: srvProt, srvStanding: srvStanding, FAMOUS: FAMOUS, FAMOUS_AT: FAMOUS_AT, srvWarBlock: srvWarBlock, mpReassign: mpReassign, mpChoose: mpChoose, mpEnd: mpEnd, mpAllEnded: mpAllEnded, mpWaiting: mpWaiting, mpAdvance: mpAdvance, mpMirror: mpMirror, mpView: mpView, mpResume: mpResume,
   holyKind: holyKind, armies: armies, garrisonOf: garrisonOf, armyReach: armyReach, armyDijk: armyDijk, zocAt: zocAt, armyPlan: armyPlan, armyRaidTargets: armyRaidTargets, armyMP: armyMP, armyRem: armyRem, mvCost: mvCost, rulerLv: rulerLv, rulerInfo: rulerInfo, vetLv: vetLv, RX_T: RX_T, holyKind: holyKind, holyCost: holyCost, canHoly: canHoly, isChristian: isChristian, START_YEAR: START_YEAR, LON: LON, LAT: LAT, WORLD: WORLD
 };
 if (typeof module !== 'undefined') module.exports = G;
@@ -7083,7 +7090,7 @@ if (typeof module !== 'undefined') module.exports = G;
     var resumed = !!MP.resG;
     if (resumed) { g = MP.resG; MP.resG = null; G.mpReassign(g, hostF, guests); g.evResolved = true; if (MP.tick > 0) g.rt = { tick: MP.tick, next: (g.rt && g.rt.next > Date.now()) ? g.rt.next : Date.now() + MP.tick * 60000 }; }
     else { g = G.newGame(hostF, DIFF); g.noCul = !CULON; if (STARTM) G.applyStartMode(g, STARTM, [hostF].concat(guests)); G.mpInit(g, guests); if (MP.tick > 0) g.rt = { tick: MP.tick, next: Date.now() + MP.tick * 60000 }; }
-    if (pubP && !resumed) { g.srv = { t0: g.turn, endY: 1453 }; g.rt = { tick: pubP.tick, early: 5, min: 2 }; rtSched(); g.prot = {}; g.tok = {}; g.noCul = true; var hm0 = G.humansOf(g); hm0.forEach(function (f) { g.prot[f] = g.turn + 12; g.tok[f] = 3; hm0.forEach(function (x) { if (x !== f) { var r0 = G.rel(g, f, x); if (r0.state === 'war') { r0.state = 'peace'; r0.warT = 0; } } }); }); }
+    if (pubP && !resumed) { g.srv = { t0: g.turn, endY: 1453, rid: Date.now() }; g.rt = { tick: pubP.tick, early: 5, min: 2 }; rtSched(); g.prot = {}; g.tok = {}; g.noCul = true; var hm0 = G.humansOf(g); hm0.forEach(function (f) { g.prot[f] = g.turn + 12; g.tok[f] = 3; hm0.forEach(function (x) { if (x !== f) { var r0 = G.rel(g, f, x); if (r0.state === 'war') { r0.state = 'peace'; r0.warT = 0; } } }); }); }
     if (pubP) { STARTM = smS; MP.tick = tkS; }
     enterGame();
     MP.dirty = true;
@@ -7285,7 +7292,7 @@ if (typeof module !== 'undefined') module.exports = G;
   function mpApply(st) {
     var first = !MP.on, prevTurn = g ? g.turn : 0;
     if (MP.me && st.hs && !st.hs[MP.me] && st.host !== MP.me && !MP.spec && MP.on) {
-      if (!MP.lostNation) { MP.lostNation = true; $('#mbody').innerHTML = '<div class="mtag">伺服器</div><h2 id="mtitle">你的國家被收回了</h2><p class="mtext">你的國家太久沒有下指令（連續 48 年），已經被收回，其他人可以選它了。你可以重新挑一個還沒有人玩的國家。</p><button class="btn primary" data-act="sbrepick">重新選一個國家</button> <button class="btn" data-act="mpleave">離開</button>'; $('#modal').hidden = false; }
+      if (!MP.lostNation) { MP.lostNation = true; $('#mbody').innerHTML = '<div class="mtag">伺服器</div><h2 id="mtitle">你的國家被收回了</h2><p class="mtext">你的國家已經被收回了（連續 48 年沒有下指令，或是被管理員收回），其他人可以選它了。你可以重新挑一個還沒有人玩的國家。</p><button class="btn primary" data-act="sbrepick">重新選一個國家</button> <button class="btn" data-act="mpleave">離開</button>'; $('#modal').hidden = false; }
       return;
     }
     var m = G.mpMirror(st, MP.me);
@@ -7497,8 +7504,9 @@ if (typeof module !== 'undefined') module.exports = G;
     if (m.t === 'hb') return;
     if (m.t === 'hello') {
       if (String(m.ver || '') !== PVER) { p2pSendTo(s.dc, { t: 'ver', host: PVER }); return; }
-      var name = String(m.name || '玩家').slice(0, 12);
-      if (MP.phase === 'lobby') { var pf = null, mpid = String(m.pid || ''); if (MP.resPl && MP.elig && mpid) Object.keys(MP.resPl).forEach(function (u) { var q = MP.resPl[u]; if (u !== 'host' && (q.pid === mpid || q.pid === String(m.pid2 || '')) && MP.elig.indexOf(q.f) >= 0) pf = q.f; }); if (pf) Object.keys(MP.players).forEach(function (u) { if (MP.players[u].f === pf) pf = null; }); MP.players[s.id] = { f: pf, name: name, pid: mpid }; }
+      if (!adHelloOk(s, m, raw)) return;
+      var name = adName(m.name, String(m.pid || ''));
+      if (MP.phase === 'lobby') { var pf = null, mpid = String(m.pid || ''); if (MP.resPl && MP.elig && mpid) Object.keys(MP.resPl).forEach(function (u) { var q = MP.resPl[u]; if (u !== 'host' && (q.pid === mpid || (!SB.on && q.pid === String(m.pid2 || ''))) && MP.elig.indexOf(q.f) >= 0) pf = q.f; }); if (pf) Object.keys(MP.players).forEach(function (u) { if (MP.players[u].f === pf) pf = null; }); MP.players[s.id] = { f: pf, name: name, pid: mpid }; }
       else if (s.spec) {
         (MP.specs || (MP.specs = {}))[s.id] = name;
         toast(name + ' 以觀戰者身分加入了。');
@@ -7506,7 +7514,7 @@ if (typeof module !== 'undefined') module.exports = G;
         return;
       } else {
         var offs = Object.keys(MP.players).filter(function (u) { return MP.players[u].off && MP.players[u].f; });
-        var off = offs.filter(function (u) { var qp = MP.players[u].pid; return qp && (qp === String(m.pid || '') || qp === String(m.pid2 || '')); })[0] || (SB.on ? null : offs[0]);
+        var off = offs.filter(function (u) { var qp = MP.players[u].pid; return qp && (qp === String(m.pid || '') || (!SB.on && qp === String(m.pid2 || ''))); })[0] || (SB.on ? null : offs[0]);
         if (!off && SB.on && !s.spec && g && sbEligNow().length) { s.pend = { name: name, pid: String(m.pid || '') }; p2pSendTo(s.dc, { t: 'pickf', elig: sbEligNow(), noai: !!g.noAI }); return; }
         if (!off) { if (s.pj && !s.spec) { s.spec = true; return p2pHostMsg(s, raw); } p2pSendTo(s.dc, { t: 'full' }); return; }
         var pl = MP.players[off]; delete MP.players[off]; pl.off = false; pl.name = name; pl.pid = String(m.pid || pl.pid || ''); MP.players[s.id] = pl; MP.facOf[s.id] = pl.f;
@@ -7586,7 +7594,7 @@ if (typeof module !== 'undefined') module.exports = G;
       pc.ondatachannel = function (e) {
         var dc = e.channel; P2P.hostDc = dc;
         MP.room = { emit: function (topic, data) { if (topic === 'a') p2pSendTo(dc, { t: 'a', d: data }); return Promise.resolve(); } };
-        dc.onopen = function () { P2P.lastMsg = Date.now(); if (P2P.hb) clearInterval(P2P.hb); P2P.hb = setInterval(function () { p2pSendTo(dc, { t: 'hb' }); }, SB.on ? 5000 : 3000); p2pSendTo(dc, { t: 'hello', name: nick, ver: PVER, pid: MPID, pid2: MPID0 }); };
+        dc.onopen = function () { P2P.lastMsg = Date.now(); if (P2P.hb) clearInterval(P2P.hb); P2P.hb = setInterval(function () { p2pSendTo(dc, { t: 'hb' }); }, SB.on ? 5000 : 3000); p2pSendTo(dc, { t: 'hello', name: nick, ver: PVER, pid: MPID, pid2: MPID0, nonce: SB.nonce || '' }); };
         dc.onclose = function () { if (SB.on && SB.code && !SB.lostT) { MP.lost = true; toast('跟房主斷線了，正在重新連線（房主不在的話由你接手）…'); sbReload(SB.code, 1500 + Math.random() * 4000); return; } if (MP.on) { MP.lost = true; toast('與房主的連線中斷了。請房主在「＋邀請」裡重新給你連結，點開就能回來。'); try { renderBar(); } catch (e) {} } else mpMenu('與房主的連線中斷。'); };
         dc.onmessage = function (ev) { p2pGuestMsg(ev.data); };
       };
@@ -7599,7 +7607,7 @@ if (typeof module !== 'undefined') module.exports = G;
   function p2pGuestBind(dc, nick) {
     P2P.hostDc = dc;
         MP.room = { emit: function (topic, data) { if (topic === 'a') p2pSendTo(dc, { t: 'a', d: data }); return Promise.resolve(); } };
-        dc.onopen = function () { P2P.lastMsg = Date.now(); if (P2P.hb) clearInterval(P2P.hb); P2P.hb = setInterval(function () { p2pSendTo(dc, { t: 'hb' }); }, SB.on ? 5000 : 3000); p2pSendTo(dc, { t: 'hello', name: nick, ver: PVER, pid: MPID, pid2: MPID0 }); };
+        dc.onopen = function () { P2P.lastMsg = Date.now(); if (P2P.hb) clearInterval(P2P.hb); P2P.hb = setInterval(function () { p2pSendTo(dc, { t: 'hb' }); }, SB.on ? 5000 : 3000); p2pSendTo(dc, { t: 'hello', name: nick, ver: PVER, pid: MPID, pid2: MPID0, nonce: SB.nonce || '' }); };
         dc.onclose = function () { if (SB.on && SB.code && !SB.lostT) { MP.lost = true; toast('跟房主斷線了，正在重新連線（房主不在的話由你接手）…'); sbReload(SB.code, 1500 + Math.random() * 4000); return; } if (MP.on) { MP.lost = true; toast('與房主的連線中斷了。請房主在「＋邀請」裡重新給你連結，點開就能回來。'); try { renderBar(); } catch (e) {} } else mpMenu('與房主的連線中斷。'); };
         dc.onmessage = function (ev) { p2pGuestMsg(ev.data); };
   }
@@ -7628,7 +7636,7 @@ if (typeof module !== 'undefined') module.exports = G;
       var se = r && r.data && r.data.session;
       if (se && se.user) return se.user;
       return cl.auth.signInAnonymously().then(function (r2) { if (r2.error || !r2.data || !r2.data.user) throw (r2.error || new Error('auth')); return r2.data.user; });
-    }).then(function (u) { SB.uid = u.id; SB.anon = !!u.is_anonymous; SB.meta = u.user_metadata || {}; MPID = u.id; return cl; }, function (e) { SB.authErr = true; sbErr('登入', e); return cl; });
+    }).then(function (u) { SB.uid = u.id; SB.anon = !!u.is_anonymous; SB.meta = u.user_metadata || {}; MPID = u.id; adNonce(cl, u.id); return cl; }, function (e) { SB.authErr = true; sbErr('登入', e); return cl; });
   }
   function sbErr(where, e, extra) { var m = (e && (e.message || e.code || e.status)) || e || ''; SB.lastErr = where + '：' + String(m).slice(0, 80) + (extra ? '（' + extra + '）' : ''); try { console.log('[SB]', SB.lastErr, e); } catch (x) {} return SB.lastErr; }
   function isMe(pid) { return !!pid && (pid === MPID || pid === MPID0); }
@@ -7871,14 +7879,15 @@ if (typeof module !== 'undefined') module.exports = G;
   function sbPubList() {
     return '<div class="gh" style="margin:8px 0 4px">🌍 公開伺服器（隨時進出，國家選了就是你的）</div><p id="sbstat" class="muted small" style="margin:0 0 4px">伺服器：檢查中…</p><div class="choices">' + PUBS.map(function (p) {
       return '<button class="choice" data-act="sbpub" data-c="' + p.code + '"><span class="cl">' + p.n + '</span><span class="ch">' + esc(p.d) + '<br><span id="sbps-' + p.code + '" class="muted">查詢中…</span></span></button>';
-    }).join('') + '</div><button class="btn" data-act="tutgo" style="margin:2px 0 8px">📘 新手教學（單人練習，隨時可以重看）</button>';
+    }).join('') + '</div><button class="btn" data-act="tutgo" style="margin:2px 0 8px">📘 新手教學（單人練習，隨時可以重看）</button> <button class="btn" data-act="fame" style="margin:2px 0 8px">🏆 名人堂</button> <button class="btn" data-act="adpanel" id="adbtn" hidden style="margin:2px 0 8px">🛠 管理</button>';
   }
   function sbPubStatus() {
     sbLoad().then(sbAuth).then(function (cl) {
       return cl.from('mw_rooms').select('code,info').in('code', PUBS.map(function (p) { return p.code; }));
     }).then(function (r) {
       if (r && r.error) throw r.error;
-      var st0 = document.getElementById('sbstat'); if (st0) st0.textContent = '伺服器：✅ 已連上' + (SB.uid ? '（' + (SB.anon ? '訪客帳號' : '帳號') + ' ' + SB.uid.slice(0, 6) + '）' : '（⚠ 沒有登入：' + (SB.lastErr || '原因不明') + '）');
+      var st0 = document.getElementById('sbstat'); if (st0) { st0.textContent = '伺服器：✅ 已連上' + (SB.uid ? '（' + (SB.anon ? '訪客帳號' : '帳號') + ' ' + SB.uid.slice(0, 6) + '）' : '（⚠ 沒有登入：' + (SB.lastErr || '原因不明') + '）'); if (SB.uid) { st0.setAttribute('data-act', 'sbmyid'); st0.style.cursor = 'pointer'; } }
+      adCheck().then(function (ok) { var ab = document.getElementById('adbtn'); if (ab) ab.hidden = !ok; });
       var m = {}; ((r && r.data) || []).forEach(function (x) { m[x.code] = x.info || {}; });
       PUBS.forEach(function (p) {
         var el = document.getElementById('sbps-' + p.code); if (!el) return;
@@ -8031,7 +8040,7 @@ if (typeof module !== 'undefined') module.exports = G;
         var conn = peer.connect(PJ.PFX + code, { reliable: true });
         MP.mode = 'p2p'; MP.role = 'guest'; MP.phase = MP.on ? 'play' : 'lobby'; MP.shell = false; MP.players = {}; MP.info = { host: 'host', status: 'lobby' };
         var dc = pjWrap(conn); p2pGuestBind(dc, nick);
-        var on0 = dc.onopen; dc.onopen = function () { done = true; if (on0) on0(); P2P.gotHost = false; var tr = 0; (function again() { setTimeout(function () { if (P2P.gotHost || P2P.hostDc !== dc || dc.readyState !== 'open' || ++tr > 4) return; p2pSendTo(dc, { t: 'hello', name: nick, ver: PVER, pid: MPID, pid2: MPID0 }); again(); }, 4000); })(); };
+        var on0 = dc.onopen; dc.onopen = function () { done = true; if (on0) on0(); P2P.gotHost = false; var tr = 0; (function again() { setTimeout(function () { if (P2P.gotHost || P2P.hostDc !== dc || dc.readyState !== 'open' || ++tr > 4) return; p2pSendTo(dc, { t: 'hello', name: nick, ver: PVER, pid: MPID, pid2: MPID0, nonce: SB.nonce || '' }); again(); }, 4000); })(); };
         setTimeout(function () { if (!done) { done = true; p2pGuestMenu('連不上房間 ' + code + '。請確認代碼正確、房主的畫面還開著；不行的話改用長邀請碼。' + (SB.on ? '（' + (SB.lastErr || '即時頻道一直沒有回應') + '）' : '')); } }, SB.on ? 30000 : 20000);
       });
       peer.on('error', function (err) {
@@ -8049,6 +8058,9 @@ if (typeof module !== 'undefined') module.exports = G;
       if (MP.phase === 'lobby' && !MP.sbPicking) mpRenderLobby(); else if (MP.on) renderBar();
     } else if (m.t === 'pickf') { MP.sbPicking = true; sbPickUI(m.elig || [], !!m.noai); if (m.err) toast(m.err);
     } else if (m.t === 'dl') { MP.left = m.left; MP.leftAt = Date.now();
+    } else if (m.t === 'kicked') { adKicked(m.until || Date.now());
+    } else if (m.t === 'deny' && (P2P.denyN = (P2P.denyN || 0) + 1) <= 2 && SB.cl && SB.uid) { adNonce(SB.cl, SB.uid); (SB.helloP || Promise.resolve()).then(function () { p2pSendTo(P2P.hostDc, { t: 'hello', name: MP.nick || mpNick() || '玩家', ver: PVER, pid: MPID, pid2: MPID0, nonce: SB.nonce || '' }); });
+    } else if (m.t === 'deny') { try { mpLeave(); } catch (e) {} $('#mbody').innerHTML = '<div class="mtag">伺服器</div><h2 id="mtitle">進不去</h2><p class="mtext">' + esc(m.why || '身分確認失敗。') + '</p><button class="btn primary" data-act="mp">好</button>'; $('#modal').hidden = false;
     } else if (m.t === 'chat') { chatIn(m);
     } else if (m.t === 'chatlog') { chatLog(m.list);
     } else if (m.t === 'chatno') { toast(m.why || '訊息沒有送出。');
@@ -8310,6 +8322,7 @@ if (typeof module !== 'undefined') module.exports = G;
     '<li><b>登陸作戰一年一次</b>：每支艦隊每年只能搶灘作戰一次，打輸退回船上的殘部也不能馬上再登陸；從已經行動過的地載上船的部隊，這支艦隊今年也不能搶灘（但可以在自己的地下船）。</li>' +
     '<li><b>伺服器房間與即時模式</b>：多人連線的 5 碼房間現在放在伺服器上，遊戲進度也存在伺服器。房主關掉遊戲，其他人會自動換一個人接手繼續；所有人都不在時，下次任何人輸入代碼就能接著玩。房主開房時可以把「時間流逝」設成即時（例如每 10 分鐘過一年）：大家隨時下指令，時間到自動進下一年，離開期間該過的年份下次開房時會一次補上（最多 12 年）；不在線的人國家照樣在，但不會動。遊戲中途有新朋友輸入代碼，可以挑一個還沒有人玩的國家加入。</li>' +
     '<li><b>📽 整局重播</b>：遊戲結束時，結算畫面有「播放整局重播」。地圖會從第一年播到最後一年，所有國家的領土同時擴張；旁邊的大事記會依年份列出誰加入、誰建城、誰向誰宣戰、哪國被誰消滅、名城易主和全服事件，右邊是當年的領地排名。可以暫停、調速度（1×／2×／5×），也能拖時間軸跳到任何一年；多人時預設放大到玩家所在的區域，按「全世界」看整張地圖。</li>' +
+    '<li><b>🛡 檢舉與管理</b>（伺服器）：在聊天訊息旁按「⋯」可以封鎖或檢舉。檢舉會送給管理員，管理員可以禁言、暫時踢出、強制改名或收回國家。名字裡的髒話會被換掉。</li><li><b>📋 你不在的時候</b>（伺服器）：離開至少一年再回來，會先看到這段期間的報告：失去或新增的地（被誰打下）、誰向你宣戰、哪國滅亡、全服事件。</li><li><b>🏆 名人堂</b>：伺服器每一輪打到 1453 年結束，前五名的同盟會被永久記下來，在伺服器選單按「名人堂」可以看歷屆紀錄。</li>' +
     '<li><b>💬 聊天</b>（多人連線才有）：按地圖左下角的 💬 打開聊天。<b>全服</b>頻道大家都看得到；<b>同盟</b>頻道只有你和你的玩家盟友（盟友的盟友也算）看得到。一則最多 120 字，太快連發會被擋，髒話會變成＊。不想看到某個人的訊息，按他名字旁的「⋯」就能封鎖（只有你看不到，可以在下方取消）。中途加入的人會看到最近 30 則全服訊息。</li>' +
     '<li><b>🌍 伺服器的全服事件</b>（只有伺服器才有）：<br>・<b>⚔ 十字軍號召</b>（1147、1189 年）：基督教國家首都 +12 兵、+150 金幣；之後 8 年，在耶路撒冷附近有領地的基督教與伊斯蘭玩家每年都有增援。<br>・<b>🌪 蒙古崛起</b>（1206 年）：蒙古大軍在草原出現（玩家越強，蒙古越強），向所有玩家宣戰，到 1300 年前每年都會補兵。攻下蒙古的地每塊 25 金幣；把蒙古消滅，全服玩家各得 300 金幣、民心 +5，攻下最多蒙古領地的人再加 300 金幣。<br>・<b>🏴‍☠️ 海盜潮</b>（1250、1380 年）：每位玩家的港口外會出現海盜艦隊。<br>・<b>💀 黑死病</b>（1347 年起四年）：各地守軍大減、民心 −8；有糧倉或教堂的地損失減半。</li>' +
     '<li><b>伺服器的新手教學</b>：第一次進公開伺服器前，會先問你要不要做新手教學（在自己的單人遊戲裡，約 5 分鐘）。做完或選「我會玩了」之後會記在帳號上，不會再問。</li>' +
@@ -9712,6 +9725,7 @@ if (typeof module !== 'undefined') module.exports = G;
   function chatHostIn(by, m) {
     if (!chatOn() || MP.role !== 'host') return;
     var p = MP.players[by]; if (!p || !p.f || p.off) return;
+    var mt = adMuted(by === 'host' ? MPID : p.pid); if (mt) return chatNo(by, '你被管理員禁言到 ' + adTime(mt) + '，現在不能發言。');
     var now = Date.now(), r = CHAT.rate[by] || (CHAT.rate[by] = []);
     while (r.length && now - r[0] > 20000) r.shift();
     if (r.length && now - r[r.length - 1] < 1200) return chatNo(by, '說太快了，等一下再傳。');
@@ -9790,7 +9804,8 @@ if (typeof module !== 'undefined') module.exports = G;
       if (x.sys) { h += '<div class="cm sys">· ' + esc(x.text) + '</div>'; return; }
       if (CHAT.mute[x.f] && x.f !== me) return;
       h += '<div class="cm' + (x.f === me ? ' me' : '') + '"><span class="cdot" style="background:' + (NC[x.f] || '#888') + '"></span><b style="color:' + (NC[x.f] || '#ddd') + '">' + esc(x.name) + '</b><span class="cf">（' + esc(chatFacName(x.f)) + '）</span>' +
-        (x.f !== me ? '<button class="cmu" data-act="chatmute" data-f="' + esc(x.f) + '" aria-label="封鎖">⋯</button>' : '') + '<div class="ct">' + esc(x.text) + '</div></div>';
+        (x.f !== me ? '<button class="cmu" data-act="chatmenu" data-id="' + esc(x.id) + '" aria-label="更多">⋯</button>' : '') + '<div class="ct">' + esc(x.text) + '</div>' +
+        (CHAT.menu === x.id ? '<div class="cmenu"><button data-act="chatmute" data-f="' + esc(x.f) + '">🚫 封鎖這個人</button><button data-act="chatreport" data-id="' + esc(x.id) + '">⚠️ 檢舉</button></div>' : '') + '</div>';
     });
     if (!h) h = '<div class="cm sys">' + (CHAT.tab === 'ally' ? '這裡只有你和你的玩家盟友看得到。先在外交跟別的玩家結盟吧。' : '還沒有人說話。打聲招呼吧！') + '</div>';
     var lst = $('#chatlist'), atEnd = lst.scrollTop + lst.clientHeight >= lst.scrollHeight - 30;
@@ -9809,7 +9824,12 @@ if (typeof module !== 'undefined') module.exports = G;
       b = $('#chatbtn');
     }
     b.hidden = false;
-    var tk = $('#ticker'); b.style.bottom = tk && !tk.hidden && tk.offsetParent ? '50px' : '10px';
+    var tk = $('#ticker'), bot = tk && !tk.hidden && tk.offsetParent ? 50 : 10;
+    try {
+      var pn = $('#panel'), mw0 = b.parentNode.getBoundingClientRect(), pr = pn && pn.offsetParent ? pn.getBoundingClientRect() : null;
+      if (pr && pr.height && pr.left < 70 && pr.top < mw0.bottom && pr.bottom > mw0.bottom - 120) bot = Math.max(bot, Math.round(mw0.bottom - pr.top + 10));
+    } catch (e) {}
+    b.style.bottom = bot + 'px';
     var pk = $('#chatpeek'); if (pk) pk.style.bottom = (parseInt(b.style.bottom, 10) + 50) + 'px';
     chatRender();
   }
@@ -9818,7 +9838,9 @@ if (typeof module !== 'undefined') module.exports = G;
     var a = t.getAttribute('data-act');
     if (a === 'chat') { CHAT.open = !CHAT.open; var bx = $('#chatbox'); if (bx) bx.hidden = !CHAT.open; if (CHAT.open) { CHAT.unread = 0; CHAT.jump = true; var pk = $('#chatpeek'); if (pk) pk.hidden = true; } chatRender(); }
     else if (a === 'chattab') { CHAT.tab = t.getAttribute('data-ch') === 'ally' ? 'ally' : 'all'; CHAT.jump = true; chatRender(); }
-    else if (a === 'chatmute') { var f = t.getAttribute('data-f'); if (f && f !== chatMyF()) { CHAT.mute[f] = 1; try { localStorage.setItem('crusade-chatmute', JSON.stringify(CHAT.mute)); } catch (x) {} toast('已封鎖' + (chatFacName(f) || '') + '的訊息。'); chatRender(); } }
+    else if (a === 'chatmenu') { var mid = t.getAttribute('data-id'); CHAT.menu = CHAT.menu === mid ? null : mid; chatRender(); }
+    else if (a === 'chatreport') { var rm = CHAT.log.filter(function (x) { return x.id === t.getAttribute('data-id'); })[0]; CHAT.menu = null; chatRender(); if (rm) adReportUI({ f: rm.f, name: rm.name, text: rm.text }); }
+    else if (a === 'chatmute') { CHAT.menu = null; var f = t.getAttribute('data-f'); if (f && f !== chatMyF()) { CHAT.mute[f] = 1; try { localStorage.setItem('crusade-chatmute', JSON.stringify(CHAT.mute)); } catch (x) {} toast('已封鎖' + (chatFacName(f) || '') + '的訊息。'); chatRender(); } }
     else if (a === 'chatunmute') { delete CHAT.mute[t.getAttribute('data-f')]; try { localStorage.setItem('crusade-chatmute', JSON.stringify(CHAT.mute)); } catch (x) {} chatRender(); }
     else return;
     e.stopPropagation(); e.preventDefault();
@@ -9833,7 +9855,7 @@ if (typeof module !== 'undefined') module.exports = G;
       '#chatbox .chd{display:flex;gap:4px;padding:6px;border-bottom:1px solid rgba(214,173,85,.3)}#chatbox .chd button{border:0;background:transparent;color:#cbbf9f;padding:6px 12px;border-radius:8px;font-size:calc(14px * var(--fs,1));cursor:pointer}#chatbox .chd button.on{background:rgba(214,173,85,.25);color:#f1d48c;font-weight:700}' +
       '#chatlist{flex:1;overflow-y:auto;padding:6px 10px;font-size:calc(14px * var(--fs,1))}#chatlist .cm{margin:6px 0;line-height:1.4;word-break:break-word}#chatlist .cm.sys{color:#9aa;font-size:.85em}#chatlist .cm.me .ct{background:rgba(214,173,85,.18)}' +
       '#chatlist .ct{display:inline-block;margin-top:2px;padding:4px 8px;border-radius:8px;background:rgba(255,255,255,.07)}#chatlist .cdot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;border:1px solid rgba(255,255,255,.5)}#chatlist b{text-shadow:0 0 2px #000}#chatlist .cf{color:#9a9;font-size:.85em}' +
-      '#chatlist .cmu{border:0;background:transparent;color:#888;cursor:pointer;padding:0 6px;font-size:14px}#chatmuted{padding:0 10px;font-size:12px;color:#aaa}#chatmuted .cun{border:1px solid #555;background:transparent;color:#ccc;border-radius:8px;padding:1px 6px;margin:2px;font-size:12px}' +
+      '#chatlist .cmu{border:0;background:transparent;color:#888;cursor:pointer;padding:0 6px;font-size:14px}#chatlist .cmenu{display:flex;gap:6px;margin-top:4px}#chatlist .cmenu button{border:1px solid #666;background:rgba(255,255,255,.06);color:#eee;border-radius:8px;padding:4px 8px;font-size:12px}#chatmuted{padding:0 10px;font-size:12px;color:#aaa}#chatmuted .cun{border:1px solid #555;background:transparent;color:#ccc;border-radius:8px;padding:1px 6px;margin:2px;font-size:12px}' +
       '#chatbox .cin{display:flex;gap:6px;padding:8px;border-top:1px solid rgba(214,173,85,.3)}#chatbox .cin input{flex:1;min-width:0;padding:8px 10px;border-radius:8px;border:1px solid #555;background:#0b1418;color:#fff;font-size:16px}';
     document.head.appendChild(st);
   })();
@@ -10084,6 +10106,262 @@ if (typeof module !== 'undefined') module.exports = G;
     }).filter(function (x) { return x; });
     return JSON.parse('{' + parts.join(',') + '}');
   }
+  /* ===== 名字過濾、身分驗證、檢舉與管理員、名人堂、離開期間報告 ===== */
+  var AD = { admin: null, cmdBusy: false };
+  function adNow() { return Date.now(); }
+  function adTime(ms) { var d = new Date(ms); return (d.getMonth() + 1) + '/' + d.getDate() + ' ' + ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2); }
+  function adAdm() { return g ? (g.adm || (g.adm = { mute: {}, ban: {}, nm: {} })) : { mute: {}, ban: {}, nm: {} }; }
+  /* 名字：去掉髒話與怪字；管理員改過的名字優先 */
+  function adName(raw, pid) {
+    var o = g && g.adm && g.adm.nm && pid && g.adm.nm[pid]; if (o) return o;
+    var n = chatClean(String(raw == null ? '' : raw)).replace(/[<>]/g, '');
+    n = Array.from(n).slice(0, 12).join('').trim();
+    if (!n || /^[＊\s]+$/.test(n) || /＊/.test(n)) n = '玩家' + String(pid || '').replace(/[^0-9a-z]/gi, '').slice(-4);
+    return n;
+  }
+  function adMuted(pid) { var t = g && g.adm && g.adm.mute && g.adm.mute[pid]; return t && t > adNow() ? t : 0; }
+  function adBanned(pid) { var t = g && g.adm && g.adm.ban && g.adm.ban[pid]; return t && t > adNow() ? t : 0; }
+  /* 朋友端：登入後在伺服器寫一個暗號，房主用它確認「這個帳號真的是你」 */
+  function adNonce(cl, uid) {
+    SB.nonce = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+    try { SB.helloP = cl.from('mw_hello').upsert({ uid: uid, nonce: SB.nonce, at: new Date().toISOString() }).then(function (r) { if (r && r.error) SB.helloErr = r.error.message || r.error.code || 'err'; }, function () {}); } catch (e) {}
+  }
+  /* 房主：確認朋友的身分（沒有設定資料表時就照舊放行） */
+  function adHelloOk(s, m, raw) {
+    var pid = String(m.pid || '');
+    var bt = pid && adBanned(pid);
+    if (bt) { p2pSendTo(s.dc, { t: 'kicked', until: bt }); return false; }
+    if (!SB.on || !s.pj || !SB.cl || !pid) return true;
+    if (s.vpid === pid) return true;
+    if (s.vBusy) return false;
+    s.vBusy = 1;
+    var tryOnce = function (left) {
+      SB.cl.rpc('mw_check', { p_uid: pid, p_nonce: String(m.nonce || '') }).then(function (r) {
+        if (r && r.error) { s.vBusy = 0; s.vpid = pid; AD.noHello = true; return p2pHostMsg(s, raw); }
+        if (r && r.data === true) { s.vBusy = 0; s.vpid = pid; return p2pHostMsg(s, raw); }
+        if (left > 0) return setTimeout(function () { tryOnce(left - 1); }, 2000);
+        s.vBusy = 0; p2pSendTo(s.dc, { t: 'deny', why: '身分確認失敗。請重新整理頁面再進入伺服器。' });
+      }, function () { s.vBusy = 0; s.vpid = pid; p2pHostMsg(s, raw); });
+    };
+    tryOnce(2);
+    return false;
+  }
+  /* ---------- 檢舉 ---------- */
+  function adReportUI(o) {
+    var el = $('#adrep'); if (el) el.remove();
+    var R = ['髒話或騷擾', '名字不雅', '洗版', '作弊或利用 bug', '其他'];
+    document.body.insertAdjacentHTML('beforeend', '<div id="adrep" class="adov"><div class="adbox"><h3>檢舉 ' + esc(o.name || '') + (o.f ? '（' + esc(chatFacName(o.f)) + '）' : '') + '</h3>' +
+      (o.text ? '<p class="muted small">訊息：「' + esc(o.text) + '」</p>' : '') +
+      '<div class="adchips">' + R.map(function (r, i) { return '<button class="btn" data-act="adrsn" data-i="' + i + '">' + r + '</button>'; }).join('') + '</div>' +
+      '<input id="adrtx" maxlength="200" placeholder="補充說明（可以不填）"><div class="adrow"><button class="btn primary" data-act="adrsend">送出檢舉</button><button class="btn" data-act="adclose">取消</button></div>' +
+      '<p class="muted small">檢舉會送給管理員處理，對方不會知道是誰檢舉的。</p></div></div>');
+    AD.rep = { f: o.f || '', name: o.name || '', text: o.text || '', rsn: '' };
+  }
+  function adReportSend() {
+    if (!AD.rep) return;
+    if (!AD.rep.rsn) return toast('請先選一個原因。');
+    if (adNow() - (AD.repT || 0) < 30000) return toast('剛剛已經檢舉過了，30 秒後再試。');
+    var code = SB.hostCode || SB.pubJoin || (PJ && PJ.code) || '';
+    var row = { code: code, target_f: AD.rep.f, target_name: AD.rep.name, reason: AD.rep.rsn + ((($('#adrtx') || {}).value || '').trim() ? '：' + $('#adrtx').value.trim().slice(0, 200) : ''), excerpt: AD.rep.text.slice(0, 200), year: g ? G.year(g) : null };
+    var done = function (ok) { var el = $('#adrep'); if (el) el.remove(); toast(ok ? '已送出檢舉，謝謝你。' : '檢舉沒有送出（伺服器還沒設定好）。'); };
+    if (!SB.cl) return done(false);
+    AD.repT = adNow();
+    SB.cl.from('mw_reports').insert(row).then(function (r) { done(!(r && r.error)); }, function () { done(false); });
+  }
+  /* ---------- 管理員 ---------- */
+  function adCheck() {
+    if (!SB.cl || !SB.uid) return Promise.resolve(false);
+    return SB.cl.rpc('mw_is_admin', {}).then(function (r) { AD.admin = !!(r && !r.error && r.data === true); return AD.admin; }, function () { AD.admin = false; return false; });
+  }
+  function adPanel(tab) {
+    tab = tab || AD.tab || 'rep'; AD.tab = tab;
+    var code = PUBS[0].code;
+    $('#mbody').innerHTML = '<div class="mtag">🛠 管理員</div><h2 id="mtitle">伺服器管理</h2><div class="adtabs">' +
+      [['rep', '檢舉'], ['pl', '玩家'], ['srv', '伺服器']].map(function (x) { return '<button class="btn' + (x[0] === tab ? ' primary' : '') + '" data-act="adtab" data-t="' + x[0] + '">' + x[1] + '</button>'; }).join('') +
+      '</div><div id="adbody" class="muted small">讀取中…</div><button class="btn" data-act="mp" style="margin-top:10px">返回</button>';
+    $('#modal').hidden = false;
+    var body = function (h) { var b = $('#adbody'); if (b) b.innerHTML = h; };
+    if (tab === 'rep') {
+      SB.cl.from('mw_reports').select('*').eq('handled', false).order('id', { ascending: false }).limit(50).then(function (r) {
+        if (r && r.error) return body('讀不到檢舉：' + esc(r.error.message || r.error.code || ''));
+        var L = (r && r.data) || [];
+        body(L.length ? L.map(function (x) {
+          return '<div class="adcard"><b>' + esc(x.target_name || '?') + '</b>' + (x.target_f ? '（' + esc(chatFacName(x.target_f)) + '）' : '') + ' · ' + esc(x.reason || '') +
+            (x.excerpt ? '<br>「' + esc(x.excerpt) + '」' : '') + '<br><span class="muted">' + esc((x.created_at || '').slice(0, 16).replace('T', ' ')) + (x.year ? ' · 遊戲 ' + x.year + ' 年' : '') + '</span>' +
+            '<div class="adrow">' + (x.target_f ? '<button class="btn" data-act="adpf" data-f="' + esc(x.target_f) + '">處理這個人</button>' : '') + '<button class="btn" data-act="adhandled" data-id="' + x.id + '">標成已處理</button></div></div>';
+        }).join('') : '目前沒有待處理的檢舉。');
+      }, function () { body('讀取失敗。'); });
+    } else if (tab === 'pl') {
+      SB.cl.from('mw_rooms').select('info').eq('code', code).maybeSingle().then(function (r) {
+        var pl = (r && r.data && r.data.info && r.data.info.players) || {};
+        AD.pl = pl;
+        var ks = Object.keys(pl);
+        body(ks.length ? ks.map(function (u) { var q = pl[u]; return '<div class="adcard"><b>' + esc(q.name || '?') + '</b>（' + esc(chatFacName(q.f) || q.f) + '）<span class="muted"> · 帳號 ' + esc(u.slice(0, 6)) + '</span><div class="adrow">' +
+          '<button class="btn" data-act="adcmd" data-k="mute" data-p="' + esc(u) + '">禁言 1 天</button><button class="btn" data-act="adcmd" data-k="kick" data-p="' + esc(u) + '">踢出 1 天</button><button class="btn" data-act="adcmd" data-k="name" data-p="' + esc(u) + '">強制改名</button><button class="btn" data-act="adcmd" data-k="reclaim" data-p="' + esc(u) + '" data-f="' + esc(q.f) + '">收回國家</button>' +
+          '<button class="btn" data-act="adcmd" data-k="unmute" data-p="' + esc(u) + '">解除禁言</button><button class="btn" data-act="adcmd" data-k="unban" data-p="' + esc(u) + '">解除踢出</button></div></div>'; }).join('') : '伺服器上目前沒有玩家。');
+        if (AD.focusF) { var hit = ks.filter(function (u) { return pl[u].f === AD.focusF; })[0]; AD.focusF = null; if (hit) setTimeout(function () { var c = document.querySelector('[data-p="' + hit + '"]'); if (c) { c.closest('.adcard').classList.add('adhl'); c.scrollIntoView({ block: 'center' }); } }, 50); }
+      });
+    } else {
+      SB.cl.from('mw_cmds').select('*').eq('code', code).order('id', { ascending: false }).limit(10).then(function (r) {
+        var L = (r && r.data) || [];
+        body('<p>📢 全服公告</p><input id="adann" maxlength="100" placeholder="公告內容（最多 100 字）"><div class="adrow"><button class="btn primary" data-act="adcmd" data-k="ann">發布公告</button></div>' +
+          '<p style="margin-top:14px">⏹ 結束這一輪（今年結束時結算，之後重新進入就會開新的一輪）</p><div class="adrow"><button class="btn" data-act="adcmd" data-k="end">結束這一輪</button></div>' +
+          '<p style="margin-top:14px">最近的指令（有人在玩時，房主的手機會在 10 秒內執行）</p>' + (L.length ? L.map(function (x) { return '<div class="muted">' + (x.done ? '✅ ' : '⏳ ') + esc(adCmdText(x.cmd || {})) + (x.note ? '（' + esc(x.note) + '）' : '') + '</div>'; }).join('') : '<div class="muted">還沒有。</div>'));
+      });
+    }
+  }
+  function adCmdText(c) {
+    var who = c.name ? c.name : (c.pid ? '帳號 ' + String(c.pid).slice(0, 6) : '');
+    return { mute: '禁言 ' + who, unmute: '解除禁言 ' + who, kick: '踢出 ' + who, unban: '解除踢出 ' + who, name: '改名 ' + who + ' → ' + (c.to || ''), reclaim: '收回國家 ' + (c.f ? chatFacName(c.f) : ''), ann: '公告：' + (c.text || ''), end: '結束這一輪' }[c.k] || c.k;
+  }
+  function adSendCmd(c) {
+    var code = PUBS[0].code;
+    SB.cl.from('mw_cmds').insert({ code: code, cmd: c }).then(function (r) {
+      if (r && r.error) return toast('指令沒有送出：' + (r.error.message || r.error.code || ''));
+      toast('已送出：' + adCmdText(c) + '。有人在玩時會馬上執行，沒人在玩就等下次有人開服。');
+      if (AD.tab === 'srv') adPanel('srv');
+    });
+  }
+  /* 房主：每 8 秒看有沒有管理員指令 */
+  function adPoll() {
+    if (AD.cmdBusy || !SB.on || !SB.cl || MP.role !== 'host' || !SB.hostCode || !g || !MP.on) return;
+    if (adNow() - (AD.pollT || 0) < 8000) return;
+    AD.pollT = adNow(); AD.cmdBusy = true;
+    SB.cl.from('mw_cmds').select('*').eq('code', SB.hostCode).eq('done', false).order('id', { ascending: true }).limit(20).then(function (r) {
+      var L = (r && !r.error && r.data) || [];
+      var chain = Promise.resolve();
+      L.forEach(function (x) { chain = chain.then(function () { var note = ''; try { note = adApply(x.cmd || {}) || ''; } catch (e) { note = '失敗'; } return SB.cl.from('mw_cmds').update({ done: true, note: note }).eq('id', x.id); }); });
+      return chain.then(function () { if (L.length) { MP.dirty = true; mpPublish(true); try { sbSave(true); } catch (e) {} } });
+    }).catch(function () {}).then(function () { AD.cmdBusy = false; });
+  }
+  function adSlotsOf(pid) { return P2P.slots.filter(function (s) { var q = MP.players[s.id]; return s.state === 'open' && q && q.pid === pid; }); }
+  function adApply(c) {
+    var A = adAdm(), until = adNow() + (c.ms || 86400000);
+    A.mute = A.mute || {}; A.ban = A.ban || {}; A.nm = A.nm || {};
+    if (c.k === 'mute') { A.mute[c.pid] = until; adSlotsOf(c.pid).forEach(function (s) { p2pSendTo(s.dc, { t: 'chatno', why: '你被管理員禁言到 ' + adTime(until) + '。' }); }); return '到 ' + adTime(until); }
+    if (c.k === 'unmute') { delete A.mute[c.pid]; return ''; }
+    if (c.k === 'unban') { delete A.ban[c.pid]; return ''; }
+    if (c.k === 'kick') {
+      A.ban[c.pid] = until;
+      adSlotsOf(c.pid).forEach(function (s) { p2pSendTo(s.dc, { t: 'kicked', until: until }); setTimeout(function () { try { p2pSlotClosed(s); } catch (e) {} }, 300); });
+      if (c.pid === MPID) setTimeout(function () { adKicked(until); }, 1500);
+      return '到 ' + adTime(until);
+    }
+    if (c.k === 'name') {
+      var nn = adName(c.to || '', c.pid); A.nm[c.pid] = nn;
+      Object.keys(MP.players).forEach(function (u) { var q = MP.players[u]; if (q && (q.pid === c.pid || (u === 'host' && c.pid === MPID))) q.name = nn; });
+      p2pBroadcastLobby(); renderBar(); return '';
+    }
+    if (c.k === 'reclaim') {
+      if (c.f === (MP.players.host && MP.players.host.f)) return '這個國家的玩家正在主持，請先踢出他';
+      var r = G.srvReclaim(g, c.f); try { srvDropIdle(); } catch (e) {} ui.mapDirty = true; renderAll(); return r.ok ? '' : r.msg;
+    }
+    if (c.k === 'ann') { var tx = chatClean(c.text || '').slice(0, 100); if (tx) G.srvAnn(g, '📢 管理員公告：' + tx, true); renderAll(); return ''; }
+    if (c.k === 'end') { if (g.srv) { g.srv.endY = G.year(g); G.srvAnn(g, '⏹ 管理員宣布：這一輪在今年結束結算。', true); } return ''; }
+    return '不認得的指令';
+  }
+  function adKicked(until) {
+    SB.kicked = until;
+    try { mpLeave(); } catch (e) {}
+    $('#mbody').innerHTML = '<div class="mtag">伺服器</div><h2 id="mtitle">你被請出伺服器了</h2><p class="mtext">管理員暫時禁止你進入這個伺服器，到 ' + esc(adTime(until)) + ' 為止。你的國家還在，時間到了就能回來。</p><button class="btn primary" data-act="mp">好</button>';
+    $('#modal').hidden = false;
+  }
+  /* ---------- 名人堂 ---------- */
+  function adFameTick() {
+    if (!SB.on || !SB.cl || MP.role !== 'host' || !g || !g.srv || !g.over || g.over.reason !== 'season' || g.srv.fameSent) return;
+    g.srv.fameSent = 1;
+    var nmOf = function (f) { var n = ''; Object.keys(MP.players || {}).forEach(function (u) { var q = MP.players[u]; if (q && q.f === f) n = q.name; }); return n; };
+    var st = []; try { st = G.srvStanding(g).slice(0, 5).map(function (x) { return { m: x.m.map(function (f) { return { f: f, n: G.FACTIONS[f].name, p: nmOf(f) }; }), c: x.n, sc: Math.round(x.sc) }; }); } catch (e) {}
+    var data = { endY: G.year(g), fam: g.over.fam || null, top: st, players: G.humansOf(g).length };
+    SB.cl.from('mw_fame').insert({ code: SB.hostCode, round: g.srv.rid || adNow(), data: data }).then(function () {}, function () {});
+  }
+  function adFame() {
+    $('#mbody').innerHTML = '<div class="mtag">🏆 名人堂</div><h2 id="mtitle">歷屆冠軍</h2><div id="adfame" class="muted small">讀取中…</div><button class="btn" data-act="mp" style="margin-top:10px">返回</button>';
+    $('#modal').hidden = false;
+    sbLoad().then(sbAuth).then(function (cl) { return cl.from('mw_fame').select('*').order('created_at', { ascending: false }).limit(20); }).then(function (r) {
+      var el = $('#adfame'); if (!el) return;
+      if (r && r.error) { el.textContent = '名人堂還沒開放（伺服器設定還沒完成）。'; return; }
+      var L = (r && r.data) || [], P = function (c) { var p = pubOf(c); return p ? p.n : c; };
+      el.innerHTML = L.length ? L.map(function (x, i) {
+        var d = x.data || {}, top = d.top || [];
+        return '<div class="adcard"><b>第 ' + (L.length - i) + ' 屆 · ' + esc(P(x.code)) + '</b><span class="muted"> · ' + esc((x.created_at || '').slice(0, 10)) + ' · ' + (d.players || 0) + ' 位玩家</span>' +
+          top.map(function (t, k) { return '<div>' + ['🥇', '🥈', '🥉', '4.', '5.'][k] + ' ' + t.m.map(function (m) { return '<span class="cdot" style="background:' + (NC[m.f] || '#888') + '"></span>' + esc(m.n) + (m.p ? '（' + esc(m.p) + '）' : ''); }).join('、') + ' <span class="muted">名城 ' + t.c + ' · 國力 ' + t.sc + '</span></div>'; }).join('') + '</div>';
+      }).join('') : '還沒有任何一輪打完。第一服打到 1453 年，冠軍就會被記在這裡。';
+    }).catch(function () { var el = $('#adfame'); if (el) el.textContent = '讀取失敗。'; });
+  }
+  /* ---------- 你不在時發生了什麼 ---------- */
+  function awMe() { return MP.role === 'host' ? g.player : MP.me; }
+  function awKey() { return 'crusade-away-' + (awMe() || ''); }
+  function awSnap() {
+    if (!MP.on || !g || !g.srv || g.over || !awMe() || !ui.awayChecked) return;
+    var f = awMe(), own = []; G.LANDIDS.forEach(function (i) { if (g.p[i].o === f) own.push(i); });
+    try { localStorage.setItem(awKey(), JSON.stringify({ rid: g.srv.rid || g.srv.t0, turn: g.turn, y: G.year(g), own: own, at: adNow() })); } catch (e) {}
+  }
+  function awCheck() {
+    if (!MP.on || !g || !g.srv || ui.awayChecked || !awMe() || !$('#game') || $('#game').hidden) return;
+    ui.awayChecked = true;
+    var s = null; try { s = JSON.parse(localStorage.getItem(awKey()) || 'null'); } catch (e) {}
+    if (!s || s.rid !== (g.srv.rid || g.srv.t0) || g.turn - s.turn < 1) return;
+    var f = awMe(), lost = {}, nl = 0, gain = 0, was = {};
+    (s.own || []).forEach(function (i) { was[i] = 1; var o = g.p[i] && g.p[i].o; if (o !== f) { nl++; var k = o || ''; (lost[k] || (lost[k] = [])).push(i); } });
+    G.LANDIDS.forEach(function (i) { if (g.p[i].o === f && !was[i]) gain++; });
+    var items = [], T = s.turn;
+    Object.keys(lost).sort(function (a, b) { return lost[b].length - lost[a].length; }).forEach(function (k) {
+      var ids = lost[k]; items.push('🔥 ' + (k ? G.nm(k) : '叛軍／中立') + '奪走你 ' + ids.length + ' 塊地' + '（' + ids.slice(0, 3).map(function (i) { return G.placeName(i); }).join('、') + (ids.length > 3 ? '…' : '') + '）');
+    });
+    (g.wars || []).forEach(function (w) { if (w.t > T && (w.a === f || w.b === f)) items.push('⚔️ ' + (w.a === f ? '你向' + G.nm(w.b) + '宣戰' : G.nm(w.a) + '向你宣戰')); });
+    (g.pw || []).forEach(function (w) { if (w.b === f) items.push('📜 ' + G.nm(w.a) + '送來宣戰書，西元 ' + (G.year(g) + Math.max(0, w.t - g.turn)) + ' 年開戰'); });
+    (g.fallen || []).forEach(function (x) { if (x.t > T) items.push('💀 ' + G.nm(x.f) + '滅亡了' + (x.by ? '（被' + G.nm(x.by) + '消滅）' : '')); });
+    (g.ann || []).forEach(function (a) { if (a.t > T) items.push('🌍 ' + a.text); });
+    var away = adNow() - (s.at || adNow()), hrs = Math.round(away / 360000) / 10;
+    var head = '你離開了 ' + (g.turn - s.turn) + ' 年（西元 ' + s.y + ' → ' + G.year(g) + ' 年' + (hrs >= 0.1 ? '，現實大約 ' + (hrs >= 1 ? hrs + ' 小時' : Math.max(1, Math.round(away / 60000)) + ' 分鐘') : '') + '）';
+    var sum = '領地：' + (s.own || []).length + ' → <b>' + G.ownedTotal(g, f) + '</b> 塊' + (nl ? '（失去 ' + nl + '）' : '') + (gain ? '（新增 ' + gain + '）' : '');
+    ui.awayHtml = '<div class="mtag">你不在的時候</div><h2 id="mtitle">' + esc(head) + '</h2><p class="mtext">' + sum + '</p>' +
+      (items.length ? '<ul class="awl">' + items.slice(0, 14).map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + (items.length > 14 ? '<li class="muted">…還有 ' + (items.length - 14) + ' 件事</li>' : '') + '</ul>' : '<p class="muted">這段時間很平靜，沒有人來打你。</p>') +
+      '<button class="btn primary" data-act="closemodal">知道了</button>';
+  }
+  function awShow() { if (!ui.awayHtml || !g || !$('#modal').hidden) return; $('#mbody').innerHTML = ui.awayHtml; ui.awayHtml = null; $('#modal').hidden = false; }
+  addEventListener('pagehide', function () { try { awSnap(); } catch (e) {} });
+  document.addEventListener('visibilitychange', function () { if (document.hidden) try { awSnap(); } catch (e) {} });
+  setInterval(function () { try { awCheck(); awShow(); } catch (e) {} try { if (adNow() - (AD.snapT || 0) > 15000) { AD.snapT = adNow(); awSnap(); } } catch (e) {} try { adPoll(); adFameTick(); } catch (e) {} }, 1000);
+  /* ---------- 按鈕 ---------- */
+  document.addEventListener('click', function (e) {
+    var t = e.target && e.target.closest && e.target.closest('[data-act]'); if (!t) return;
+    var a = t.getAttribute('data-act');
+    if (a === 'adrsn') { AD.rep.rsn = t.textContent; document.querySelectorAll('#adrep [data-act=adrsn]').forEach(function (b) { b.classList.toggle('primary', b === t); }); }
+    else if (a === 'adrsend') adReportSend();
+    else if (a === 'adclose') { var el = $('#adrep'); if (el) el.remove(); }
+    else if (a === 'adpanel') adCheck().then(function (ok) { if (ok) adPanel('rep'); else toast('你不是管理員。'); });
+    else if (a === 'adtab') adPanel(t.getAttribute('data-t'));
+    else if (a === 'adpf') { AD.focusF = t.getAttribute('data-f'); adPanel('pl'); }
+    else if (a === 'adhandled') { SB.cl.from('mw_reports').update({ handled: true }).eq('id', +t.getAttribute('data-id')).then(function () { adPanel('rep'); }); }
+    else if (a === 'adcmd') {
+      var k = t.getAttribute('data-k'), pid = t.getAttribute('data-p'), c = { k: k };
+      if (pid) { c.pid = pid; c.name = AD.pl && AD.pl[pid] && AD.pl[pid].name; }
+      if (k === 'reclaim') { c.f = t.getAttribute('data-f'); if (!confirmTwice(t)) return; }
+      if (k === 'name') { var nn = prompt('新的名字（最多 12 字）', '玩家'); if (!nn) return; c.to = nn.slice(0, 12); }
+      if (k === 'ann') { c.text = (($('#adann') || {}).value || '').trim(); if (!c.text) return toast('請先輸入公告內容。'); }
+      if (k === 'end' && !confirmTwice(t)) return;
+      adSendCmd(c);
+    }
+    else if (a === 'fame') adFame();
+    else if (a === 'sbmyid') {
+      $('#mbody').innerHTML = '<div class="mtag">帳號</div><h2 id="mtitle">我的帳號 ID</h2><p class="mtext" style="word-break:break-all;user-select:text;-webkit-user-select:text">' + esc(SB.uid || '（還沒登入）') + '</p><p class="muted small">設定管理員時需要這串 ID。這是訪客帳號：清除瀏覽器資料或換手機就會變成新的帳號。</p><button class="btn primary" data-act="sbcopyid">複製</button> <button class="btn" data-act="mp">返回</button>';
+      $('#modal').hidden = false;
+    }
+    else if (a === 'sbcopyid') { try { navigator.clipboard.writeText(SB.uid || '').then(function () { toast('已複製'); }, function () { toast('複製失敗，請長按文字複製'); }); } catch (x) { toast('請長按文字複製'); } }
+    else return;
+    e.stopPropagation(); e.preventDefault();
+  }, true);
+  function confirmTwice(btn) { if (btn.getAttribute('data-sure')) return true; btn.setAttribute('data-sure', '1'); btn.textContent = '再按一次確定'; return false; }
+  (function () {
+    var st = document.createElement('style');
+    st.textContent = '.adov{position:fixed;inset:0;z-index:95;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:16px}.adbox{width:min(420px,100%);background:#14262c;border:1px solid rgba(214,173,85,.6);border-radius:14px;padding:14px;color:#eee}.adbox h3{margin:0 0 8px;color:#f1d48c}' +
+      '.adchips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}.adbox input,#adann{width:100%;box-sizing:border-box;padding:8px 10px;border-radius:8px;border:1px solid #555;background:#0b1418;color:#fff;font-size:16px;margin:6px 0}.adrow{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}' +
+      '.adtabs{display:flex;gap:6px;margin-bottom:8px}.adcard{border:1px solid rgba(214,173,85,.3);border-radius:10px;padding:8px;margin:6px 0;line-height:1.5}.adcard.adhl{border-color:#f1d48c;background:rgba(241,212,140,.1)}.adcard .btn{font-size:12px;padding:4px 8px}' +
+      '.awl{margin:6px 0 12px;padding-left:18px;line-height:1.6}.cdot{display:inline-block;width:10px;height:10px;border-radius:50%;margin:0 3px;vertical-align:middle;border:1px solid rgba(255,255,255,.5)}';
+    document.head.appendChild(st);
+  })();
   /* 全服大事件：等畫面上沒有其他視窗時才跳出來 */
   function showBigAnn() {
     if (!ui.bigAnn || !ui.bigAnn.length || !g || !$('#modal').hidden) return;
@@ -11032,7 +11310,7 @@ if (typeof module !== 'undefined') module.exports = G;
     if (a === 'sbpub') return sbPub(b.getAttribute('data-c'));
     if (a === 'sbpubgo') { tutMarkDone(); return sbPub(b.getAttribute('data-c'), true); }
     if (a === 'tutgo') return tutGo();
-    if (a === 'sbrepick') { MP.lostNation = false; MP.me = null; p2pSendTo(P2P.hostDc, { t: 'hello', name: MP.nick || mpNick() || '玩家', ver: PVER, pid: MPID, pid2: MPID0 }); $('#mbody').innerHTML = '<div class="mtag">伺服器</div><p class="mtext">讀取可以選的國家…</p>'; return; }
+    if (a === 'sbrepick') { MP.lostNation = false; MP.me = null; p2pSendTo(P2P.hostDc, { t: 'hello', name: MP.nick || mpNick() || '玩家', ver: PVER, pid: MPID, pid2: MPID0, nonce: SB.nonce || '' }); $('#mbody').innerHTML = '<div class="mtag">伺服器</div><p class="mtext">讀取可以選的國家…</p>'; return; }
     if (a === 'sbpick') { var sv0 = $('#sbpick') && $('#sbpick').value; if (!sv0) return toast('請先選一個國家。'); p2pSendTo(P2P.hostDc, { t: 'pickf', f: sv0 }); $('#mbody').innerHTML = '<div class="mtag">伺服器房間</div><p class="mtext">加入中…</p>'; return; }
     if (a === 'mpleave') return mpLeave();
     if (a === 'mpforce') return mpForce();
