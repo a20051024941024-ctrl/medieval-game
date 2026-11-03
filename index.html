@@ -434,7 +434,7 @@ button{font:inherit;color:inherit}
     <div class="startmap" id="startmap" aria-hidden="true"></div>
     <div class="sc-in gx">
       <p class="eyebrow">MEDIEVAL: WORLD DOMINATION · 1096 AD</p>
-      <p class="muted small" id="verline">版本 v228 · 2026-11-03 · 公開伺服器只留第一服（白手起家）、伺服器新手教學、修正連線逾時訊息</p>
+      <p class="muted small" id="verline">版本 v229 · 2026-11-03 · 開拓令、新手保護看領地、名城爭奪；伺服器專屬連線畫面</p>
       <h1>中世紀：世界霸權</h1>
       <p class="lead">1095 年，教宗在克萊蒙發出號召，整個歐洲動了起來。選一個勢力（共 121 個），再從該文明歷史上的君主裡挑一位登基；在四千多個六角格地塊的世界裡，與基督教世界、伊斯蘭世界與即將到來的蒙古鐵騎周旋。可以結盟借道、派商隊與商船貿易、派密探、遠征遠方、研究科技升級時代、替自己的城市取名。沒有回合上限，直到有人稱霸，或你失去一切。</p>
       <div id="startopts"></div>
@@ -6478,7 +6478,7 @@ function mpAddHuman(g, f) {
   var h = { ap: 0, apCap: 0, evResolved: true, evData: null, log: [], evView: null }; h.apCap = apMax(g, f); h.ap = h.apCap;
   g.hs[f] = h; g.offs = g.offs || {}; g.offs[f] = []; g.ended = g.ended || {};
   if (g.srv) {
-    (g.prot || (g.prot = {}))[f] = g.turn + SRV_PROT; (g.act || (g.act = {}))[f] = g.turn;
+    (g.prot || (g.prot = {}))[f] = g.turn + SRV_PROT; (g.act || (g.act = {}))[f] = g.turn; (g.tok || (g.tok = {}))[f] = SRV_TOK;
     humansOf(g).forEach(function (x) { if (x === f) return; var r = rel(g, f, x); if (r.state === 'war') { r.state = 'peace'; r.warT = 0; } });
     srvCatchUp(g, f);
   }
@@ -6487,7 +6487,20 @@ function mpAddHuman(g, f) {
 }
 /* 公開伺服器：新手保護、宣戰預告、玩家停戰下限、後進補助、閒置收回、1453 結算 */
 var SRV_PROT = 12, SRV_IDLE = 48, SRV_WARN = 10, SRV_TRUCE = 8, SRV_ENDY = 1453;
-function srvProt(g, f) { var t = g.prot && g.prot[f]; return t && t > g.turn ? t - g.turn : 0; }
+var SRV_PROT_LAND = 30, SRV_TOK = 3, SRV_TOK_MAX = 9;
+function srvProt(g, f) { var t = g.prot && g.prot[f]; if (!(t && t > g.turn)) return 0; if (ownedN(g, f) > SRV_PROT_LAND) return 0; return t - g.turn; }
+/* 名城：1453 年結算時，同盟（玩家之間結盟的算一隊）守住最多名城的獲勝 */
+var FAMOUS = ['君士坦丁堡', '耶路撒冷', '羅馬', '巴格達', '開封', '開羅', '巴黎', '撒馬爾罕', '德里'].map(function (n) { return cityHex(n); }).filter(function (id) { return id != null; });
+var FAMOUS_AT = {}; FAMOUS.forEach(function (id) { FAMOUS_AT[id] = 1; });
+function srvStanding(g) {
+  var hum = humansOf(g).filter(function (f) { return g.fac[f] && g.fac[f].alive; }), par = {};
+  var root = function (f) { while (par[f] !== f) f = par[f] = par[par[f]]; return f; };
+  hum.forEach(function (f) { par[f] = f; });
+  hum.forEach(function (a) { hum.forEach(function (b) { if (a < b && rel(g, a, b).state === 'ally') par[root(a)] = root(b); }); });
+  var grp = {}; hum.forEach(function (f) { var r = root(f); (grp[r] || (grp[r] = { m: [], n: 0, sc: 0, cities: [] })).m.push(f); });
+  Object.keys(grp).forEach(function (r) { var G0 = grp[r]; G0.m.forEach(function (f) { G0.sc += scoreOf(g, f); }); FAMOUS.forEach(function (id) { if (G0.m.indexOf(g.p[id].o) >= 0) { G0.n++; G0.cities.push(id); } }); });
+  return Object.keys(grp).map(function (r) { return grp[r]; }).sort(function (a, b) { return b.n - a.n || b.sc - a.sc; });
+}
 function srvWarBlock(g, a, b) {
   if (!g.srv || !isHum(g, a) || !isHum(g, b)) return '';
   if (srvProt(g, a)) return '你還在新手保護期（還有 ' + srvProt(g, a) + ' 年），不能對玩家宣戰。';
@@ -6511,6 +6524,7 @@ function srvCatchUp(g, f) {
 /* 每年：宣戰書生效、閒置收回 */
 function srvTick(g) {
   if (!g.srv) return;
+  var tk = g.tok || (g.tok = {}); humansOf(g).forEach(function (f) { tk[f] = Math.min(SRV_TOK_MAX, (tk[f] | 0) + SRV_TOK); });
   (g.pw || []).slice().forEach(function (w) {
     if (w.t > g.turn) return;
     g.pw.splice(g.pw.indexOf(w), 1);
@@ -6565,7 +6579,7 @@ function mpAdvance(g) {
   humansOf(g).forEach(function (f) { pre[f] = { n: ownedN(g, f), gold: Math.floor(g.fac[f].gold) }; });
   var yr = year(g);
   g_noLive = 1; var res; try { res = endTurn(g); } finally { g_noLive = 0; }
-  if (!res && g.srv && !g.over && year(g) > (g.srv.endY || SRV_ENDY)) { var bh = null; humansOf(g).forEach(function (f) { if (g.fac[f].alive && (bh === null || scoreOf(g, f) > scoreOf(g, bh))) bh = f; }); res = finish(g, 'season', bh); }
+  if (!res && g.srv && !g.over && year(g) > (g.srv.endY || SRV_ENDY)) { var stn = srvStanding(g), top = stn[0], bh = null; if (top) top.m.forEach(function (f) { if (bh === null || scoreOf(g, f) > scoreOf(g, bh)) bh = f; }); res = finish(g, 'season', bh); if (top) g.over.fam = { m: top.m, n: top.n, cities: top.cities.map(function (id) { return CITY[id].name; }) }; }
   if (g.hs) Object.keys(g.hs).forEach(function (f) {
     asPlayer(g, f, function () {
       var n = ownedN(g, f), d = n - pre[f].n, gd = Math.floor(g.fac[f].gold) - pre[f].gold;
@@ -6585,6 +6599,20 @@ function mpMirror(m, me) {
   _own = null; syncCap(m);
   return m;
 }
+(function () {
+  var m0 = P.move;
+  P.move = function (g, from, to, ratio) {
+    var f = g.player, t = g.p[to];
+    if (g.srv && t && !t.o && LAND[to] && ((g.tok || {})[f] | 0) > 0) {
+      if (g.over) return fail('遊戲已結束。');
+      if (!g.evResolved) return fail('請先處理事件。');
+      var r; g_rush = 1; try { r = moveTroops(g, f, from, to, sendCount(g, from, ratio)); } finally { g_rush = 0; }
+      if (r.ok) { g.tok[f]--; r.msg = '🏴 用了一張開拓令（不花行動點，還剩 ' + g.tok[f] + ' 張）。' + (r.msg || ''); }
+      return r;
+    }
+    return m0(g, from, to, ratio);
+  };
+})();
 (function () {
   Object.keys(P).forEach(function (k) {
     var f0 = P[k];
@@ -6614,7 +6642,7 @@ var G = {
   EVENTS: EVENTS, HIST: HIST, checkEnd: checkEnd, finish: finish, settle: settle, TERR_Y: TERR_Y,
   SAVE_VER: SAVE_VER, MAPSIG: MAPSIG, rel: rel, migrate: migrate, strength: strength, dipInfo: dipInfo, declareWar: declareWar, aiDiplomacy: aiDiplomacy,
   swapAmt: swapAmt, routeCands: routeCands, coastTarget: coastTarget, supplyDist: supplyDist, supRange: supRange, lordOf: lordOf, vassalsOf: vassalsOf, ownedTotal: ownedTotal, offerEvent: offerEvent, acceptChance: acceptChance,
-  fleetCap: fleetCap, isHum: isHum, humansOf: humansOf, asPlayer: asPlayer, mpInit: mpInit, mpEligible: mpEligible, mpAddHuman: mpAddHuman, srvProt: srvProt, srvWarBlock: srvWarBlock, mpReassign: mpReassign, mpChoose: mpChoose, mpEnd: mpEnd, mpAllEnded: mpAllEnded, mpWaiting: mpWaiting, mpAdvance: mpAdvance, mpMirror: mpMirror, mpView: mpView, mpResume: mpResume,
+  fleetCap: fleetCap, isHum: isHum, humansOf: humansOf, asPlayer: asPlayer, mpInit: mpInit, mpEligible: mpEligible, mpAddHuman: mpAddHuman, srvProt: srvProt, srvStanding: srvStanding, FAMOUS: FAMOUS, FAMOUS_AT: FAMOUS_AT, srvWarBlock: srvWarBlock, mpReassign: mpReassign, mpChoose: mpChoose, mpEnd: mpEnd, mpAllEnded: mpAllEnded, mpWaiting: mpWaiting, mpAdvance: mpAdvance, mpMirror: mpMirror, mpView: mpView, mpResume: mpResume,
   holyKind: holyKind, armies: armies, garrisonOf: garrisonOf, armyReach: armyReach, armyDijk: armyDijk, zocAt: zocAt, armyPlan: armyPlan, armyRaidTargets: armyRaidTargets, armyMP: armyMP, armyRem: armyRem, mvCost: mvCost, rulerLv: rulerLv, rulerInfo: rulerInfo, vetLv: vetLv, RX_T: RX_T, holyKind: holyKind, holyCost: holyCost, canHoly: canHoly, isChristian: isChristian, START_YEAR: START_YEAR, LON: LON, LAT: LAT, WORLD: WORLD
 };
 if (typeof module !== 'undefined') module.exports = G;
@@ -6760,6 +6788,7 @@ if (typeof module !== 'undefined') module.exports = G;
     return n || '玩家';
   }
   function mpMenu(msg) {
+    SB.pubJoin = '';
     $('#mbody').innerHTML = '<div class="mtag">多人連線</div><h2 id="mtitle">同時多人對戰</h2>' +
       '<p class="mtext">2–6 位玩家各選一個勢力，同一年內同時行動；所有人按「結束回合」後 AI 才行動（也可以設成即時：時間到自動過一年）。用 5 碼房間代碼開房時，進度會存到伺服器，房主離開會自動換人接手。</p>' +
       (msg ? '<p class="warn">' + esc(msg) + '</p>' : '') +
@@ -6895,6 +6924,7 @@ if (typeof module !== 'undefined') module.exports = G;
         var tk0 = $('#mptick'); tk0.value = String(MP.tick || 0); tk0.addEventListener('change', function () { MP.tick = +this.value || 0; try { localStorage.setItem('crusade-mptick', String(MP.tick)); } catch (e) {} });
       }
       if (MP.pub && $('#mplist')) {
+        var pjb = $('#pjbox'); if (pjb) { var nx3 = pjb.nextElementSibling; if (nx3 && nx3.tagName === 'P') nx3.remove(); pjb.remove(); } var psl = $('#p2pslots'); if (psl) psl.remove(); var pad = document.querySelector('#mbody [data-act=p2padd]'); if (pad) pad.remove(); var mt0 = $('#mtitle'); if (mt0) mt0.textContent = '🌍 ' + MP.pub.n;
         ['mpstartm', 'mptick', 'mplim'].forEach(function (id) { var e0 = $('#' + id); if (!e0) return; var fl2 = e0.closest('.flist'), nx2 = fl2 && fl2.nextElementSibling; if (nx2 && nx2.tagName === 'P') nx2.remove(); if (fl2) fl2.remove(); });
         $('#mplist').insertAdjacentHTML('beforebegin', '<p class="muted small" style="border:1px solid var(--line);border-radius:8px;padding:8px"><b>🌍 公開伺服器 ' + esc(MP.pub.n) + '</b>：' + esc(MP.pub.d) + '。選好國家按「開始遊戲」就能玩，不用等別人；之後任何人隨時都能進來挑還沒人選的國家。</p>');
       }
@@ -6940,7 +6970,7 @@ if (typeof module !== 'undefined') module.exports = G;
     var resumed = !!MP.resG;
     if (resumed) { g = MP.resG; MP.resG = null; G.mpReassign(g, hostF, guests); g.evResolved = true; if (MP.tick > 0) g.rt = { tick: MP.tick, next: (g.rt && g.rt.next > Date.now()) ? g.rt.next : Date.now() + MP.tick * 60000 }; }
     else { g = G.newGame(hostF, DIFF); g.noCul = !CULON; if (STARTM) G.applyStartMode(g, STARTM, [hostF].concat(guests)); G.mpInit(g, guests); if (MP.tick > 0) g.rt = { tick: MP.tick, next: Date.now() + MP.tick * 60000 }; }
-    if (pubP && !resumed) { g.srv = { t0: g.turn, endY: 1453 }; g.rt = { tick: pubP.tick, early: 5, min: 2 }; rtSched(); }
+    if (pubP && !resumed) { g.srv = { t0: g.turn, endY: 1453 }; g.rt = { tick: pubP.tick, early: 5, min: 2 }; rtSched(); g.prot = {}; g.tok = {}; G.humansOf(g).forEach(function (f) { g.prot[f] = g.turn + 12; g.tok[f] = 3; }); }
     if (pubP) { STARTM = smS; MP.tick = tkS; }
     enterGame();
     MP.dirty = true;
@@ -7225,7 +7255,8 @@ if (typeof module !== 'undefined') module.exports = G;
   }, 1000);
   function mpBarFix() {
     var me = g.player, hum = G.humansOf(g), ended = g.ended && g.ended[me], chips = '';
-    if (g.srv && G.srvProt(g, me)) chips += '<span class="muted small" style="color:#9fe0a0">🛡新手保護 ' + G.srvProt(g, me) + ' 年' + esc(rtApprox(G.srvProt(g, me))) + '</span> ';
+    if (g.srv && G.srvProt(g, me)) chips += '<span class="muted small" style="color:#9fe0a0">🛡新手保護 ' + G.srvProt(g, me) + ' 年' + esc(rtApprox(G.srvProt(g, me))) + '（或超過 30 塊地）</span> ';
+    if (g.srv) { chips += '<span class="muted small" style="color:#f1d48c">🏴開拓令 ' + ((g.tok && g.tok[me]) | 0) + '</span> '; try { var stn = G.srvStanding(g), myg = null, rk = 0; stn.forEach(function (x, i) { if (x.m.indexOf(me) >= 0) { myg = x; rk = i + 1; } }); if (myg) chips += '<span class="muted small" style="color:#f1d48c">👑名城 ' + myg.n + '/' + G.FAMOUS.length + '（第 ' + rk + ' 名）</span> '; } catch (e) {} }
     hum.forEach(function (f) {
       var done = !g.fac[f].alive || (g.ended && g.ended[f]);
       var offF = Object.keys(MP.players || {}).some(function (u) { return MP.players[u].off && MP.players[u].f === f; });
@@ -7417,6 +7448,7 @@ if (typeof module !== 'undefined') module.exports = G;
   }
   /* ---- 朋友 ---- */
   function p2pGuestMenu(msg) {
+    if (SB.pubJoin && pubOf(SB.pubJoin)) return sbJoinScreen(msg);
     $('#mbody').innerHTML = '<div class="mtag">免登入連線</div><h2 id="mtitle">加入朋友的房間</h2>' +
       (msg ? '<p class="warn">' + esc(msg) + '</p>' : '') +
       '<div style="border:2px solid #f1d48c;border-radius:12px;padding:10px 12px;margin:0 0 10px"><b>用 5 碼房間代碼加入</b><div class="flist" style="margin-top:6px"><input id="pjin" maxlength="5" autocapitalize="characters" autocomplete="off" placeholder="例如 KMRTA" style="flex:1;min-width:0;padding:10px;border-radius:8px;border:1px solid var(--line);background:rgba(0,0,0,.25);color:inherit;font-size:calc(22px * var(--fs,1));letter-spacing:.2em;text-transform:uppercase"><button class="btn primary" data-act="pjjoin">加入</button></div></div>' +
@@ -7759,7 +7791,7 @@ if (typeof module !== 'undefined') module.exports = G;
     toast('已經切到「簡單」並打開新手引導。選一個國家開始（標著「新手推薦」的最好上手）。');
   }
   function sbPub(code, skipTut) {
-    var nick = mpReadNick();
+    var nick = mpReadNick(); SB.pubJoin = code;
     p2pGuestMenu('正在連到' + (pubOf(code) || {}).n + '…');
     pjLoad().then(function () {
       if (!SB.on) return mpMenu('伺服器暫時連不上，公開伺服器現在不能用。（' + (SB.lastErr || '即時連線失敗') + '）');
@@ -7794,6 +7826,16 @@ if (typeof module !== 'undefined') module.exports = G;
   function srvDropIdle() {
     if (!g || !g.srv) return;
     Object.keys(MP.players || {}).forEach(function (u) { var q = MP.players[u]; if (u !== 'host' && q && q.f && !G.isHum(g, q.f)) { delete MP.players[u]; delete MP.facOf[u]; } });
+  }
+  /* 進公開伺服器時的連線畫面（不是「加入朋友的房間」那個） */
+  function sbJoinScreen(msg) {
+    var P = pubOf(SB.pubJoin) || { n: '伺服器' }, bad = /連不上|找不到|失敗|結束|不能|請稍後/.test(msg || '');
+    $('#mbody').innerHTML = '<div class="mtag">🌍 公開伺服器</div><h2 id="mtitle">' + esc(P.n) + '</h2>' +
+      '<p class="' + (bad ? 'warn' : 'mtext') + '">' + esc(msg || '正在進入伺服器…') + '</p>' +
+      (bad ? '' : '<p class="muted small">第一次進去要等幾秒，伺服器確認沒有人在主持時，會由你開服或接手。</p>') +
+      (bad ? '<button class="btn primary" data-act="sbpubgo" data-c="' + esc(SB.pubJoin || '') + '">再試一次</button> ' : '') +
+      '<button class="btn" data-act="mp">返回</button>';
+    $('#modal').hidden = false;
   }
 
   function pjLoad() {
@@ -8117,7 +8159,7 @@ if (typeof module !== 'undefined') module.exports = G;
     '<li><b>登陸作戰一年一次</b>：每支艦隊每年只能搶灘作戰一次，打輸退回船上的殘部也不能馬上再登陸；從已經行動過的地載上船的部隊，這支艦隊今年也不能搶灘（但可以在自己的地下船）。</li>' +
     '<li><b>伺服器房間與即時模式</b>：多人連線的 5 碼房間現在放在伺服器上，遊戲進度也存在伺服器。房主關掉遊戲，其他人會自動換一個人接手繼續；所有人都不在時，下次任何人輸入代碼就能接著玩。房主開房時可以把「時間流逝」設成即時（例如每 10 分鐘過一年）：大家隨時下指令，時間到自動進下一年，離開期間該過的年份下次開房時會一次補上（最多 12 年）；不在線的人國家照樣在，但不會動。遊戲中途有新朋友輸入代碼，可以挑一個還沒有人玩的國家加入。</li>' +
     '<li><b>伺服器的新手教學</b>：第一次進公開伺服器前，會先問你要不要做新手教學（在自己的單人遊戲裡，約 5 分鐘）。做完或選「我會玩了」之後會記在帳號上，不會再問。</li>' +
-    '<li><b>公開伺服器</b>：多人連線裡有「公開伺服器（第一服）」，不用約代碼，任何人隨時都能進。挑一個還沒有人選的國家，那個國家就是你的：別人不能再選，你下線了也會留給你。伺服器是白手起家：只有玩家的國家、沒有電腦國家，每人從首都開始。所有規則都用遊戲年份算：<br>・<b>一年多長</b>：最多 15 分鐘；開局前 50 年最多 5 分鐘；在線的人都按完「結束回合」、而且這一年已經過了 2 分鐘，就提早進下一年。<br>・<b>行動點可以存</b>：沒用完的會留到下一年，最多存 3 年份。<br>・<b>新手保護 12 年</b>：中途加入的人，12 年內不能被玩家打，也不能打玩家；加入時科技會補到其他玩家平均的 7 成，金幣、糧食補到平均的一半。<br>・<b>玩家之間</b>：宣戰要先送宣戰書，明年才開戰；停戰後至少 8 年不能再宣戰。打電腦不受影響。<br>・<b>閒置收回</b>：連續 48 年沒有下指令（只開著遊戲不算），國家會被收回給別人選；前 10 年會先提醒。<br>・<b>1453 年結算</b>：打到 1453 年就看分數排名，這一輪結束；之後再進入那一服就開新的一輪。</li>' +
+    '<li><b>公開伺服器</b>：多人連線裡有「公開伺服器（第一服）」，不用約代碼，任何人隨時都能進。挑一個還沒有人選的國家，那個國家就是你的：別人不能再選，你下線了也會留給你。伺服器是白手起家：只有玩家的國家、沒有電腦國家，每人從首都開始。所有規則都用遊戲年份算：<br>・<b>一年多長</b>：最多 15 分鐘；開局前 50 年最多 5 分鐘；在線的人都按完「結束回合」、而且這一年已經過了 2 分鐘，就提早進下一年。<br>・<b>行動點可以存</b>：沒用完的會留到下一年，最多存 3 年份。<br>・<b>新手保護</b>：剛加入的人 12 年內（或領地超過 30 塊就提早結束）不能被玩家打，也不能打玩家；加入時科技會補到其他玩家平均的 7 成，金幣、糧食補到平均的一半。<br>・<b>玩家之間</b>：宣戰要先送宣戰書，明年才開戰；停戰後至少 8 年不能再宣戰。打電腦不受影響。<br>・<b>閒置收回</b>：連續 48 年沒有下指令（只開著遊戲不算），國家會被收回給別人選；前 10 年會先提醒。<br>・<b>🏴 開拓令</b>：每年發 3 張（最多存 9 張），攻打旁邊的中立地時會先用開拓令，不花行動點；打仗、打別人的地還是用行動點。<br>・<b>👑 名城爭奪</b>：地圖上有 ' + '9' + ' 座名城（君士坦丁堡、耶路撒冷、羅馬、巴格達、開封、開羅、巴黎、撒馬爾罕、德里），有皇冠標記。玩家之間可以結盟（外交 → 同盟，對方同意才算），盟友算同一隊。<br>・<b>1453 年結算</b>：打到 1453 年，守住最多名城的同盟獲勝（一樣多就比分數），這一輪結束；之後再進入這一服就開新的一輪。</li>' +
     '<li><b>點地＝查看</b>：點別人的地或中立地只會顯示它的資料，不會自動出兵；面板上有「⚔ 從旁邊的某地出兵」按鈕，按了才會選好出兵。已經選了自己的地、再點旁邊的地，那塊地會變成出兵目標（箭頭）；同一塊再點一次，就改成只查看它。打不到的遠處只會提示你要先把部隊調到哪裡，不會自己幫你調兵扣行動點。</li>' +
     '<li><b>電腦會守首都</b>：首都或大城被你的大軍逼近時，電腦會從附近調兵回防、優先在那裡補兵；普通和困難難度下，首都告急還會緊急徵召民兵（每 4 回合一次），所以最好先削弱它周圍的部隊再攻城。</li>' +
     '<li><b>白手起家模式（多人連線限定）</b>：房主在多人房間裡的「開局領地」可以選「首都＋一圈」或「只有首都」。地圖上只有玩家選的國家，沒有電腦國家；每國一開始都只有這一點點地，其他地全部變成中立地；原本地圖上的城市變成有守軍的中立城，要自己一塊塊打下來，再蓋村莊、升級城市慢慢擴張。每國會多發 120 金、60 糧當起步資金。單人遊戲一律照歷史上的領土開局。</li>' +
@@ -8597,6 +8639,7 @@ if (typeof module !== 'undefined') module.exports = G;
       if (cty || p.L > 0) s += '<g transform="translate(0,-19) scale(1.25)">' + TOWER + '</g>';
       if (!o.demo && p.o === g.player && G.genAt(g, g.player, id)) s += '<g transform="translate(-17,-19)"><circle r="7" fill="#d2b04c" stroke="#2a2418" stroke-width="1.2"/><text y="3.4" font-size="9.5" text-anchor="middle" fill="#2a2418" font-weight="700">將</text></g>';
       if (g.p[id].o && G.CAPITAL[g.p[id].o] === id) s += '<circle r="33" fill="none" stroke="#ffd34d" stroke-width="3.2" stroke-dasharray="7 5" opacity=".95"/><polygon class="cap" points="' + STAR + '" transform="translate(20,-26) scale(2.3)"/>';
+      if (!o.demo && g.srv && G.FAMOUS_AT[id]) s += '<g pointer-events="none" transform="translate(-21,-25)"><circle r="10" fill="#2a1d05" stroke="#ffd34d" stroke-width="2"/><text y="5" font-size="13" text-anchor="middle">👑</text></g>';
       s += '<g class="pill"><rect class="pl" x="-15" y="-8" width="30" height="17" rx="3.5" style="fill:' + col2 + '"/>' +
         '<text class="tn" x="0" y="5" text-anchor="middle">' + (o.demo ? p.t : knownTroops(id)) + '</text></g>';
       if (!o.demo) {
@@ -9129,7 +9172,7 @@ if (typeof module !== 'undefined') module.exports = G;
     else if (o.reason === 'hegemony') why = F[o.winner].name + '佔領了 ' + G.WIN_P + ' 個以上的地塊，確立霸權。';
     else if (o.reason === 'culture') why = F[o.winner].name + '累積了足夠的文化，成為這個時代的燈塔。';
     else if (o.reason === 'settled') why = '你選擇在這裡結算本局。';
-    else if (o.reason === 'season') why = '這一服打到 1453 年，這一輪結束了！分數第一的玩家是' + F[o.winner].name + '。之後再進入這一服，就會開新的一輪。';
+    else if (o.reason === 'season') why = '這一服打到 1453 年，這一輪結束了！' + (o.fam && o.fam.m ? '守住最多名城的是' + o.fam.m.map(function (f) { return F[f].name; }).join('、') + (o.fam.m.length > 1 ? '同盟' : '') + '（' + o.fam.n + ' 座：' + (o.fam.cities || []).join('、') + '）。' : '分數第一的玩家是' + F[o.winner].name + '。') + '之後再進入這一服，就會開新的一輪。';
     else why = '遊戲結束。';
     var order = G.FIDS.slice().sort(function (a, b) { return o.scores[b] - o.scores[a]; });
     var rows = order.map(function (f, i) {
@@ -10610,7 +10653,7 @@ if (typeof module !== 'undefined') module.exports = G;
   (function () {
     var m = /[#&]room=([A-Za-z]{5})/.exec(location.hash || ''); if (!m) return;
     try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
-    setTimeout(function () { if (!mpNick()) mpSetNick('玩家' + String(Math.floor(Math.random() * 90) + 10)); pjJoin(m[1], mpNick()); }, 400);
+    setTimeout(function () { if (!mpNick()) mpSetNick('玩家' + String(Math.floor(Math.random() * 90) + 10)); if (pubOf(m[1].toUpperCase())) SB.pubJoin = m[1].toUpperCase(); pjJoin(m[1], mpNick()); }, 400);
   })();
   /* 朋友點開邀請連結（#join=CR1:...）：自動帶入並產生回覆碼 */
   (function () {
