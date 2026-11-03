@@ -434,7 +434,7 @@ button{font:inherit;color:inherit}
     <div class="startmap" id="startmap" aria-hidden="true"></div>
     <div class="sc-in gx">
       <p class="eyebrow">MEDIEVAL: WORLD DOMINATION · 1096 AD</p>
-      <p class="muted small" id="verline">版本 v239 · 2026-11-04 · 開始畫面：多人連線移到最上面</p>
+      <p class="muted small" id="verline">版本 v240 · 2026-11-04 · 公開伺服器和朋友房間分成兩個入口</p>
       <h1>中世紀：世界霸權</h1>
       <p class="lead">1095 年，教宗在克萊蒙發出號召，整個歐洲動了起來。選一個勢力（共 121 個），再從該文明歷史上的君主裡挑一位登基；在四千多個六角格地塊的世界裡，與基督教世界、伊斯蘭世界與即將到來的蒙古鐵騎周旋。可以結盟借道、派商隊與商船貿易、派密探、遠征遠方、研究科技升級時代、替自己的城市取名。沒有回合上限，直到有人稱霸，或你失去一切。</p>
       <div id="startopts"></div>
@@ -7109,15 +7109,26 @@ if (typeof module !== 'undefined') module.exports = G;
   }
   function mpMenu(msg) {
     SB.pubJoin = '';
-    $('#mbody').innerHTML = '<div class="mtag">多人連線</div><h2 id="mtitle">同時多人對戰</h2>' +
+    $('#mbody').innerHTML = '<div class="mtag">👥 和朋友玩</div><h2 id="mtitle">開房間跟朋友玩</h2>' +
       '<p class="mtext">2–6 位玩家各選一個勢力，同一年內同時行動；所有人按「結束回合」後 AI 才行動（也可以設成即時：時間到自動過一年）。用 5 碼房間代碼開房時，進度會存到伺服器，房主離開會自動換人接手。</p>' +
       (msg ? '<p class="warn">' + esc(msg) + '</p>' : '') +
       '<div class="flist"><b>你的暱稱</b><input id="mpnick" maxlength="12" value="' + esc(mpNick()) + '" placeholder="暱稱" style="flex:1;min-width:0;padding:10px;border-radius:8px;border:1px solid var(--line);background:rgba(0,0,0,.25);color:inherit;font:inherit"></div>' +
       (p2pOk() ? '<div class="gh" style="margin:8px 0 4px">免登入連線（推薦，朋友不需要 Claude 帳號）</div>' : '<p class="warn">免登入直連在 Claude 的頁面裡被瀏覽器擋住了（缺少 WebRTC），目前做不到。只能用下面「登入房間」，朋友需要被你邀請並登入 Claude。</p>') +
-      (p2pOk() ? '<div class="choices">' + '</div>' + sbPubList() + mpSavedList() + '<div class="choices">' + '<button class="choice" data-act="p2phost"><span class="cl">我是房主</span><span class="ch">產生邀請碼，用 LINE 傳給朋友</span></button>' +
+      (p2pOk() ? '<div class="choices">' + '</div>' + mpSavedList() + '<div class="choices">' + '<button class="choice" data-act="p2phost"><span class="cl">我是房主</span><span class="ch">產生邀請碼，用 LINE 傳給朋友</span></button>' +
       '<button class="choice" data-act="p2pguest"><span class="cl">我是朋友</span><span class="ch">貼上房主給的邀請碼</span></button></div>' : '') +
       '<details' + (p2pOk() ? '' : ' open') + ' style="margin-top:12px"><summary class="muted small">用 Claude 登入的房間代碼（進階，朋友要被邀請並登入）</summary><div class="choices" style="margin-top:8px"><button class="choice" data-act="mpcreate"><span class="cl">建立登入房間</span><span class="ch">朋友需要登入 Claude 並有 Contributor 權限</span></button>' +
       '<div class="flist"><input id="mpcode" maxlength="8" autocapitalize="off" autocomplete="off" placeholder="房間代碼" style="flex:1;min-width:0;padding:10px;border-radius:8px;border:1px solid var(--line);background:rgba(0,0,0,.25);color:inherit;font:inherit"><button class="btn primary" data-act="mpjoin">加入</button></div></div></details>' +
+      '<button class="btn" style="margin-top:10px" data-act="closemodal">關閉</button>';
+    $('#modal').hidden = false;
+  }
+  /* 公開伺服器：自己一個畫面 */
+  function srvMenu(msg) {
+    SB.pubJoin = '';
+    $('#mbody').innerHTML = '<div class="mtag">🌍 公開伺服器</div><h2 id="mtitle">公開伺服器</h2>' +
+      '<p class="mtext">不用約人，隨時進出。所有玩家在同一張世界地圖上即時擴張，國家選了就是你的，下線也會保留。</p>' +
+      (msg ? '<p class="warn">' + esc(msg) + '</p>' : '') +
+      '<div class="flist"><b>你的暱稱</b><input id="mpnick" maxlength="12" value="' + esc(mpNick()) + '" placeholder="暱稱" style="flex:1;min-width:0;padding:10px;border-radius:8px;border:1px solid var(--line);background:rgba(0,0,0,.25);color:inherit;font:inherit"></div>' +
+      (p2pOk() ? sbPubList().replace(/^<div class="gh"[^>]*>[^<]*<\/div>/, '') : '<p class="warn">這個畫面不能連線（瀏覽器擋住了）。請用安裝到桌面的版本，或用 Chrome 打開遊戲網址。</p>') +
       '<button class="btn" style="margin-top:10px" data-act="closemodal">關閉</button>';
     $('#modal').hidden = false;
     if (p2pOk()) try { sbPubStatus(); } catch (e) {}
@@ -7398,7 +7409,7 @@ if (typeof module !== 'undefined') module.exports = G;
   }
   function mpSavedWhen(s) { try { var d = new Date(s.t); return (d.getMonth() + 1) + '/' + d.getDate() + ' ' + d.getHours() + ':' + ('0' + d.getMinutes()).slice(-2); } catch (e) { return ''; } }
   function mpSavedList() {
-    var a = mpSavedAll(); if (!a.length) return '';
+    var a = mpSavedAll().filter(function (x) { return !(x.s && x.s.code && pubOf(x.s.code)); }); if (!a.length) return '';
     return '<div class="gh" style="margin:6px 0 4px">繼續之前的多人遊戲（最多存 ' + MPN + ' 局）</div>' + a.map(function (x) {
       return '<div class="flist" style="align-items:stretch;gap:6px;margin-bottom:6px"><button class="choice" style="flex:1;min-width:0" data-act="p2presume" data-k="' + x.k + '"><span class="cl">' + esc(mpSavedLine(x.s).split(' · 朋友：')[1] ? '和 ' + mpSavedLine(x.s).split(' · 朋友：')[1] : '多人遊戲') + '</span><span class="ch">' + esc(mpSavedLine(x.s).split(' · 朋友：')[0]) + (x.s.code ? ' · 房間代碼 ' + esc(x.s.code) : '') + ' · 存於 ' + mpSavedWhen(x.s) + '</span></button>' +
         '<button class="btn" style="flex:0 0 auto;padding:8px 10px" data-act="p2pdel" data-k="' + x.k + '" aria-label="刪除這個存檔">🗑</button></div>';
@@ -8109,7 +8120,7 @@ if (typeof module !== 'undefined') module.exports = G;
     $('#mbody').innerHTML = '<div class="mtag">公開伺服器</div><h2 id="mtitle">第一次玩嗎？</h2><p class="mtext">伺服器上的時間會一直往前走，還有其他玩家。建議先花大約 5 分鐘做完<b>新手教學</b>：在自己的單人遊戲裡，手指會一步步教你選地、出兵、徵兵、結束回合。做完會記在你的帳號上，之後就不會再問。</p>' +
       '<div class="choices"><button class="choice" data-act="tutgo"><span class="cl">📘 先做新手教學</span><span class="ch">單人練習，不影響伺服器上的國家</span></button>' +
       '<button class="choice" data-act="sbpubgo" data-c="' + code + '"><span class="cl">我會玩了，直接進伺服器</span><span class="ch">之後也可以從開始畫面選「簡單」難度重新學</span></button></div>' +
-      '<button class="btn" data-act="mp">返回</button>';
+      '<button class="btn" data-act="srvmenu">返回</button>';
     $('#modal').hidden = false;
   }
   function tutGo() {
@@ -8122,10 +8133,10 @@ if (typeof module !== 'undefined') module.exports = G;
     var nick = mpReadNick(); SB.pubJoin = code;
     p2pGuestMenu('正在連到' + (pubOf(code) || {}).n + '…');
     pjLoad().then(function () {
-      if (!SB.on) return mpMenu('伺服器暫時連不上，公開伺服器現在不能用。（' + (SB.lastErr || '即時連線失敗') + '）');
+      if (!SB.on) return srvMenu('伺服器暫時連不上，公開伺服器現在不能用。（' + (SB.lastErr || '即時連線失敗') + '）');
       if (!skipTut && !tutIsDone()) return sbTutAsk(code);
       pjJoin(code, nick);
-    }, function () { mpMenu('伺服器暫時連不上，公開伺服器現在不能用。（' + (SB.lastErr || '載入失敗') + '）'); });
+    }, function () { srvMenu('伺服器暫時連不上，公開伺服器現在不能用。（' + (SB.lastErr || '載入失敗') + '）'); });
   }
   /* 公開伺服器還沒開服（或開服的人沒按開始就離開）：由你開服 */
   function sbCreatePub(code, nick, row) {
@@ -8162,7 +8173,7 @@ if (typeof module !== 'undefined') module.exports = G;
       '<p class="' + (bad ? 'warn' : 'mtext') + '">' + esc(msg || '正在進入伺服器…') + '</p>' +
       (bad ? '' : '<p class="muted small">第一次進去要等幾秒，伺服器確認沒有人在主持時，會由你開服或接手。</p>') +
       (bad ? '<button class="btn primary" data-act="sbpubgo" data-c="' + esc(SB.pubJoin || '') + '">再試一次</button> ' : '') +
-      '<button class="btn" data-act="mp">返回</button>';
+      '<button class="btn" data-act="srvmenu">返回</button>';
     $('#modal').hidden = false;
   }
 
@@ -9310,7 +9321,8 @@ if (typeof module !== 'undefined') module.exports = G;
     c.hidden = false;
     renderOpts();
     try { var so = $('#startopts'); if (so && c.nextElementSibling !== so) so.parentNode.insertBefore(c, so); } catch (e) {}
-    c.innerHTML = '<div class="mphero"><button class="mpbig" data-act="mp"><span class="mi">🌍</span><span class="mt"><b>多人連線</b><small>進公開伺服器，跟大家在同一張地圖上即時搶地盤；也可以開房間跟朋友玩</small></span><span class="ma">›</span></button>' +
+    c.innerHTML = '<div class="mphero"><button class="mpbig" data-act="srvmenu"><span class="mi">🌍</span><span class="mt"><b>公開伺服器</b><small>不用約人，隨時進出，跟大家在同一張地圖上即時搶地盤</small></span><span class="ma">›</span></button>' +
+      '<button class="spbig" data-act="mp"><span class="mi">👥</span><span class="mt"><b>和朋友玩</b><small>開房間，把邀請碼傳給朋友，2～6 人一起玩</small></span><span class="ma">›</span></button>' +
       '<button class="spbig" data-act="spgo"><span class="mi">⚔️</span><span class="mt"><b>單人遊戲</b><small>往下選難度和國家，跟電腦對戰</small></span><span class="ma">⌄</span></button></div>';
     $('#rules-start').innerHTML = RULES;
     $('#rules-game').innerHTML = '<div class="row" id="fsrow">' + fsChips() + '</div><div class="row"><button class="chip" data-act="tutmenu">📘 打開教學選單（科技、外交、貿易、海戰…）</button></div>' + RULES;
@@ -10385,7 +10397,7 @@ if (typeof module !== 'undefined') module.exports = G;
     var code = PUBS[0].code;
     $('#mbody').innerHTML = '<div class="mtag">🛠 管理員</div><h2 id="mtitle">伺服器管理</h2><div class="adtabs">' +
       [['rep', '檢舉'], ['pl', '玩家'], ['srv', '伺服器']].map(function (x) { return '<button class="btn' + (x[0] === tab ? ' primary' : '') + '" data-act="adtab" data-t="' + x[0] + '">' + x[1] + '</button>'; }).join('') +
-      '</div><div id="adbody" class="muted small">讀取中…</div><button class="btn" data-act="mp" style="margin-top:10px">返回</button>';
+      '</div><div id="adbody" class="muted small">讀取中…</div><button class="btn" data-act="srvmenu" style="margin-top:10px">返回</button>';
     $('#modal').hidden = false;
     var body = function (h) { var b = $('#adbody'); if (b) b.innerHTML = h; };
     if (tab === 'rep') {
@@ -10470,7 +10482,7 @@ if (typeof module !== 'undefined') module.exports = G;
   function adKicked(until) {
     SB.kicked = until;
     try { mpLeave(); } catch (e) {}
-    $('#mbody').innerHTML = '<div class="mtag">伺服器</div><h2 id="mtitle">你被請出伺服器了</h2><p class="mtext">管理員暫時禁止你進入這個伺服器，到 ' + esc(adTime(until)) + ' 為止。你的國家還在，時間到了就能回來。</p><button class="btn primary" data-act="mp">好</button>';
+    $('#mbody').innerHTML = '<div class="mtag">伺服器</div><h2 id="mtitle">你被請出伺服器了</h2><p class="mtext">管理員暫時禁止你進入這個伺服器，到 ' + esc(adTime(until)) + ' 為止。你的國家還在，時間到了就能回來。</p><button class="btn primary" data-act="srvmenu">好</button>';
     $('#modal').hidden = false;
   }
   /* ---------- 名人堂 ---------- */
@@ -10483,7 +10495,7 @@ if (typeof module !== 'undefined') module.exports = G;
     SB.cl.from('mw_fame').insert({ code: SB.hostCode, round: g.srv.rid || adNow(), data: data }).then(function () {}, function () {});
   }
   function adFame() {
-    $('#mbody').innerHTML = '<div class="mtag">🏆 名人堂</div><h2 id="mtitle">歷屆冠軍</h2><div id="adfame" class="muted small">讀取中…</div><button class="btn" data-act="mp" style="margin-top:10px">返回</button>';
+    $('#mbody').innerHTML = '<div class="mtag">🏆 名人堂</div><h2 id="mtitle">歷屆冠軍</h2><div id="adfame" class="muted small">讀取中…</div><button class="btn" data-act="srvmenu" style="margin-top:10px">返回</button>';
     $('#modal').hidden = false;
     sbLoad().then(sbAuth).then(function (cl) { return cl.from('mw_fame').select('*').order('created_at', { ascending: false }).limit(20); }).then(function (r) {
       var el = $('#adfame'); if (!el) return;
@@ -10596,7 +10608,7 @@ if (typeof module !== 'undefined') module.exports = G;
       (ACC.msg ? '<p class="warn">' + esc(ACC.msg) + '</p>' : '') + '<div style="margin-top:8px"><button class="btn primary" data-act="accsend"' + (ACC.busy ? ' disabled' : '') + '>' + (ACC.busy ? '寄送中…' : '寄出') + '</button> <button class="btn" data-act="accstep" data-m="idle">取消</button></div>';
     if (SB.uid) h += puBox();
     h += '<details style="margin-top:14px"><summary class="muted small">帳號 ID（設定管理員用）</summary><p class="small" style="word-break:break-all;user-select:text;-webkit-user-select:text">' + esc(SB.uid || '（還沒登入）') + '</p><button class="btn" data-act="sbcopyid">複製 ID</button></details>' +
-      '<button class="btn" data-act="mp" style="margin-top:10px">返回</button>';
+      '<button class="btn" data-act="srvmenu" style="margin-top:10px">返回</button>';
     $('#mbody').innerHTML = h; $('#modal').hidden = false; try { puRender(); } catch (e) {}
   }
   function accOpen() { ACC.msg = ''; if (ACC.step !== 'sent') ACC.step = 'idle'; sbLoad().then(sbAuth).then(function () { accRender(); }, function () { accRender(); }); accRender(); }
@@ -11785,6 +11797,7 @@ if (typeof module !== 'undefined') module.exports = G;
     if (a === 'genpick') { G.genChoose(g, b.getAttribute('data-f'), +b.getAttribute('data-i')); $('#modal').hidden = true; beginTurn(); return; }
     if (a === 'genmove') return afterAction(G.P.genAssign(g, +b.getAttribute('data-gi'), ui.sel));
     if (a === 'mp') return mpMenu();
+    if (a === 'srvmenu') { mpReadNick(); return srvMenu(); }
     if (a === 'mpcreate') return mpCreate();
     if (a === 'mpjoin') return mpJoin();
     if (a === 'mpstart') return mpHostStart();
