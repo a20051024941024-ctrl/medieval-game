@@ -434,7 +434,7 @@ button{font:inherit;color:inherit}
     <div class="startmap" id="startmap" aria-hidden="true"></div>
     <div class="sc-in gx">
       <p class="eyebrow">MEDIEVAL: WORLD DOMINATION · 1096 AD</p>
-      <p class="muted small" id="verline">版本 v229 · 2026-11-03 · 開拓令、新手保護看領地、名城爭奪；伺服器專屬連線畫面</p>
+      <p class="muted small" id="verline">版本 v230 · 2026-11-03 · 伺服器全服事件（十字軍、蒙古崛起、海盜潮、黑死病）與平衡調整</p>
       <h1>中世紀：世界霸權</h1>
       <p class="lead">1095 年，教宗在克萊蒙發出號召，整個歐洲動了起來。選一個勢力（共 121 個），再從該文明歷史上的君主裡挑一位登基；在四千多個六角格地塊的世界裡，與基督教世界、伊斯蘭世界與即將到來的蒙古鐵騎周旋。可以結盟借道、派商隊與商船貿易、派密探、遠征遠方、研究科技升級時代、替自己的城市取名。沒有回合上限，直到有人稱霸，或你失去一切。</p>
       <div id="startopts"></div>
@@ -2968,6 +2968,7 @@ function refreshAlive(g) {
 function conquer(g, f, id, left, prev, mix) {
   var p = g.p[id], fs = g.fac[f], loot = 0;
   if (prev) (g.lastHit || (g.lastHit = {}))[prev] = f;
+  if (g.srv && prev && g.npc && g.npc[prev] && isHum(g, f)) { fs.gold += 25; (g.mk || (g.mk = {}))[f] = ((g.mk && g.mk[f]) | 0) + 1; }
   addRx(g, f, CITY[id] ? 4 : 2);
   if (CITY[id] && (isHum(g, f) || (prev && isHum(g, prev)))) { var big = CAPITAL[prev] === id || CITY[id].lv >= 3; if (big || isHum(g, f) && CITY[id].lv >= 2) { if (isHum(g, f)) chron(g, f, '攻下' + placeName(id) + (prev ? '（原屬' + nm(prev) + '）' : '') + '。'); if (prev && isHum(g, prev)) chron(g, prev, placeName(id) + '被' + nm(f) + '攻陷。'); } }
   if (prev && prev !== f) { infAdd(g, f, CAPITAL[prev] === id ? 8 : CITY[id] ? 3 : 1); if (CAPITAL[prev] === id && (ownedTotal(g, prev) >= 15 || isHum(g, f))) wlog(g, nm(f) + '攻下了' + nm(prev) + '的首都' + placeName(id) + '。'); }
@@ -2983,7 +2984,9 @@ function conquer(g, f, id, left, prev, mix) {
   }
   return loot;
 }
+var g_npcOnly = 0;
 function moveTroops(g, f, from, to, send) {
+  if (g_npcOnly && g.p[to] && !g.p[to].o) return fail('只打玩家。');
   var s = g.p[from], t = g.p[to];
   if (!s || !t || s.o !== f) return fail('出發地不是你的領地。');
   if (s.acted) return fail('這支部隊本回合已經行動過。');
@@ -5171,7 +5174,7 @@ function finish(g, reason, winner) {
 function checkEnd(g) {
   refreshAlive(g);
   if (!humansOf(g).some(function (h) { return g.fac[h].alive; })) return finish(g, 'eliminated', null);
-  for (var i = 0; i < FIDS.length; i++) if (FIDS[i] !== 'mongol' && g.fac[FIDS[i]].alive && !lordOf(g, FIDS[i]) && ownedTotal(g, FIDS[i]) >= WIN_P) { g.heg = g.heg || {}; if (!g.heg[FIDS[i]]) { g.heg[FIDS[i]] = g.turn; g.hegPending = FIDS[i]; } }
+  if (!g.srv) for (var i = 0; i < FIDS.length; i++) if (FIDS[i] !== 'mongol' && g.fac[FIDS[i]].alive && !lordOf(g, FIDS[i]) && ownedTotal(g, FIDS[i]) >= WIN_P) { g.heg = g.heg || {}; if (!g.heg[FIDS[i]]) { g.heg[FIDS[i]] = g.turn; g.hegPending = FIDS[i]; } }
   return null;
 }
 
@@ -6306,7 +6309,7 @@ function endTurn0(g) {
   merchantTick(g);
   caravanTick(g);
   FIDS.forEach(function (f) { if (g.fac[f].alive) { settle(g, f); addRx(g, f, 0.4 + techFx(g, f, 'rx')); } });
-  byzTick(g); FIDS.forEach(function (f) { if (!g.noAI && !isHum(g, f) && g.fac[f].alive) aiTurn(g, f); });
+  byzTick(g); FIDS.forEach(function (f) { if ((!g.noAI || (g.npc && g.npc[f])) && !isHum(g, f) && g.fac[f].alive) { if (g.srv && g.npc && g.npc[f]) { g_npcOnly = 1; try { aiTurn(g, f); } finally { g_npcOnly = 0; } } else aiTurn(g, f); } });
   _bc = {};
   FIDS.forEach(function (f) { if (!isHum(g, f) && g.fac[f].alive) aiDiplomacy(g, f); });
   _bc = null;
@@ -6314,7 +6317,7 @@ function endTurn0(g) {
   dipTick(g);
   blockCalc(g);
   siegeTick(g);
-  if (g.turn > 8 && g.turn % 3 === 0) {
+  if (g.turn > 8 && g.turn % 3 === 0 && !g.srv) {
     LANDIDS.forEach(function (id) {
       var p = g.p[id];
       if (!p.o && p.t < 3 + (CITY[id] ? CITY[id].lv : 0) + (NEUTRAL_EXTRA[id] || 0) + 3) p.t++;
@@ -6339,7 +6342,7 @@ function endTurn0(g) {
   if (typeof armyGoTick === 'function') armyGoTick(g);
   statSample(g);
   msnTick(g);
-  var cw = culTick(g); if (cw) return finish(g, 'culture', cw);
+  var cw = culTick(g); if (cw && !g.srv) return finish(g, 'culture', cw);
   return null;
 }
 
@@ -6522,8 +6525,77 @@ function srvCatchUp(g, f) {
   var c = CAPITAL[f]; if (c != null && g.p[c] && g.p[c].o === f) g.p[c].t = Math.max(g.p[c].t, 20);
 }
 /* 每年：宣戰書生效、閒置收回 */
+/* ===== 伺服器全服事件 ===== */
+function srvAnn(g, text, big) {
+  (g.ann || (g.ann = [])).push({ t: g.turn, text: text, big: !!big }); if (g.ann.length > 40) g.ann.shift();
+  logMsg(g, text, 'war'); try { chronAll(g, text.replace(/^[^\u4e00-\u9fff]+/, '')); } catch (e) {}
+}
+function srvEvents(g) {
+  var y = year(g), ev = g.ev || (g.ev = {}), hum = humansOf(g).filter(function (f) { return g.fac[f] && g.fac[f].alive; });
+  /* 十字軍號召（1147、1189）：基督教玩家得到援軍；8 年內耶路撒冷附近的基督教、伊斯蘭玩家每年有增援 */
+  [['cru1', 1147, '第二次十字軍'], ['cru2', 1189, '第三次十字軍']].forEach(function (c) {
+    if (ev[c[0]] || y < c[1]) return; ev[c[0]] = 1; g.cru = { until: g.turn + 8 };
+    hum.forEach(function (f) { var r = FACTIONS[f].rel; if (r === 'cath' || r === 'orth') { var cp = CAPITAL[f]; if (g.p[cp] && g.p[cp].o === f) g.p[cp].t += 12; g.fac[f].gold += 150; } });
+    srvAnn(g, '⚔ ' + y + ' 年，教宗發起' + c[2] + '！基督教國家得到援軍（首都 +12 兵、+150 金幣）。之後 8 年，在耶路撒冷附近有領地的基督教與伊斯蘭玩家，每年都有增援。', true);
+  });
+  if (g.cru && g.turn <= g.cru.until) {
+    var jer = cityHex('耶路撒冷');
+    if (jer != null) hum.forEach(function (f) {
+      var r = FACTIONS[f].rel; if (!(r === 'cath' || r === 'orth' || r === 'isl')) return;
+      var near = owned(g, f).filter(function (id) { return hexDist(id, jer) <= 10; }).sort(function (a, b) { return hexDist(a, jer) - hexDist(b, jer); }).slice(0, 3);
+      near.forEach(function (id) { g.p[id].t += r === 'isl' ? 3 : 2; });
+    });
+  }
+  /* 蒙古崛起（1206）：草原出現蒙古大軍，向所有玩家宣戰 */
+  if (!ev.mongol && y >= 1206 && g.fac.mongol) {
+    var mc = CAPITAL.mongol, free = function (id) { return !g.p[id].o && !BLOCKED[id] && LAND[id]; };
+    var cand = LANDIDS.filter(function (id) { return free(id) && hexDist(id, mc) <= 7; });
+    if (cand.length < 12) cand = LANDIDS.filter(free);
+    cand = cand.sort(function (a, b) { return hexDist(a, mc) - hexDist(b, mc); }).slice(0, 40);
+    if (cand.length) {
+      ev.mongol = 1; (g.npc || (g.npc = {})).mongol = 1;
+      var avgT = 0; hum.forEach(function (f) { owned(g, f).forEach(function (id) { avgT += g.p[id].t; }); }); avgT = hum.length ? avgT / hum.length : 0;
+      var extra = Math.min(8, hum.length) + Math.min(22, Math.round(avgT / 60));
+      cand.forEach(function (id, i) { var p = g.p[id]; p.o = 'mongol'; delete p.fv; p.ar = []; p.t = 8 + extra + 2 * (p.L || 0) + (i === 0 ? 25 : 0); setMix(p, [0.25, 0.25, 0.5, 0, 0]); });
+      _own = null;
+      var fs = g.fac.mongol; fs.alive = true; fs.everAlive = true; fs.gold = 500; fs.food = 400; fs.morale = 90;
+      hum.forEach(function (f) { declareWar(g, 'mongol', f, true); });
+      srvAnn(g, '🌪 ' + y + ' 年，成吉思汗統一蒙古諸部！蒙古鐵騎從草原湧出，向所有國家宣戰。大家一起抵抗：攻下蒙古的地，每塊賞 25 金幣；把蒙古消滅，全服玩家都有獎勵。', true);
+    }
+  }
+  if (ev.mongol === 1 && g.fac.mongol) {
+    if (g.fac.mongol.alive) {
+      if (y <= 1240) { var mo = owned(g, 'mongol').filter(function (id) { return NB[id].some(function (n) { return g.p[n].o && g.p[n].o !== 'mongol'; }); }); for (var k = 0; k < 8 && mo.length; k++) g.p[mo[rint(mo.length)]].t += 3; }
+      hum.forEach(function (f) { if (rel(g, 'mongol', f).state !== 'war' && !(rel(g, 'mongol', f).truce > 0)) declareWar(g, 'mongol', f, true); });
+      if (!ev.msplit && y >= 1260) { ev.msplit = 1; owned(g, 'mongol').forEach(function (id) { g.p[id].t = Math.max(1, Math.round(g.p[id].t * 0.5)); }); srvAnn(g, '🌪 1260 年，蒙哥大汗死後，蒙古帝國分裂成四大汗國！蒙古各地兵力減半，現在是反攻的好機會。', true); }
+    } else {
+      ev.mongol = 2; var mk = g.mk || {}, top = null;
+      hum.forEach(function (f) { g.fac[f].gold += 300; g.fac[f].morale = clamp(g.fac[f].morale + 5, 0, 100); if ((mk[f] | 0) > 0 && (top === null || mk[f] > mk[top])) top = f; });
+      if (top) g.fac[top].gold += 300;
+      srvAnn(g, '🏆 蒙古被消滅了！全服玩家各得 300 金幣、民心 +5。' + (top ? '攻下最多蒙古領地的是' + nm(top) + '（' + mk[top] + ' 塊），再加 300 金幣。' : ''), true);
+    }
+  }
+  /* 海盜潮（1250、1380）：海盜艦隊出現在每位玩家的港口外 */
+  [['pir1', 1250], ['pir2', 1380]].forEach(function (c) {
+    if (ev[c[0]] || y < c[1]) return; ev[c[0]] = 1; var np = 0, fm = fmap(g);
+    hum.forEach(function (f) {
+      var ports = owned(g, f).filter(function (id) { return CITY[id] && CITY[id].port; }).slice(0, 3);
+      ports.forEach(function (id) { var hs = SEAN[id].filter(function (h) { return !fm[h]; }); if (hs.length) { fadd(g, 'pir', hs[rint(hs.length)], 3 + rint(3)); np++; fm = fmap(g); } });
+    });
+    if (np) srvAnn(g, '🏴‍☠️ ' + y + ' 年，海盜潮來襲！' + np + ' 支海盜艦隊出現在各國港口外，會封鎖港口、擊沉船隻。派艦隊剿滅每支可得賞金。', true);
+  });
+  /* 黑死病（1347–1350） */
+  if (!ev.plague && y >= 1347) {
+    ev.plague = 1; g.plagueUntil = g.turn + 3;
+    FIDS.forEach(function (f) { if (!g.fac[f] || !g.fac[f].alive) return; owned(g, f).forEach(function (id) { var p = g.p[id], b = p.b || [], k = (b.indexOf('gr') >= 0 || b.indexOf('ch') >= 0) ? 0.85 : 0.7; p.t = Math.max(1, Math.round(p.t * k)); }); g.fac[f].morale = clamp(g.fac[f].morale - 8, 0, 100); });
+    srvAnn(g, '💀 ' + y + ' 年，黑死病橫掃世界！各地守軍大減（有糧倉或教堂的地損失減半），民心 −8。之後三年疫情還會持續。', true);
+  } else if (ev.plague === 1 && g.plagueUntil && g.turn <= g.plagueUntil) {
+    FIDS.forEach(function (f) { if (!g.fac[f] || !g.fac[f].alive) return; owned(g, f).forEach(function (id) { var p = g.p[id], b = p.b || []; if (b.indexOf('gr') < 0 && b.indexOf('ch') < 0) p.t = Math.max(1, Math.round(p.t * 0.92)); }); });
+  }
+}
 function srvTick(g) {
   if (!g.srv) return;
+  try { srvEvents(g); } catch (e) {}
   var tk = g.tok || (g.tok = {}); humansOf(g).forEach(function (f) { tk[f] = Math.min(SRV_TOK_MAX, (tk[f] | 0) + SRV_TOK); });
   (g.pw || []).slice().forEach(function (w) {
     if (w.t > g.turn) return;
@@ -6603,9 +6675,14 @@ function mpMirror(m, me) {
   var m0 = P.move;
   P.move = function (g, from, to, ratio) {
     var f = g.player, t = g.p[to];
-    if (g.srv && t && !t.o && LAND[to] && ((g.tok || {})[f] | 0) > 0) {
+    if (g.srv && t && !t.o && LAND[to] && !BLOCKED[to] && ((g.tok || {})[f] | 0) > 0) {
       if (g.over) return fail('遊戲已結束。');
       if (!g.evResolved) return fail('請先處理事件。');
+      var s0 = g.p[from];
+      if (s0 && s0.o === f && NB[from].indexOf(to) >= 0 && (t.L | 0) <= 1 && !(CITY[to] && CITY[to].lv >= 2) && !(typeof FAMOUS_AT !== 'undefined' && FAMOUS_AT[to])) {
+        conquer(g, f, to, 1, null, mixOf(g, from)); g.tok[f]--; refreshAlive(g);
+        return good('🏴 用開拓令佔領了' + placeName(to) + '（空地或小村莊不用打仗、不花行動點，還剩 ' + g.tok[f] + ' 張）。', { moved: true });
+      }
       var r; g_rush = 1; try { r = moveTroops(g, f, from, to, sendCount(g, from, ratio)); } finally { g_rush = 0; }
       if (r.ok) { g.tok[f]--; r.msg = '🏴 用了一張開拓令（不花行動點，還剩 ' + g.tok[f] + ' 張）。' + (r.msg || ''); }
       return r;
@@ -6970,7 +7047,7 @@ if (typeof module !== 'undefined') module.exports = G;
     var resumed = !!MP.resG;
     if (resumed) { g = MP.resG; MP.resG = null; G.mpReassign(g, hostF, guests); g.evResolved = true; if (MP.tick > 0) g.rt = { tick: MP.tick, next: (g.rt && g.rt.next > Date.now()) ? g.rt.next : Date.now() + MP.tick * 60000 }; }
     else { g = G.newGame(hostF, DIFF); g.noCul = !CULON; if (STARTM) G.applyStartMode(g, STARTM, [hostF].concat(guests)); G.mpInit(g, guests); if (MP.tick > 0) g.rt = { tick: MP.tick, next: Date.now() + MP.tick * 60000 }; }
-    if (pubP && !resumed) { g.srv = { t0: g.turn, endY: 1453 }; g.rt = { tick: pubP.tick, early: 5, min: 2 }; rtSched(); g.prot = {}; g.tok = {}; G.humansOf(g).forEach(function (f) { g.prot[f] = g.turn + 12; g.tok[f] = 3; }); }
+    if (pubP && !resumed) { g.srv = { t0: g.turn, endY: 1453 }; g.rt = { tick: pubP.tick, early: 5, min: 2 }; rtSched(); g.prot = {}; g.tok = {}; g.noCul = true; var hm0 = G.humansOf(g); hm0.forEach(function (f) { g.prot[f] = g.turn + 12; g.tok[f] = 3; hm0.forEach(function (x) { if (x !== f) { var r0 = G.rel(g, f, x); if (r0.state === 'war') { r0.state = 'peace'; r0.warT = 0; } } }); }); }
     if (pubP) { STARTM = smS; MP.tick = tkS; }
     enterGame();
     MP.dirty = true;
@@ -7171,6 +7248,10 @@ if (typeof module !== 'undefined') module.exports = G;
   }
   function mpApply(st) {
     var first = !MP.on, prevTurn = g ? g.turn : 0;
+    if (MP.me && st.hs && !st.hs[MP.me] && st.host !== MP.me && !MP.spec && MP.on) {
+      if (!MP.lostNation) { MP.lostNation = true; $('#mbody').innerHTML = '<div class="mtag">伺服器</div><h2 id="mtitle">你的國家被收回了</h2><p class="mtext">你的國家太久沒有下指令（連續 48 年），已經被收回，其他人可以選它了。你可以重新挑一個還沒有人玩的國家。</p><button class="btn primary" data-act="sbrepick">重新選一個國家</button> <button class="btn" data-act="mpleave">離開</button>'; $('#modal').hidden = false; }
+      return;
+    }
     var m = G.mpMirror(st, MP.me);
     if (first) {
       MP.sbPicking = false;
@@ -7752,7 +7833,7 @@ if (typeof module !== 'undefined') module.exports = G;
   function sbPubList() {
     return '<div class="gh" style="margin:8px 0 4px">🌍 公開伺服器（隨時進出，國家選了就是你的）</div><p id="sbstat" class="muted small" style="margin:0 0 4px">伺服器：檢查中…</p><div class="choices">' + PUBS.map(function (p) {
       return '<button class="choice" data-act="sbpub" data-c="' + p.code + '"><span class="cl">' + p.n + '</span><span class="ch">' + esc(p.d) + '<br><span id="sbps-' + p.code + '" class="muted">查詢中…</span></span></button>';
-    }).join('') + '</div>';
+    }).join('') + '</div><button class="btn" data-act="tutgo" style="margin:2px 0 8px">📘 新手教學（單人練習，隨時可以重看）</button>';
   }
   function sbPubStatus() {
     sbLoad().then(sbAuth).then(function (cl) {
@@ -8158,8 +8239,9 @@ if (typeof module !== 'undefined') module.exports = G;
     '<li><b>公告也會報</b>：你的將領陣亡、退休、遇刺或新加入，有新將領可以招募；誰向你宣戰、你鄰國之間誰宣戰（其他地方只報場數）；哪個國家被誰消滅。</li>' +
     '<li><b>登陸作戰一年一次</b>：每支艦隊每年只能搶灘作戰一次，打輸退回船上的殘部也不能馬上再登陸；從已經行動過的地載上船的部隊，這支艦隊今年也不能搶灘（但可以在自己的地下船）。</li>' +
     '<li><b>伺服器房間與即時模式</b>：多人連線的 5 碼房間現在放在伺服器上，遊戲進度也存在伺服器。房主關掉遊戲，其他人會自動換一個人接手繼續；所有人都不在時，下次任何人輸入代碼就能接著玩。房主開房時可以把「時間流逝」設成即時（例如每 10 分鐘過一年）：大家隨時下指令，時間到自動進下一年，離開期間該過的年份下次開房時會一次補上（最多 12 年）；不在線的人國家照樣在，但不會動。遊戲中途有新朋友輸入代碼，可以挑一個還沒有人玩的國家加入。</li>' +
+    '<li><b>🌍 伺服器的全服事件</b>（只有伺服器才有）：<br>・<b>⚔ 十字軍號召</b>（1147、1189 年）：基督教國家首都 +12 兵、+150 金幣；之後 8 年，在耶路撒冷附近有領地的基督教與伊斯蘭玩家每年都有增援。<br>・<b>🌪 蒙古崛起</b>（1206 年）：蒙古大軍在草原出現（玩家越強，蒙古越強），向所有玩家宣戰，到 1300 年前每年都會補兵。攻下蒙古的地每塊 25 金幣；把蒙古消滅，全服玩家各得 300 金幣、民心 +5，攻下最多蒙古領地的人再加 300 金幣。<br>・<b>🏴‍☠️ 海盜潮</b>（1250、1380 年）：每位玩家的港口外會出現海盜艦隊。<br>・<b>💀 黑死病</b>（1347 年起四年）：各地守軍大減、民心 −8；有糧倉或教堂的地損失減半。</li>' +
     '<li><b>伺服器的新手教學</b>：第一次進公開伺服器前，會先問你要不要做新手教學（在自己的單人遊戲裡，約 5 分鐘）。做完或選「我會玩了」之後會記在帳號上，不會再問。</li>' +
-    '<li><b>公開伺服器</b>：多人連線裡有「公開伺服器（第一服）」，不用約代碼，任何人隨時都能進。挑一個還沒有人選的國家，那個國家就是你的：別人不能再選，你下線了也會留給你。伺服器是白手起家：只有玩家的國家、沒有電腦國家，每人從首都開始。所有規則都用遊戲年份算：<br>・<b>一年多長</b>：最多 15 分鐘；開局前 50 年最多 5 分鐘；在線的人都按完「結束回合」、而且這一年已經過了 2 分鐘，就提早進下一年。<br>・<b>行動點可以存</b>：沒用完的會留到下一年，最多存 3 年份。<br>・<b>新手保護</b>：剛加入的人 12 年內（或領地超過 30 塊就提早結束）不能被玩家打，也不能打玩家；加入時科技會補到其他玩家平均的 7 成，金幣、糧食補到平均的一半。<br>・<b>玩家之間</b>：宣戰要先送宣戰書，明年才開戰；停戰後至少 8 年不能再宣戰。打電腦不受影響。<br>・<b>閒置收回</b>：連續 48 年沒有下指令（只開著遊戲不算），國家會被收回給別人選；前 10 年會先提醒。<br>・<b>🏴 開拓令</b>：每年發 3 張（最多存 9 張），攻打旁邊的中立地時會先用開拓令，不花行動點；打仗、打別人的地還是用行動點。<br>・<b>👑 名城爭奪</b>：地圖上有 ' + '9' + ' 座名城（君士坦丁堡、耶路撒冷、羅馬、巴格達、開封、開羅、巴黎、撒馬爾罕、德里），有皇冠標記。玩家之間可以結盟（外交 → 同盟，對方同意才算），盟友算同一隊。<br>・<b>1453 年結算</b>：打到 1453 年，守住最多名城的同盟獲勝（一樣多就比分數），這一輪結束；之後再進入這一服就開新的一輪。</li>' +
+    '<li><b>公開伺服器</b>：多人連線裡有「公開伺服器（第一服）」，不用約代碼，任何人隨時都能進。挑一個還沒有人選的國家，那個國家就是你的：別人不能再選，你下線了也會留給你。伺服器是白手起家：只有玩家的國家、沒有電腦國家，每人從首都開始。所有規則都用遊戲年份算：<br>・<b>一年多長</b>：最多 15 分鐘；開局前 50 年最多 5 分鐘；在線的人都按完「結束回合」、而且這一年已經過了 2 分鐘，就提早進下一年。<br>・<b>行動點可以存</b>：沒用完的會留到下一年，最多存 3 年份。<br>・<b>新手保護</b>：剛加入的人 12 年內（或領地超過 30 塊就提早結束）不能被玩家打，也不能打玩家；加入時科技會補到其他玩家平均的 7 成，金幣、糧食補到平均的一半。<br>・<b>玩家之間</b>：宣戰要先送宣戰書，明年才開戰；停戰後至少 8 年不能再宣戰。打電腦不受影響。<br>・<b>閒置收回</b>：連續 48 年沒有下指令（只開著遊戲不算），國家會被收回給別人選；前 10 年會先提醒。<br>・<b>🏴 開拓令</b>：每年發 3 張（最多存 9 張），旁邊的中立空地或小村莊，用一張就直接佔領（不用打仗、不花行動點）；中立的大城鎮也會先用開拓令代替行動點，但要打仗；打別人的地還是用行動點。<br>・<b>👑 名城爭奪</b>：地圖上有 ' + '9' + ' 座名城（君士坦丁堡、耶路撒冷、羅馬、巴格達、開封、開羅、巴黎、撒馬爾罕、德里），有皇冠標記。玩家之間可以結盟（外交 → 同盟，對方同意才算），盟友算同一隊。<br>・<b>1453 年結算</b>：打到 1453 年，守住最多名城的同盟獲勝（一樣多就比分數），這一輪結束；之後再進入這一服就開新的一輪。</li>' +
     '<li><b>點地＝查看</b>：點別人的地或中立地只會顯示它的資料，不會自動出兵；面板上有「⚔ 從旁邊的某地出兵」按鈕，按了才會選好出兵。已經選了自己的地、再點旁邊的地，那塊地會變成出兵目標（箭頭）；同一塊再點一次，就改成只查看它。打不到的遠處只會提示你要先把部隊調到哪裡，不會自己幫你調兵扣行動點。</li>' +
     '<li><b>電腦會守首都</b>：首都或大城被你的大軍逼近時，電腦會從附近調兵回防、優先在那裡補兵；普通和困難難度下，首都告急還會緊急徵召民兵（每 4 回合一次），所以最好先削弱它周圍的部隊再攻城。</li>' +
     '<li><b>白手起家模式（多人連線限定）</b>：房主在多人房間裡的「開局領地」可以選「首都＋一圈」或「只有首都」。地圖上只有玩家選的國家，沒有電腦國家；每國一開始都只有這一點點地，其他地全部變成中立地；原本地圖上的城市變成有守軍的中立城，要自己一塊塊打下來，再蓋村莊、升級城市慢慢擴張。每國會多發 120 金、60 糧當起步資金。單人遊戲一律照歷史上的領土開局。</li>' +
@@ -9499,6 +9581,7 @@ if (typeof module !== 'undefined') module.exports = G;
       if (/^商隊貿易|^商船貿易|商隊從.*歸來|商隊在路上被|商船在航線上被|劫掠了你的一艘商船|商隊遇襲/.test(e.text)) items.push({ t: (/商船/.test(e.text) ? '⛵ ' : '🐪 ') + e.text, bad: e.kind === 'bad' });
     });
     tkNews(false).forEach(function (x) { items.push(x); });
+    if (ui.bigAnn && ui.bigAnn.length) setTimeout(showBigAnn, 1200);
     /* 科技 */
     var tn = tkTechN(); if (tn > 0 && (tn > (ui.tkTech || 0) || g.turn - (ui.tkTechAt || -99) >= 3)) { ui.tkTechAt = g.turn; items.push({ t: '🔬 有 ' + tn + ' 項科技可以研究了，按下面的「科技樹」', tech: true }); }
     ui.tkTech = tn; ui.tkSnap = tkMyCities();
@@ -9525,12 +9608,21 @@ if (typeof module !== 'undefined') module.exports = G;
       else other++;
     });
     if (other) out.push({ t: '⚔ 世界其他地方另有 ' + other + ' 場戰爭爆發。' });
+    (g.ann || []).forEach(function (a) { if (!fresh('A' + a.t + a.text.slice(0, 16), a.t)) return; out.push({ t: a.text, bad: /蒙古崛起|鐵騎|黑死病|海盜潮/.test(a.text) }); if (a.big) (ui.bigAnn || (ui.bigAnn = [])).push(a); });
     (g.fallen || []).forEach(function (x) {
       if (!fresh('F' + x.f + x.t, x.t)) return;
       out.push({ t: x.by === me ? '👑 你消滅了' + G.nm(x.f) + '！' : '💀 ' + G.nm(x.f) + (x.by ? '被' + G.nm(x.by) + '消滅了。' : '滅亡了。'), bad: x.f === me });
     });
     return out;
   }
+  /* 全服大事件：等畫面上沒有其他視窗時才跳出來 */
+  function showBigAnn() {
+    if (!ui.bigAnn || !ui.bigAnn.length || !g || !$('#modal').hidden) return;
+    var ba = ui.bigAnn.splice(0), a0 = ba[ba.length - 1], ttl = a0.text.split(/[！。]/)[0];
+    $('#mbody').innerHTML = '<div class="mtag">🌍 全服事件 · 西元 ' + G.year(g) + ' 年</div><h2 id="mtitle">' + esc(ttl) + '</h2>' + ba.map(function (x) { return '<p class="mtext">' + esc(x.text) + '</p>'; }).join('') + '<button class="btn primary" data-act="closemodal">知道了</button>';
+    $('#modal').hidden = false;
+  }
+  setInterval(function () { try { showBigAnn(); } catch (e) {} }, 2000);
   function tickerShow(items) {
     var mw = document.querySelector('.mapwrap'); if (!mw) return;
     var el = document.getElementById('ticker');
@@ -10471,6 +10563,7 @@ if (typeof module !== 'undefined') module.exports = G;
     if (a === 'sbpub') return sbPub(b.getAttribute('data-c'));
     if (a === 'sbpubgo') { tutMarkDone(); return sbPub(b.getAttribute('data-c'), true); }
     if (a === 'tutgo') return tutGo();
+    if (a === 'sbrepick') { MP.lostNation = false; MP.me = null; p2pSendTo(P2P.hostDc, { t: 'hello', name: MP.nick || mpNick() || '玩家', ver: PVER, pid: MPID, pid2: MPID0 }); $('#mbody').innerHTML = '<div class="mtag">伺服器</div><p class="mtext">讀取可以選的國家…</p>'; return; }
     if (a === 'sbpick') { var sv0 = $('#sbpick') && $('#sbpick').value; if (!sv0) return toast('請先選一個國家。'); p2pSendTo(P2P.hostDc, { t: 'pickf', f: sv0 }); $('#mbody').innerHTML = '<div class="mtag">伺服器房間</div><p class="mtext">加入中…</p>'; return; }
     if (a === 'mpleave') return mpLeave();
     if (a === 'mpforce') return mpForce();
