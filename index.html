@@ -434,7 +434,7 @@ button{font:inherit;color:inherit}
     <div class="startmap" id="startmap" aria-hidden="true"></div>
     <div class="sc-in gx">
       <p class="eyebrow">MEDIEVAL: WORLD DOMINATION · 1096 AD</p>
-      <p class="muted small" id="verline">版本 v234 · 2026-11-03 · 帳號綁定 Email（換手機也找得回國家）</p>
+      <p class="muted small" id="verline">版本 v235 · 2026-11-03 · 同盟（公會）、野外營地、每日任務</p>
       <h1>中世紀：世界霸權</h1>
       <p class="lead">1095 年，教宗在克萊蒙發出號召，整個歐洲動了起來。選一個勢力（共 121 個），再從該文明歷史上的君主裡挑一位登基；在四千多個六角格地塊的世界裡，與基督教世界、伊斯蘭世界與即將到來的蒙古鐵騎周旋。可以結盟借道、派商隊與商船貿易、派密探、遠征遠方、研究科技升級時代、替自己的城市取名。沒有回合上限，直到有人稱霸，或你失去一切。</p>
       <div id="startopts"></div>
@@ -6733,13 +6733,207 @@ function mpMirror(m, me) {
     return m0(g, from, to, ratio);
   };
 })();
+/* ===== 同盟（公會）、野外營地、每日任務（伺服器） ===== */
+var AL_MAX = 6, AL_COST = 100, AL_GIVE = { gold: 300, food: 300, troops: 20 };
+function alOf(g, f) { var A = g.al || {}; for (var k in A) if (A[k].m.indexOf(f) >= 0) return A[k]; return null; }
+function alBind(g, a) {
+  a.m.forEach(function (x) { a.m.forEach(function (y) { if (x < y) { var r = rel(g, x, y); if (r.state !== 'ally') { r.state = 'ally'; r.truce = 0; r.warT = 0; } } }); });
+  if (g.pw) g.pw = g.pw.filter(function (w) { return !(a.m.indexOf(w.a) >= 0 && a.m.indexOf(w.b) >= 0); });
+}
+function alDrop(g, a, f, why) {
+  a.m = a.m.filter(function (x) { return x !== f; });
+  a.m.forEach(function (y) { var r = rel(g, f, y); if (r.state === 'ally') { r.state = 'peace'; r.truce = 0; r.warT = 0; if (g.srv) r.ptT = g.turn; } });
+  if (!a.m.length) { delete g.al[a.id]; return; }
+  if (a.lead === f) a.lead = a.m[0];
+  alMsg(g, a, nm(f) + why);
+}
+function alMsg(g, a, text) { a.log = a.log || []; a.log.push({ t: g.turn, text: text }); if (a.log.length > 20) a.log.shift(); }
+function alNameOk(g, n) {
+  n = String(n || '').replace(/[\u0000-\u001f<>]/g, '').trim();
+  if (Array.from(n).length < 1 || Array.from(n).length > 10) return { err: '同盟名稱要 1～10 個字。' };
+  var A = g.al || {}; for (var k in A) if (A[k].n === n) return { err: '已經有同名的同盟了。' };
+  return { n: n };
+}
+function alTick(g) {
+  var A = g.al || {}; Object.keys(A).forEach(function (k) {
+    var a = A[k]; a.id = k;
+    a.m.slice().forEach(function (f) { if (!isHum(g, f) || !g.fac[f] || !g.fac[f].alive) alDrop(g, a, f, '離開了同盟（國家已不在玩家手上）。'); });
+    if (!A[k]) return;
+    alBind(g, a);
+    if (a.goal != null && g.p[a.goal] && a.m.indexOf(g.p[a.goal].o) >= 0) {
+      var pl = placeName(a.goal);
+      a.m.forEach(function (f) { g.fac[f].gold += 150; g.fac[f].morale = clamp(g.fac[f].morale + 3, 0, 100); });
+      alMsg(g, a, '🎯 達成同盟目標：拿下' + pl + '！每位成員 +150 金幣、民心 +3。');
+      srvAnn(g, '🎯 同盟〔' + a.n + '〕攜手拿下了' + pl + '！', false);
+      a.goal = null;
+    }
+  });
+  if (g.alInv) Object.keys(g.alInv).forEach(function (f) { var v = g.alInv[f]; if (!A[v.a] || g.turn - v.t > 10 || alOf(g, f)) delete g.alInv[f]; });
+}
+P.alCreate = function (g, name) {
+  var f = g.player, x = guardP(g); if (x) return x;
+  if (!g.srv) return fail('同盟只有伺服器才有。');
+  if (alOf(g, f)) return fail('你已經在同盟裡了。');
+  var c = alNameOk(g, name); if (c.err) return fail(c.err);
+  if (g.fac[f].gold < AL_COST) return fail('建立同盟要 ' + AL_COST + ' 金幣。');
+  g.fac[f].gold -= AL_COST;
+  g.al = g.al || {}; g.alN = (g.alN || 0) + 1; var id = 'a' + g.alN;
+  g.al[id] = { id: id, n: c.n, lead: f, m: [f], t: g.turn, goal: null, log: [] };
+  alMsg(g, g.al[id], nm(f) + '建立了同盟。');
+  if (g.alInv) delete g.alInv[f];
+  return good('建立了同盟〔' + c.n + '〕！到同盟畫面邀請其他玩家加入。');
+};
+P.alInvite = function (g, t) {
+  var f = g.player, x = guardP(g); if (x) return x;
+  var a = alOf(g, f); if (!a) return fail('你還沒有同盟。');
+  if (a.lead !== f) return fail('只有盟主可以邀請。');
+  if (!isHum(g, t) || t === f || !g.fac[t] || !g.fac[t].alive) return fail('只能邀請其他玩家。');
+  if (alOf(g, t)) return fail(nm(t) + '已經在別的同盟了。');
+  if (a.m.length >= AL_MAX) return fail('同盟最多 ' + AL_MAX + ' 個國家。');
+  if (rel(g, f, t).state === 'war') return fail('你們正在打仗，先停戰才能邀請。');
+  (g.alInv || (g.alInv = {}))[t] = { a: a.id, t: g.turn, by: f };
+  asPlayer(g, t, function () { logMsg(g, '⚑ ' + nm(f) + '邀請你加入同盟〔' + a.n + '〕，到同盟畫面回覆。', 'good'); });
+  return good('已經邀請' + nm(t) + '。');
+};
+P.alAccept = function (g) {
+  var f = g.player, x = guardP(g); if (x) return x;
+  var v = g.alInv && g.alInv[f], a = v && g.al && g.al[v.a];
+  if (!a) { if (g.alInv) delete g.alInv[f]; return fail('邀請已經失效了。'); }
+  if (alOf(g, f)) return fail('你已經在同盟裡了。');
+  if (a.m.length >= AL_MAX) return fail('這個同盟已經滿了。');
+  delete g.alInv[f]; a.m.push(f); alBind(g, a); alMsg(g, a, nm(f) + '加入了同盟。');
+  return good('加入了同盟〔' + a.n + '〕！盟友之間自動結盟，可以互送資源。');
+};
+P.alDecline = function (g) { var f = g.player; if (g.alInv) delete g.alInv[f]; return good('已經拒絕邀請。'); };
+P.alLeave = function (g) {
+  var f = g.player, x = guardP(g); if (x) return x;
+  var a = alOf(g, f); if (!a) return fail('你不在同盟裡。');
+  var n = a.n; alDrop(g, a, f, '退出了同盟。');
+  return good('已經退出同盟〔' + n + '〕。之後 8 年內不能對前盟友宣戰。');
+};
+P.alKick = function (g, t) {
+  var f = g.player, x = guardP(g); if (x) return x;
+  var a = alOf(g, f); if (!a || a.lead !== f) return fail('只有盟主可以踢人。');
+  if (t === f || a.m.indexOf(t) < 0) return fail('他不在你的同盟裡。');
+  alDrop(g, a, t, '被盟主請出了同盟。');
+  return good('已經把' + nm(t) + '請出同盟。');
+};
+P.alGoal = function (g, id) {
+  var f = g.player, x = guardP(g); if (x) return x;
+  var a = alOf(g, f); if (!a || a.lead !== f) return fail('只有盟主可以設定目標。');
+  id = +id; if (FAMOUS.indexOf(id) < 0) return fail('目標要是一座名城。');
+  if (a.m.indexOf(g.p[id].o) >= 0) return fail('這座城已經在你們手上了。');
+  a.goal = id; alMsg(g, a, '盟主把目標設成：拿下' + placeName(id) + '。');
+  return good('同盟目標：拿下' + placeName(id) + '。達成時每位成員 +150 金幣、民心 +3。');
+};
+P.alGive = function (g, t, kind, amt) {
+  var f = g.player, x = guardP(g); if (x) return x;
+  var a = alOf(g, f); if (!a || a.m.indexOf(t) < 0 || t === f) return fail('只能支援同一個同盟的盟友。');
+  if (!AL_GIVE[kind]) return fail('不能送這個。');
+  amt = Math.floor(+amt); if (!(amt > 0)) return fail('數量不對。');
+  var gv = g.alGv || (g.alGv = {}), me = gv[f] && gv[f].t === g.turn ? gv[f] : (gv[f] = { t: g.turn, gold: 0, food: 0, troops: 0 });
+  if (me[kind] + amt > AL_GIVE[kind]) return fail('每年最多送 ' + AL_GIVE[kind] + (kind === 'troops' ? ' 兵' : kind === 'gold' ? ' 金幣' : ' 糧食') + '，今年還能送 ' + (AL_GIVE[kind] - me[kind]) + '。');
+  if (kind === 'troops') {
+    var c1 = CAPITAL[f], c2 = CAPITAL[t];
+    if (c1 == null || c2 == null || g.p[c1].o !== f || g.p[c2].o !== t) return fail('雙方都要有首都才能派援軍。');
+    if (g.p[c1].t < amt + 2) return fail('你的首都兵力不夠（要留至少 2 兵）。');
+    if (g.ap <= 0) return fail('派援軍要 1 點行動點。');
+    g.p[c1].t -= amt; g.p[c2].t += amt; g.ap--;
+  } else {
+    if ((g.fac[f][kind] | 0) < amt) return fail('你的' + (kind === 'gold' ? '金幣' : '糧食') + '不夠。');
+    g.fac[f][kind] -= amt; g.fac[t][kind] += amt;
+  }
+  me[kind] += amt;
+  var what = amt + (kind === 'troops' ? ' 名援軍' : kind === 'gold' ? ' 金幣' : ' 糧食');
+  alMsg(g, a, nm(f) + '送給' + nm(t) + ' ' + what + '。');
+  asPlayer(g, t, function () { logMsg(g, '⚑ 盟友' + nm(f) + '送來 ' + what + '。', 'good'); });
+  dqHit(g, f, 'give', 1);
+  return good('送給' + nm(t) + ' ' + what + '。');
+};
+/* ---------- 野外營地 ---------- */
+var CAMP_K = { bandit: '土匪營地', rebel: '叛軍據點', ruin: '古代遺跡' };
+function campTick(g) {
+  var C = g.camp || (g.camp = {}), hum = humansOf(g).filter(function (f, i, A) { return f && A.indexOf(f) === i && g.fac[f] && g.fac[f].alive; });
+  Object.keys(C).forEach(function (id) { if (g.p[id].o || g.turn > C[id].x) delete C[id]; });
+  if (!hum.length) return;
+  var avg = hum.reduce(function (s, f) { return s + ownedTotal(g, f); }, 0) / hum.length;
+  var want = Math.max(4, Math.min(30, hum.length * 3)), have = Object.keys(C).length;
+  if (have >= want) return;
+  var d = {}, q = [];
+  LANDIDS.forEach(function (id) { var o = g.p[id].o; if (o && hum.indexOf(o) >= 0) { d[id] = 0; q.push(id); } });
+  for (var h = 0; h < q.length; h++) { var c = q[h]; if (d[c] >= 7) continue; NB[c].forEach(function (n) { if (LAND[n] && d[n] == null) { d[n] = d[c] + 1; q.push(n); } }); }
+  var cand = q.filter(function (id) { return d[id] >= 2 && d[id] <= 7 && !g.p[id].o && !BLOCKED[id] && !C[id] && !(CITY[id] && CITY[id].lv >= 2) && !FAMOUS_AT[id] && !NB[id].some(function (n) { return C[n]; }); });
+  for (var s = 0; s < 2 && have < want && cand.length; s++) {
+    var id = cand.splice(rint(cand.length), 1)[0], r = Math.random();
+    var k = r < 0.55 ? 'bandit' : r < 0.8 ? 'ruin' : 'rebel', lv = 1 + (avg > 60 ? 1 : 0) + (avg > 150 ? 1 : 0);
+    g.p[id].t = k === 'ruin' ? 1 + lv : k === 'bandit' ? 5 + lv * 5 : 12 + lv * 8;
+    C[id] = { k: k, lv: lv, x: g.turn + 25 }; have++;
+  }
+}
+function campReward(g, f, id, c) {
+  var F = g.fac[f], lv = c.lv || 1, txt = '';
+  if (c.k === 'bandit') { var gd = 60 + 40 * lv, fd = 30 * lv; F.gold += gd; F.food += fd; txt = '剿滅' + CAMP_K.bandit + '！搜出 ' + gd + ' 金幣、' + fd + ' 糧食。'; }
+  else if (c.k === 'rebel') { var gd2 = 120 + 60 * lv, cp = CAPITAL[f]; F.gold += gd2; F.morale = clamp(F.morale + 2, 0, 100); if (cp != null && g.p[cp].o === f) g.p[cp].t += 5 * lv; txt = '平定' + CAMP_K.rebel + '！' + gd2 + ' 金幣、民心 +2，' + 5 * lv + ' 名降兵加入首都守軍。'; }
+  else { if (g.srv && Math.random() < 0.35) { g.tok = g.tok || {}; g.tok[f] = Math.min(SRV_TOK_MAX, (g.tok[f] | 0) + 2); txt = '探索' + CAMP_K.ruin + '，找到古代地圖：開拓令 +2！'; } else { var gd3 = 80 + rint(60 * lv + 40); F.gold += gd3; txt = '探索' + CAMP_K.ruin + '，挖出 ' + gd3 + ' 金幣的寶藏！'; } }
+  asPlayer(g, f, function () { logMsg(g, '⛺ ' + txt, 'good'); });
+  dqHit(g, f, 'camp', 1);
+}
+/* ---------- 每日任務（現實的每一天，台灣時間換日） ---------- */
+var DQ_POOL = [
+  { k: 'land', t: '佔領 {N} 塊地', N: [3, 5, 8] },
+  { k: 'camp', t: '打下 1 個營地或遺跡', N: [1] },
+  { k: 'recruit', t: '徵兵 {N} 次', N: [2, 3] },
+  { k: 'tech', t: '研究 1 項科技', N: [1] },
+  { k: 'build', t: '建城或升級 1 次', N: [1] },
+  { k: 'give', t: '支援盟友 1 次', N: [1], al: 1 }
+];
+var DQ_R = { gold: 80, food: 50 }, DQ_ALL = { gold: 150, tok: 1 };
+function dqDay() { return Math.floor((Date.now() + 8 * 3600000) / 86400000); }
+function dqGen(g, f, day) {
+  var s = day * 131 + f.split('').reduce(function (a, c) { return a * 31 + c.charCodeAt(0); }, 7), rnd = function () { s = (s * 1103515245 + 12345) % 2147483648; return s / 2147483648; };
+  var pool = DQ_POOL.filter(function (p) { return !p.al || alOf(g, f); }), out = [];
+  while (out.length < 3 && pool.length) { var p = pool.splice(Math.floor(rnd() * pool.length), 1)[0]; out.push({ k: p.k, t: p.t.replace('{N}', p.N[Math.floor(rnd() * p.N.length)]), need: 0, n: 0, c: 0 }); out[out.length - 1].need = +(/\d+/.exec(out[out.length - 1].t) || [1])[0]; }
+  return { d: day, q: out, all: 0 };
+}
+function dqView(g, f) { var day = dqDay(), q = g.dq && g.dq[f]; return q && q.d === day ? q : dqGen(g, f, day); }
+function dqEnsure(g, f) { var day = dqDay(); g.dq = g.dq || {}; if (!g.dq[f] || g.dq[f].d !== day) g.dq[f] = dqGen(g, f, day); return g.dq[f]; }
+function dqHit(g, f, k, n) { if (!g.srv || !isHum(g, f)) return; var q = dqEnsure(g, f); q.q.forEach(function (x) { if (x.k === k && x.n < x.need) x.n = Math.min(x.need, x.n + (n || 1)); }); }
+P.dqClaim = function (g, i) {
+  var f = g.player; if (!g.srv) return fail('只有伺服器才有每日任務。');
+  var q = dqEnsure(g, f), x = q.q[+i]; if (!x) return fail('沒有這個任務。');
+  if (x.c) return fail('已經領過了。'); if (x.n < x.need) return fail('還沒完成。');
+  x.c = 1; g.fac[f].gold += DQ_R.gold; g.fac[f].food += DQ_R.food;
+  var msg = '領到 ' + DQ_R.gold + ' 金幣、' + DQ_R.food + ' 糧食。';
+  if (!q.all && q.q.every(function (y) { return y.c; })) { q.all = 1; g.fac[f].gold += DQ_ALL.gold; g.tok = g.tok || {}; g.tok[f] = Math.min(SRV_TOK_MAX, (g.tok[f] | 0) + DQ_ALL.tok); msg += '今天的任務全部完成！再加 ' + DQ_ALL.gold + ' 金幣、開拓令 +' + DQ_ALL.tok + '。'; }
+  return good(msg);
+};
+(function () {
+  var c0 = conquer;
+  conquer = function (g, f, id, left, prev, mix) {
+    var cp = g.srv && g.camp && g.camp[id], r = c0.apply(this, arguments);
+    if (g.srv && f && isHum(g, f) && g.p[id] && g.p[id].o === f) { dqHit(g, f, 'land', 1); if (cp) { delete g.camp[id]; campReward(g, f, id, cp); } }
+    return r;
+  };
+  var mv0 = P.move;
+  P.move = function (g, from, to, ratio) {
+    var f = g.player;
+    if (g.srv && g.camp && g.camp[to] && !g.p[to].o && g.tok && (g.tok[f] | 0) > 0) { var tk = g.tok[f]; g.tok[f] = 0; try { return mv0.apply(this, arguments); } finally { g.tok[f] = tk; } }
+    return mv0.apply(this, arguments);
+  };
+  var t0 = srvTick;
+  srvTick = function (g) { var r = t0.apply(this, arguments); if (g && g.srv) { try { alTick(g); } catch (e) {} try { campTick(g); } catch (e) {} } return r; };
+  var wb = srvWarBlock;
+  srvWarBlock = function (g, a, b) { var A = alOf(g, a); if (g.srv && A && A.m.indexOf(b) >= 0) return '你們在同一個同盟〔' + A.n + '〕，要先退出同盟才能宣戰。'; return wb.apply(this, arguments); };
+})();
 (function () {
   Object.keys(P).forEach(function (k) {
     var f0 = P[k];
     P[k] = function (g) {
       if (g.ended && g.ended[g.player]) return fail('你已結束回合，等待其他玩家。');
       if (g.srv) (g.act || (g.act = {}))[g.player] = g.turn;
-      return f0.apply(null, arguments);
+      var res = f0.apply(null, arguments);
+      if (g.srv && res && res.ok && (k === 'recruit' || k === 'tech' || k === 'build')) try { dqHit(g, g.player, k, 1); } catch (e) {}
+      return res;
     };
   });
 })();
@@ -6762,7 +6956,7 @@ var G = {
   EVENTS: EVENTS, HIST: HIST, checkEnd: checkEnd, finish: finish, settle: settle, TERR_Y: TERR_Y,
   SAVE_VER: SAVE_VER, MAPSIG: MAPSIG, rel: rel, migrate: migrate, strength: strength, dipInfo: dipInfo, declareWar: declareWar, aiDiplomacy: aiDiplomacy,
   swapAmt: swapAmt, routeCands: routeCands, coastTarget: coastTarget, supplyDist: supplyDist, supRange: supRange, lordOf: lordOf, vassalsOf: vassalsOf, ownedTotal: ownedTotal, offerEvent: offerEvent, acceptChance: acceptChance,
-  fleetCap: fleetCap, isHum: isHum, humansOf: humansOf, asPlayer: asPlayer, mpInit: mpInit, mpEligible: mpEligible, mpAddHuman: mpAddHuman, rpTick: rpTick, srvReclaim: srvReclaim, srvAnn: srvAnn, srvProt: srvProt, srvStanding: srvStanding, FAMOUS: FAMOUS, FAMOUS_AT: FAMOUS_AT, srvWarBlock: srvWarBlock, mpReassign: mpReassign, mpChoose: mpChoose, mpEnd: mpEnd, mpAllEnded: mpAllEnded, mpWaiting: mpWaiting, mpAdvance: mpAdvance, mpMirror: mpMirror, mpView: mpView, mpResume: mpResume,
+  fleetCap: fleetCap, isHum: isHum, humansOf: humansOf, asPlayer: asPlayer, mpInit: mpInit, mpEligible: mpEligible, mpAddHuman: mpAddHuman, rpTick: rpTick, srvReclaim: srvReclaim, srvAnn: srvAnn, alOf: alOf, dqView: dqView, CAMP_K: CAMP_K, AL_COST: AL_COST, AL_MAX: AL_MAX, AL_GIVE: AL_GIVE, DQ_R: DQ_R, DQ_ALL: DQ_ALL, srvProt: srvProt, srvStanding: srvStanding, FAMOUS: FAMOUS, FAMOUS_AT: FAMOUS_AT, srvWarBlock: srvWarBlock, mpReassign: mpReassign, mpChoose: mpChoose, mpEnd: mpEnd, mpAllEnded: mpAllEnded, mpWaiting: mpWaiting, mpAdvance: mpAdvance, mpMirror: mpMirror, mpView: mpView, mpResume: mpResume,
   holyKind: holyKind, armies: armies, garrisonOf: garrisonOf, armyReach: armyReach, armyDijk: armyDijk, zocAt: zocAt, armyPlan: armyPlan, armyRaidTargets: armyRaidTargets, armyMP: armyMP, armyRem: armyRem, mvCost: mvCost, rulerLv: rulerLv, rulerInfo: rulerInfo, vetLv: vetLv, RX_T: RX_T, holyKind: holyKind, holyCost: holyCost, canHoly: canHoly, isChristian: isChristian, START_YEAR: START_YEAR, LON: LON, LAT: LAT, WORLD: WORLD
 };
 if (typeof module !== 'undefined') module.exports = G;
@@ -7380,7 +7574,7 @@ if (typeof module !== 'undefined') module.exports = G;
   function mpBarFix() {
     var me = g.player, hum = G.humansOf(g), ended = g.ended && g.ended[me], chips = '';
     if (g.srv && G.srvProt(g, me)) chips += '<span class="muted small" style="color:#9fe0a0">🛡新手保護 ' + G.srvProt(g, me) + ' 年' + esc(rtApprox(G.srvProt(g, me))) + '（或超過 30 塊地）</span> ';
-    if (g.srv) { chips += '<span class="muted small" style="color:#f1d48c">🏴開拓令 ' + ((g.tok && g.tok[me]) | 0) + '</span> '; try { var stn = G.srvStanding(g), myg = null, rk = 0; stn.forEach(function (x, i) { if (x.m.indexOf(me) >= 0) { myg = x; rk = i + 1; } }); if (myg) chips += '<span class="muted small" style="color:#f1d48c">👑名城 ' + myg.n + '/' + G.FAMOUS.length + '（第 ' + rk + ' 名）</span> '; } catch (e) {} }
+    if (g.srv) { chips += '<span class="muted small" style="color:#f1d48c">🏴開拓令 ' + ((g.tok && g.tok[me]) | 0) + '</span> '; try { var stn = G.srvStanding(g), myg = null, rk = 0; stn.forEach(function (x, i) { if (x.m.indexOf(me) >= 0) { myg = x; rk = i + 1; } }); if (myg) chips += '<span class="muted small" style="color:#f1d48c">👑名城 ' + myg.n + '/' + G.FAMOUS.length + '（第 ' + rk + ' 名）</span> '; } catch (e) {} try { chips += alChips(me); } catch (e) {} }
     hum.forEach(function (f) {
       var done = !g.fac[f].alive || (g.ended && g.ended[f]);
       var offF = Object.keys(MP.players || {}).some(function (u) { return MP.players[u].off && MP.players[u].f === f; });
@@ -8322,6 +8516,7 @@ if (typeof module !== 'undefined') module.exports = G;
     '<li><b>登陸作戰一年一次</b>：每支艦隊每年只能搶灘作戰一次，打輸退回船上的殘部也不能馬上再登陸；從已經行動過的地載上船的部隊，這支艦隊今年也不能搶灘（但可以在自己的地下船）。</li>' +
     '<li><b>伺服器房間與即時模式</b>：多人連線的 5 碼房間現在放在伺服器上，遊戲進度也存在伺服器。房主關掉遊戲，其他人會自動換一個人接手繼續；所有人都不在時，下次任何人輸入代碼就能接著玩。房主開房時可以把「時間流逝」設成即時（例如每 10 分鐘過一年）：大家隨時下指令，時間到自動進下一年，離開期間該過的年份下次開房時會一次補上（最多 12 年）；不在線的人國家照樣在，但不會動。遊戲中途有新朋友輸入代碼，可以挑一個還沒有人玩的國家加入。</li>' +
     '<li><b>📽 整局重播</b>：遊戲結束時，結算畫面有「播放整局重播」。地圖會從第一年播到最後一年，所有國家的領土同時擴張；旁邊的大事記會依年份列出誰加入、誰建城、誰向誰宣戰、哪國被誰消滅、名城易主和全服事件，右邊是當年的領地排名。可以暫停、調速度（1×／2×／5×），也能拖時間軸跳到任何一年；多人時預設放大到玩家所在的區域，按「全世界」看整張地圖。</li>' +
+    '<li><b>⚑ 同盟</b>（伺服器）：按上方的「⚑ 同盟」。花 100 金幣建立同盟（最多 6 國），盟主可以邀請玩家。成員之間自動結盟、不能互相宣戰；可以互送金幣、糧食（每年各最多 300）和援軍（首都到首都，每年最多 20 兵，要 1 點行動點）。盟主可以把一座名城設成同盟目標，任何成員拿下，全員 +150 金幣、民心 +3。退出同盟後 8 年內不能對前盟友宣戰。</li><li><b>⛺ 野外營地</b>（伺服器）：玩家領地附近會冒出土匪營地 ⛺、叛軍據點 🔥、古代遺跡 🏛。開拓令不能直接佔，要派兵打下來，可以得到金幣、糧食、降兵或開拓令。沒人打的話 25 年後會消失，再冒出新的。</li><li><b>📜 每日任務</b>（伺服器）：每天台灣時間 0 點換 3 個新任務（佔地、打營地、徵兵、研究、建城、支援盟友），完成一個領 80 金幣和 50 糧食，三個全領完再加 150 金幣和 1 張開拓令。</li>' +
     '<li><b>👤 帳號</b>（伺服器）：一開始是訪客帳號，只認得這支手機的這個瀏覽器。到伺服器選單的「帳號」綁定 Email，換手機或清除資料後，用「我已經保存過，登入」輸入同一個 Email，點信裡的連結就能回到原本的國家（不用密碼）。</li>' +
     '<li><b>🛡 檢舉與管理</b>（伺服器）：在聊天訊息旁按「⋯」可以封鎖或檢舉。檢舉會送給管理員，管理員可以禁言、暫時踢出、強制改名或收回國家。名字裡的髒話會被換掉。</li><li><b>📋 你不在的時候</b>（伺服器）：離開至少一年再回來，會先看到這段期間的報告：失去或新增的地（被誰打下）、誰向你宣戰、哪國滅亡、全服事件。</li><li><b>🏆 名人堂</b>：伺服器每一輪打到 1453 年結束，前五名的同盟會被永久記下來，在伺服器選單按「名人堂」可以看歷屆紀錄。</li>' +
     '<li><b>💬 聊天</b>（多人連線才有）：按地圖左下角的 💬 打開聊天。<b>全服</b>頻道大家都看得到；<b>同盟</b>頻道只有你和你的玩家盟友（盟友的盟友也算）看得到。一則最多 120 字，太快連發會被擋，髒話會變成＊。不想看到某個人的訊息，按他名字旁的「⋯」就能封鎖（只有你看不到，可以在下方取消）。中途加入的人會看到最近 30 則全服訊息。</li>' +
@@ -8807,6 +9002,7 @@ if (typeof module !== 'undefined') module.exports = G;
       if (cty || p.L > 0) s += '<g transform="translate(0,-19) scale(1.25)">' + TOWER + '</g>';
       if (!o.demo && p.o === g.player && G.genAt(g, g.player, id)) s += '<g transform="translate(-17,-19)"><circle r="7" fill="#d2b04c" stroke="#2a2418" stroke-width="1.2"/><text y="3.4" font-size="9.5" text-anchor="middle" fill="#2a2418" font-weight="700">將</text></g>';
       if (g.p[id].o && G.CAPITAL[g.p[id].o] === id) s += '<circle r="33" fill="none" stroke="#ffd34d" stroke-width="3.2" stroke-dasharray="7 5" opacity=".95"/><polygon class="cap" points="' + STAR + '" transform="translate(20,-26) scale(2.3)"/>';
+      if (!o.demo && g.srv && g.camp && g.camp[id] && !g.p[id].o) s += '<g pointer-events="none" transform="translate(-21,-25)"><circle r="10" fill="#3a1208" stroke="#f08a4b" stroke-width="2"/><text y="5" font-size="12" text-anchor="middle">' + ({ bandit: '⛺', rebel: '🔥', ruin: '🏛' })[g.camp[id].k] + '</text></g>';
       if (!o.demo && g.srv && G.FAMOUS_AT[id]) s += '<g pointer-events="none" transform="translate(-21,-25)"><circle r="10" fill="#2a1d05" stroke="#ffd34d" stroke-width="2"/><text y="5" font-size="13" text-anchor="middle">👑</text></g>';
       s += '<g class="pill"><rect class="pl" x="-15" y="-8" width="30" height="17" rx="3.5" style="fill:' + col2 + '"/>' +
         '<text class="tn" x="0" y="5" text-anchor="middle">' + (o.demo ? p.t : knownTroops(id)) + '</text></g>';
@@ -10062,7 +10258,7 @@ if (typeof module !== 'undefined') module.exports = G;
       '#bighint:after{content:"";position:absolute;right:-8px;top:50%;margin-top:-8px;border:8px solid transparent;border-right:0;border-left-color:#f1d48c}' +
       '.zb.bigpulse{animation:bigpulse 1s ease-in-out infinite;box-shadow:0 0 0 3px #f1d48c}@keyframes bigpulse{50%{box-shadow:0 0 0 8px rgba(241,212,140,.25)}}' +
       '.bigmap #bigbtn{background:#d6ad55;color:#1b1406}' +
-      '#ap.apwrap>*{flex-shrink:0}#ap.apwrap{white-space:normal!important;flex-wrap:wrap;overflow:visible!important;row-gap:0;line-height:1.25;font-size:calc(11px * var(--fs,1))!important;align-content:center}';
+      '#ap.apwrap>*{flex-shrink:1;min-width:0;white-space:normal}#ap.apwrap{white-space:normal!important;flex-wrap:wrap;overflow:visible!important;row-gap:0;line-height:1.25;font-size:calc(11px * var(--fs,1))!important;align-content:center}';
     document.head.appendChild(st);
   })();
   /* ===== 同步只傳有變動的部分（差異同步） ===== */
@@ -10440,6 +10636,89 @@ if (typeof module !== 'undefined') module.exports = G;
     else return;
     e.stopPropagation(); e.preventDefault();
   }, true);
+  /* ===== 同盟、每日任務、野外營地的畫面 ===== */
+  function alMe() { return MP.role === 'host' ? g.player : (MP.me || g.player); }
+  function alPN(f) { var n = ''; try { n = rpPlayerName(f); } catch (e) {} return n && G.nm(f).indexOf('（' + n + '）') < 0 ? '（' + n + '）' : ''; }
+  function alChips(me) {
+    if (!g || !g.srv) return '';
+    var a = G.alOf(g, me), inv = !a && g.alInv && g.alInv[me], q = G.dqView(g, me), dn = q.q.filter(function (x) { return x.n >= x.need; }).length, cl = q.q.some(function (x) { return x.n >= x.need && !x.c; });
+    return '<button class="chipbtn" data-act="alui">⚑ ' + (a ? '〔' + esc(a.n) + '〕' : '同盟') + (inv ? ' 🔔' : '') + '</button> <button class="chipbtn' + (cl ? ' hot' : '') + '" data-act="dqui">📜 任務 ' + dn + '/' + q.q.length + (cl ? ' ✨' : '') + '</button> ';
+  }
+  function alAct(r, again) { afterAction(r); if (again) setTimeout(function () { if (!$('#modal').hidden && /alpanel|dqpanel/.test(($('#mbody').firstElementChild || {}).id || '')) again(); }, MP.role === 'host' ? 0 : 1800); }
+  function alUI() {
+    if (!g || !g.srv) return;
+    var me = alMe(), a = G.alOf(g, me), inv = !a && g.alInv && g.alInv[me], h = '<div id="alpanel" class="mtag">⚑ 同盟</div>';
+    if (!a) {
+      h += '<h2 id="mtitle">同盟</h2>';
+      if (inv && g.al && g.al[inv.a]) { var ia = g.al[inv.a]; h += '<div class="adcard"><b>🔔 ' + esc(G.nm(inv.by)) + '邀請你加入〔' + esc(ia.n) + '〕</b><br><span class="muted small">成員：' + ia.m.map(function (f) { return esc(G.nm(f)); }).join('、') + '</span><div class="adrow"><button class="btn primary" data-act="alyes">加入</button><button class="btn" data-act="alno">拒絕</button></div></div>'; }
+      h += '<p class="mtext">同盟就是玩家的公會：成員之間自動結盟、不能互打，可以互送金幣、糧食和援軍，一起完成同盟目標拿獎勵。1453 年結算時，整個同盟一起算名城。</p>' +
+        '<p>建立新同盟（' + G.AL_COST + ' 金幣，你會是盟主）</p><input id="alname" maxlength="10" placeholder="同盟名稱（1～10 字）" style="width:100%;box-sizing:border-box;padding:8px 10px;border-radius:8px;border:1px solid #555;background:#0b1418;color:#fff;font-size:16px"><div class="adrow"><button class="btn primary" data-act="alnew">建立同盟</button></div>';
+      var L = Object.keys(g.al || {}).map(function (k) { return g.al[k]; });
+      if (L.length) h += '<p style="margin-top:12px">現有的同盟（想加入的話，在聊天跟盟主說，請他邀請你）</p>' + L.map(function (x) { return '<div class="muted small">〔' + esc(x.n) + '〕盟主 ' + esc(G.nm(x.lead)) + alPN(x.lead) + ' · ' + x.m.length + '/' + G.AL_MAX + ' 國</div>'; }).join('');
+    } else {
+      var lead = a.lead === me;
+      h += '<h2 id="mtitle">〔' + esc(a.n) + '〕</h2><p class="muted small">盟主：' + esc(G.nm(a.lead)) + alPN(a.lead) + ' · ' + a.m.length + '/' + G.AL_MAX + ' 國</p>';
+      h += a.m.map(function (f) { return '<div class="adcard"><span class="cdot" style="background:' + (NC[f] || '#888') + '"></span><b>' + esc(G.nm(f)) + '</b>' + alPN(f) + (f === a.lead ? ' 👑' : '') + (f === me ? '（你）' : '') + '<span class="muted small"> · ' + G.ownedTotal(g, f) + ' 塊地</span>' + (lead && f !== me ? ' <button class="btn" data-act="alkick" data-f="' + f + '" style="font-size:12px;padding:3px 8px">請出</button>' : '') + '</div>'; }).join('');
+      h += '<p style="margin-top:10px">🎯 同盟目標：' + (a.goal != null ? '拿下<b>' + esc(G.placeName(a.goal)) + '</b>（任何一位成員拿下，全員 +150 金幣、民心 +3）' : '還沒設定') + '</p>';
+      if (lead) { var opts = G.FAMOUS.filter(function (id) { return a.m.indexOf(g.p[id].o) < 0; }); if (opts.length) h += '<div class="adrow"><select id="algoal">' + opts.map(function (id) { return '<option value="' + id + '">' + esc(G.placeName(id)) + (g.p[id].o ? '（' + esc(G.nm(g.p[id].o)) + '）' : '（中立）') + '</option>'; }).join('') + '</select><button class="btn" data-act="algoal">設成目標</button></div>'; }
+      var others = a.m.filter(function (f) { return f !== me; });
+      if (others.length) {
+        var gv = (g.alGv && g.alGv[me] && g.alGv[me].t === g.turn) ? g.alGv[me] : { gold: 0, food: 0, troops: 0 };
+        h += '<p style="margin-top:10px">🤝 支援盟友（今年還能送：金幣 ' + (G.AL_GIVE.gold - gv.gold) + '、糧食 ' + (G.AL_GIVE.food - gv.food) + '、援軍 ' + (G.AL_GIVE.troops - gv.troops) + ' 兵；援軍從你的首都派到他的首都，要 1 點行動點）</p>' +
+          '<div class="adrow"><select id="alto">' + others.map(function (f) { return '<option value="' + f + '">' + esc(G.nm(f)) + '</option>'; }).join('') + '</select><select id="alkind"><option value="gold">金幣</option><option value="food">糧食</option><option value="troops">援軍</option></select><input id="alamt" type="number" min="1" value="50" style="width:80px;padding:6px;border-radius:8px;border:1px solid #555;background:#0b1418;color:#fff;font-size:16px"><button class="btn primary" data-act="algive">送出</button></div>';
+      }
+      if (lead && a.m.length < G.AL_MAX) {
+        var cands = G.humansOf(g).filter(function (f, i, A) { return f && A.indexOf(f) === i && f !== me && !G.alOf(g, f) && g.fac[f] && g.fac[f].alive; });
+        h += '<p style="margin-top:10px">✉️ 邀請玩家</p>' + (cands.length ? cands.map(function (f) { var pend = g.alInv && g.alInv[f] && g.alInv[f].a === a.id; return '<div class="muted small"><span class="cdot" style="background:' + (NC[f] || '#888') + '"></span>' + esc(G.nm(f)) + alPN(f) + ' ' + (pend ? '（已邀請，等他回覆）' : '<button class="btn" data-act="alinv" data-f="' + f + '" style="font-size:12px;padding:3px 8px">邀請</button>') + '</div>'; }).join('') : '<div class="muted small">目前沒有可以邀請的玩家。</div>');
+      }
+      if (a.log && a.log.length) h += '<p style="margin-top:10px">📜 同盟紀錄</p>' + a.log.slice(-8).reverse().map(function (x) { return '<div class="muted small">西元 ' + G.year({ turn: x.t }) + ' · ' + esc(x.text) + '</div>'; }).join('');
+      h += '<div class="adrow" style="margin-top:12px"><button class="btn" data-act="alleave">退出同盟</button></div>';
+    }
+    h += '<button class="btn" data-act="closemodal" style="margin-top:10px">關閉</button>';
+    $('#mbody').innerHTML = h; $('#modal').hidden = false;
+  }
+  function dqUI() {
+    if (!g || !g.srv) return;
+    var me = alMe(), q = G.dqView(g, me), h = '<div id="dqpanel" class="mtag">📜 每日任務</div><h2 id="mtitle">今天的任務</h2>';
+    h += q.q.map(function (x, i) {
+      var done = x.n >= x.need;
+      return '<div class="adcard"><b>' + (x.c ? '✅ ' : '') + esc(x.t) + '</b> <span class="muted small">' + Math.min(x.n, x.need) + '/' + x.need + '</span><div class="dqbar"><i style="width:' + Math.round(Math.min(1, x.n / x.need) * 100) + '%"></i></div>' +
+        (x.c ? '<span class="muted small">已領取</span>' : done ? '<button class="btn primary" data-act="dqget" data-i="' + i + '">領取 ' + G.DQ_R.gold + ' 金幣、' + G.DQ_R.food + ' 糧食</button>' : '<span class="muted small">獎勵：' + G.DQ_R.gold + ' 金幣、' + G.DQ_R.food + ' 糧食</span>') + '</div>';
+    }).join('');
+    h += '<p class="muted small">三個都領完，再加 ' + G.DQ_ALL.gold + ' 金幣、開拓令 +' + G.DQ_ALL.tok + '。' + (q.all ? '（今天已經拿到了 🎉）' : '') + '<br>每天台灣時間 0 點換新任務（跟遊戲年份無關）。</p><button class="btn" data-act="closemodal">關閉</button>';
+    $('#mbody').innerHTML = h; $('#modal').hidden = false;
+  }
+  function campInfo(id) {
+    var c = g && g.srv && g.camp && g.camp[id]; if (!c) return '';
+    var lv = c.lv || 1, rw = c.k === 'bandit' ? (60 + 40 * lv) + ' 金幣、' + (30 * lv) + ' 糧食' : c.k === 'rebel' ? (120 + 60 * lv) + ' 金幣、民心 +2、' + (5 * lv) + ' 名降兵' : '寶藏金幣，或開拓令 +2';
+    return '<div class="campinfo">' + ({ bandit: '⛺', rebel: '🔥', ruin: '🏛' })[c.k] + ' <b>' + G.CAMP_K[c.k] + '</b>（等級 ' + lv + '）：打下來可得 ' + rw + '。開拓令不能直接佔，要派兵打。' + Math.max(0, c.x - g.turn) + ' 年後消失。</div>';
+  }
+  document.addEventListener('click', function (e) {
+    var t = e.target && e.target.closest && e.target.closest('[data-act]'); if (!t || !g) return;
+    var a = t.getAttribute('data-act');
+    if (a === 'alui') alUI();
+    else if (a === 'dqui') dqUI();
+    else if (a === 'alnew') { var nm0 = (($('#alname') || {}).value || '').trim(); if (!nm0) return toast('請輸入同盟名稱。'); alAct(G.P.alCreate(g, chatClean(nm0).slice(0, 10)), alUI); }
+    else if (a === 'alyes') alAct(G.P.alAccept(g), alUI);
+    else if (a === 'alno') alAct(G.P.alDecline(g), alUI);
+    else if (a === 'alinv') alAct(G.P.alInvite(g, t.getAttribute('data-f')), alUI);
+    else if (a === 'alkick') { if (!t.getAttribute('data-sure')) { t.setAttribute('data-sure', 1); t.textContent = '再按一次確定'; } else alAct(G.P.alKick(g, t.getAttribute('data-f')), alUI); }
+    else if (a === 'algoal') alAct(G.P.alGoal(g, +$('#algoal').value), alUI);
+    else if (a === 'algive') alAct(G.P.alGive(g, $('#alto').value, $('#alkind').value, Math.floor(+$('#alamt').value || 0)), alUI);
+    else if (a === 'alleave') { if (!t.getAttribute('data-sure')) { t.setAttribute('data-sure', 1); t.textContent = '確定要退出？再按一次'; } else alAct(G.P.alLeave(g), alUI); }
+    else if (a === 'dqget') alAct(G.P.dqClaim(g, +t.getAttribute('data-i')), dqUI);
+    else return;
+    e.stopPropagation(); e.preventDefault();
+  }, true);
+  (function () {
+    var st = document.createElement('style');
+    st.textContent = '.chipbtn{border:1px solid rgba(214,173,85,.6);background:rgba(214,173,85,.12);color:#f1d48c;border-radius:999px;padding:2px 9px;font-size:calc(12px * var(--fs,1));cursor:pointer}.chipbtn.hot{background:#d6ad55;color:#1b1406;font-weight:700}' +
+      '.dqbar{height:8px;border-radius:4px;background:rgba(255,255,255,.08);margin:6px 0;overflow:hidden}.dqbar i{display:block;height:100%;background:#d6ad55}' +
+      '.campinfo{margin:6px 0;padding:8px 10px;border-radius:10px;background:rgba(214,173,85,.14);border:1px solid rgba(214,173,85,.5);font-size:calc(13px * var(--fs,1));line-height:1.5}' +
+      '#alpanel~select,#mbody select{padding:6px;border-radius:8px;border:1px solid #555;background:#0b1418;color:#fff;font-size:15px;max-width:100%}';
+    document.head.appendChild(st);
+  })();
+  (function () { var rp0 = renderPanel; renderPanel = function () { rp0.apply(this, arguments); try { var pn = document.getElementById('panel'); if (pn && ui.sel != null && g && g.camp && g.camp[ui.sel] && !pn.querySelector('.campinfo')) { var ci = campInfo(ui.sel); if (ci) pn.insertAdjacentHTML('afterbegin', ci); } } catch (e) {} }; })();
   /* 全服大事件：等畫面上沒有其他視窗時才跳出來 */
   function showBigAnn() {
     if (!ui.bigAnn || !ui.bigAnn.length || !g || !$('#modal').hidden) return;
