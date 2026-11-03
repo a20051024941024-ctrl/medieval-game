@@ -434,7 +434,7 @@ button{font:inherit;color:inherit}
     <div class="startmap" id="startmap" aria-hidden="true"></div>
     <div class="sc-in gx">
       <p class="eyebrow">MEDIEVAL: WORLD DOMINATION · 1096 AD</p>
-      <p class="muted small" id="verline">版本 v237 · 2026-11-04 · 開拓令可以選要不要用</p>
+      <p class="muted small" id="verline">版本 v238 · 2026-11-04 · 移除排行榜（只在 Claude 裡能用）</p>
       <h1>中世紀：世界霸權</h1>
       <p class="lead">1095 年，教宗在克萊蒙發出號召，整個歐洲動了起來。選一個勢力（共 121 個），再從該文明歷史上的君主裡挑一位登基；在四千多個六角格地塊的世界裡，與基督教世界、伊斯蘭世界與即將到來的蒙古鐵騎周旋。可以結盟借道、派商隊與商船貿易、派密探、遠征遠方、研究科技升級時代、替自己的城市取名。沒有回合上限，直到有人稱霸，或你失去一切。</p>
       <div id="startopts"></div>
@@ -9309,7 +9309,7 @@ if (typeof module !== 'undefined') module.exports = G;
     var c = $('#cont');
     c.hidden = false;
     renderOpts();
-    c.innerHTML = '<button class="btn primary" data-act="mp">多人連線</button> <button class="btn" data-act="board">排行榜</button>';
+    c.innerHTML = '<button class="btn primary" data-act="mp">多人連線</button>';
     $('#rules-start').innerHTML = RULES;
     $('#rules-game').innerHTML = '<div class="row" id="fsrow">' + fsChips() + '</div><div class="row"><button class="chip" data-act="tutmenu">📘 打開教學選單（科技、外交、貿易、海戰…）</button></div>' + RULES;
     $('#rules-start').innerHTML = '<div class="row" id="fsrow2">' + fsChips() + '</div>' + RULES;
@@ -9554,7 +9554,7 @@ if (typeof module !== 'undefined') module.exports = G;
       '<div class="tscroll"><table class="score"><thead><tr><th>名次</th><th>勢力</th><th>地塊</th><th>國力</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
       endStats() +
       '<h3 class="bh">📖 你的王朝史</h3><div style="max-height:40vh;overflow:auto">' + chronHTML(0, false) + '</div>' +
-      '<p id="lbstatus" class="muted small"></p><h3 class="bh">排行榜</h3><div class="tscroll" data-board="5"></div>' +
+      '<p id="lbstatus" class="muted small" hidden></p>' +
       (g.rp ? '<button class="btn primary" data-act="replay" style="width:100%;margin:10px 0;font-size:1.1em">📽 播放整局重播（所有人的擴張與大事）</button>' : '') +
       '<button class="btn primary" data-act="restart">再玩一局</button>';
     $('#modal').hidden = false;
