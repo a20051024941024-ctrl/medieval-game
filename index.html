@@ -434,7 +434,7 @@ button{font:inherit;color:inherit}
     <div class="startmap" id="startmap" aria-hidden="true"></div>
     <div class="sc-in gx">
       <p class="eyebrow">MEDIEVAL: WORLD DOMINATION · 1096 AD</p>
-      <p class="muted small" id="verline">版本 v238 · 2026-11-04 · 移除排行榜（只在 Claude 裡能用）</p>
+      <p class="muted small" id="verline">版本 v239 · 2026-11-04 · 開始畫面：多人連線移到最上面</p>
       <h1>中世紀：世界霸權</h1>
       <p class="lead">1095 年，教宗在克萊蒙發出號召，整個歐洲動了起來。選一個勢力（共 121 個），再從該文明歷史上的君主裡挑一位登基；在四千多個六角格地塊的世界裡，與基督教世界、伊斯蘭世界與即將到來的蒙古鐵騎周旋。可以結盟借道、派商隊與商船貿易、派密探、遠征遠方、研究科技升級時代、替自己的城市取名。沒有回合上限，直到有人稱霸，或你失去一切。</p>
       <div id="startopts"></div>
@@ -9309,7 +9309,9 @@ if (typeof module !== 'undefined') module.exports = G;
     var c = $('#cont');
     c.hidden = false;
     renderOpts();
-    c.innerHTML = '<button class="btn primary" data-act="mp">多人連線</button>';
+    try { var so = $('#startopts'); if (so && c.nextElementSibling !== so) so.parentNode.insertBefore(c, so); } catch (e) {}
+    c.innerHTML = '<div class="mphero"><button class="mpbig" data-act="mp"><span class="mi">🌍</span><span class="mt"><b>多人連線</b><small>進公開伺服器，跟大家在同一張地圖上即時搶地盤；也可以開房間跟朋友玩</small></span><span class="ma">›</span></button>' +
+      '<button class="spbig" data-act="spgo"><span class="mi">⚔️</span><span class="mt"><b>單人遊戲</b><small>往下選難度和國家，跟電腦對戰</small></span><span class="ma">⌄</span></button></div>';
     $('#rules-start').innerHTML = RULES;
     $('#rules-game').innerHTML = '<div class="row" id="fsrow">' + fsChips() + '</div><div class="row"><button class="chip" data-act="tutmenu">📘 打開教學選單（科技、外交、貿易、海戰…）</button></div>' + RULES;
     $('#rules-start').innerHTML = '<div class="row" id="fsrow2">' + fsChips() + '</div>' + RULES;
@@ -10827,6 +10829,9 @@ if (typeof module !== 'undefined') module.exports = G;
     else return;
     e.stopPropagation(); e.preventDefault();
   }, true);
+  (function () { var st = document.createElement('style'); st.textContent = '.mphero{display:flex;flex-direction:column;gap:10px;margin:14px 0 18px}.mphero button{display:flex;align-items:center;gap:12px;width:100%;text-align:left;border-radius:16px;padding:14px 16px;cursor:pointer;font:inherit;color:inherit}' +
+    '.mpbig{background:linear-gradient(135deg,#e7c573,#c9963e);color:#1b1406!important;border:0;box-shadow:0 6px 18px rgba(0,0,0,.45)}.spbig{background:rgba(12,24,29,.82);border:1px solid rgba(214,173,85,.55)}' +
+    '.mphero .mi{font-size:30px;flex:none}.mphero .mt{flex:1;display:flex;flex-direction:column;gap:3px}.mphero b{font-size:calc(19px * var(--fs,1))}.mphero small{font-size:calc(13px * var(--fs,1));opacity:.85;line-height:1.4}.mphero .ma{font-size:26px;flex:none;opacity:.8}'; document.head.appendChild(st); })();
   /* 全服大事件：等畫面上沒有其他視窗時才跳出來 */
   function showBigAnn() {
     if (!ui.bigAnn || !ui.bigAnn.length || !g || !$('#modal').hidden) return;
@@ -11965,6 +11970,7 @@ if (typeof module !== 'undefined') module.exports = G;
       for (var mi = 1; mi < al.length; mi++) mr = G.P.armyMerge(g, ui.sel, al[0].id, al[mi].id);
       ui.army = null; return afterAction(mr || { ok: false, msg: '只有一支軍團。' });
     }
+    if (a === 'spgo') { var so2 = $('#startopts'); if (so2) so2.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
     if (a === 'go') return doMove();
     if (a === 'gont') return doMoveNT();
   });
