@@ -434,7 +434,7 @@ button{font:inherit;color:inherit}
     <div class="startmap" id="startmap" aria-hidden="true"></div>
     <div class="sc-in gx">
       <p class="eyebrow">MEDIEVAL: WORLD DOMINATION · 1096 AD</p>
-      <p class="muted small" id="verline">版本 v220 · 2026-11-03 · 白手起家只有玩家的國家，沒有電腦國家</p>
+      <p class="muted small" id="verline">版本 v221 · 2026-11-03 · 電腦拜占庭變強，君士坦丁堡有城牆</p>
       <h1>中世紀：世界霸權</h1>
       <p class="lead">1095 年，教宗在克萊蒙發出號召，整個歐洲動了起來。選一個勢力（共 121 個），再從該文明歷史上的君主裡挑一位登基；在四千多個六角格地塊的世界裡，與基督教世界、伊斯蘭世界與即將到來的蒙古鐵騎周旋。可以結盟借道、派商隊與商船貿易、派密探、遠征遠方、研究科技升級時代、替自己的城市取名。沒有回合上限，直到有人稱霸，或你失去一切。</p>
       <div id="startopts"></div>
@@ -2931,6 +2931,21 @@ function genTick(g) {
 function sendCount(g, from, ratio) {
   var s = g.p[from];
   return ratio === 'all' ? s.t - 1 : Math.max(1, Math.floor(s.t / 2));
+}
+/* 拜占庭（電腦）：君士坦丁堡有狄奧多西城牆，帝國底子厚，史上撐到 1453 年 */
+function byzTick(g) {
+  var fs = g.fac.byz, c = CAPITAL.byz;
+  if (g.noAI || !fs || !fs.alive || isHum(g, 'byz') || year(g) >= 1453 || c == null) return;
+  var bp = g.p[c], first = !g.byzI; g.byzI = 1;
+  if (bp.o === 'byz') {
+    bp.w = Math.max(bp.w | 0, 3);
+    var cap = capOf(bp, c) + 24;
+    if (bp.t < cap) bp.t = Math.min(cap, Math.max(bp.t + (bp.sg ? 6 : 4), first ? 36 : 0));
+  }
+  var bo = owned(g, 'byz'), big = bo.length > 60;
+  if (first) bo.forEach(function (id) { g.p[id].t += 3; });
+  for (var i = 0; i < (big ? 0 : 5) && bo.length; i++) { var q = g.p[bo[rint(bo.length)]]; if (q.t < capOf(q, 0) + 6) q.t += 2; }
+  if (!big || first) { fs.gold += first ? 300 : 30; fs.food += 20; } fs.morale = Math.max(fs.morale, 55);
 }
 function refreshAlive(g) {
   FIDS.forEach(function (f) {
@@ -6278,7 +6293,7 @@ function endTurn0(g) {
   merchantTick(g);
   caravanTick(g);
   FIDS.forEach(function (f) { if (g.fac[f].alive) { settle(g, f); addRx(g, f, 0.4 + techFx(g, f, 'rx')); } });
-  FIDS.forEach(function (f) { if (!g.noAI && !isHum(g, f) && g.fac[f].alive) aiTurn(g, f); });
+  byzTick(g); FIDS.forEach(function (f) { if (!g.noAI && !isHum(g, f) && g.fac[f].alive) aiTurn(g, f); });
   _bc = {};
   FIDS.forEach(function (f) { if (!isHum(g, f) && g.fac[f].alive) aiDiplomacy(g, f); });
   _bc = null;
@@ -7630,6 +7645,7 @@ if (typeof module !== 'undefined') module.exports = G;
     '<li><b>繼續多人存檔</b>：讀取多人存檔後會先回到房間，每個人重新選國家；只要首都還在自己手上的國家都能選，之前是電腦控制的也可以，首都被別國占走的就不能選。之前玩過的人回來會自動先幫他選好原本的國家，想換可以再改。</li>' +
     '<li><b>地上的徽章</b>：每塊地上的盾牌就是擁有它的國家的徽章；盾牌左邊的小圓圈是那裡主要的兵種（交叉的劍＝步兵、弓＝弓兵、馬＝騎兵），下面的數字是兵力。</li>' +
     '<li><b>白手起家沒有電腦國家</b>：不會冒出金國、蒙古這類新國家，沒有史實事件。之後繼續存檔時，有新朋友選了還沒出現的國家，那個國家才會在自己的首都出現；沒回來的玩家，他的國家會原地不動，不會被電腦接手。</li>' +
+    '<li><b>拜占庭的城牆</b>：拜占庭由電腦控制時，君士坦丁堡有狄奧多西城牆（城牆最高級、每年自動補兵，被圍時補得更快），帝國其他地方也會慢慢補兵、補錢，好讓它像歷史上一樣撐到 1453 年。帝國變大（超過 60 塊地）之後，只剩首都的城牆和補兵。想打下君士坦丁堡要準備大軍。</li>' +
     '<li><b>點地＝查看</b>：點別人的地或中立地只會顯示它的資料，不會自動出兵；面板上有「⚔ 從旁邊的某地出兵」按鈕，按了才會選好出兵。已經選了自己的地、再點旁邊的地，那塊地會變成出兵目標（箭頭）；同一塊再點一次，就改成只查看它。打不到的遠處只會提示你要先把部隊調到哪裡，不會自己幫你調兵扣行動點。</li>' +
     '<li><b>電腦會守首都</b>：首都或大城被你的大軍逼近時，電腦會從附近調兵回防、優先在那裡補兵；普通和困難難度下，首都告急還會緊急徵召民兵（每 4 回合一次），所以最好先削弱它周圍的部隊再攻城。</li>' +
     '<li><b>白手起家模式（多人連線限定）</b>：房主在多人房間裡的「開局領地」可以選「首都＋一圈」或「只有首都」。地圖上只有玩家選的國家，沒有電腦國家；每國一開始都只有這一點點地，其他地全部變成中立地；原本地圖上的城市變成有守軍的中立城，要自己一塊塊打下來，再蓋村莊、升級城市慢慢擴張。每國會多發 120 金、60 糧當起步資金。單人遊戲一律照歷史上的領土開局。</li>' +
