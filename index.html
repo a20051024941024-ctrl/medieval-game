@@ -434,7 +434,7 @@ button{font:inherit;color:inherit}
     <div class="startmap" id="startmap" aria-hidden="true"></div>
     <div class="sc-in gx">
       <p class="eyebrow">MEDIEVAL: WORLD DOMINATION · 1096 AD</p>
-      <p class="muted small" id="verline">版本 v231 · 2026-11-03 · 遊戲內聊天、結算整局重播</p>
+      <p class="muted small" id="verline">版本 v232 · 2026-11-03 · 多人同步只傳有變動的部分（流量大幅減少）</p>
       <h1>中世紀：世界霸權</h1>
       <p class="lead">1095 年，教宗在克萊蒙發出號召，整個歐洲動了起來。選一個勢力（共 121 個），再從該文明歷史上的君主裡挑一位登基；在四千多個六角格地塊的世界裡，與基督教世界、伊斯蘭世界與即將到來的蒙古鐵騎周旋。可以結盟借道、派商隊與商船貿易、派密探、遠征遠方、研究科技升級時代、替自己的城市取名。沒有回合上限，直到有人稱霸，或你失去一切。</p>
       <div id="startopts"></div>
@@ -7526,6 +7526,7 @@ if (typeof module !== 'undefined') module.exports = G;
       MP.players[s.id] = { f: pf2, name: s.pend.name, pid: s.pend.pid }; MP.facOf[s.id] = pf2; s.pend = null;
       toast(MP.players[s.id].name + ' 加入了遊戲，選了' + G.FACTIONS[pf2].name + '。'); try { chatSys(MP.players[s.id].name + ' 加入了，選了' + G.FACTIONS[pf2].name); chatSendLog(s); } catch (e) {}
       p2pBroadcastLobby(); ui.mapDirty = true; renderAll(); MP.dirty = true; mpPublish(true); try { sbSave(true); } catch (e) {}
+    } else if (m.t === 'full' && MP.on) { if (Date.now() - (s.fullAt || 0) > 4000) { s.dsOk = false; MP.dirty = true; mpPublish(true); }
     } else if (m.t === 'chat' && MP.on) { chatHostIn(s.id, m);
     } else if (m.t === 'a' && MP.on) {
       mpOnAction({ by: s.id, data: m.d, isMe: false });
@@ -8055,17 +8056,33 @@ if (typeof module !== 'undefined') module.exports = G;
     else if (m.t === 'ver') p2pGuestMenu('版本不同：房主是 ' + m.host + '，你是 ' + PVER + '。請雙方都更新到同一個版本再連線。');
     else if (m.t === 'full') p2pGuestMenu('這個房間的遊戲已經開始，而且沒有空位。');
     else if (m.t === 's') {
-      var a = P2P.asm[m.v] || (P2P.asm[m.v] = { n: m.n, c: {}, k: 0 });
+      var ak = m.v + (m.k || 'x'), a = P2P.asm[ak] || (P2P.asm[ak] = { n: m.n, c: {}, k: 0, v: m.v });
       if (!a.c[m.i]) { a.c[m.i] = m.d; a.k++; }
       if (a.k === a.n) {
         var ch = []; for (var i = 0; i < a.n; i++) ch.push(a.c[i]);
-        Object.keys(P2P.asm).forEach(function (k) { if (+k <= +m.v) delete P2P.asm[k]; });
+        Object.keys(P2P.asm).forEach(function (k) { if (P2P.asm[k].v <= m.v) delete P2P.asm[k]; });
         if (m.v <= (MP.lastV || 0)) return;
-        MP.lastV = m.v; MP.lost = false; MP.me = MP.spec ? (MP.players.host && MP.players.host.f) : (MP.players[MP.uid] && MP.players[MP.uid].f);
-        if (!MP.me) return;
-        mpUnpack(ch).then(function (text) { mpApply(JSON.parse(text)); }).catch(function (e) { try { console.error('mpApply', e && e.stack || e); } catch (x) {} toast('同步失敗。'); });
+        if (m.k === 'd' && (!P2P.dsStore || m.b !== P2P.dsGV)) { dsAskFull(); return; }
+        mpUnpack(ch).then(function (text) {
+          var st;
+          if (m.k === 'd' || m.k === 'f') {
+            var msg = JSON.parse(text);
+            if (m.k === 'f') P2P.dsStore = {};
+            else if (m.b !== P2P.dsGV) { dsAskFull(); return; }
+            dsApply(P2P.dsStore, msg); P2P.dsGV = m.v;
+            st = dsBuild(P2P.dsStore);
+          } else st = JSON.parse(text);
+          if (m.v <= (MP.lastV || 0)) return;
+          MP.lastV = m.v; MP.lost = false; MP.me = MP.spec ? (MP.players.host && MP.players.host.f) : (MP.players[MP.uid] && MP.players[MP.uid].f);
+          if (!MP.me) return;
+          mpApply(st);
+        }).catch(function (e) { try { console.error('mpApply', e && e.stack || e); } catch (x) {} if (m.k === 'd') { P2P.dsStore = null; dsAskFull(); } else toast('同步失敗。'); });
       }
     }
+  }
+  function dsAskFull() {
+    if (Date.now() - (P2P.dsAsk || 0) < 4000) return;
+    P2P.dsAsk = Date.now(); p2pSendTo(P2P.hostDc, { t: 'full' });
   }
   function p2pPick(f) {
     if (MP.role === 'host') {
@@ -8076,18 +8093,31 @@ if (typeof module !== 'undefined') module.exports = G;
     } else p2pSendTo(P2P.hostDc, { t: 'pick', f: f });
   }
   function p2pPublish(done) {
-    var rp0 = g.rp; if (rp0 && !g.over) delete g.rp; var json; try { json = JSON.stringify(g); } finally { if (rp0) g.rp = rp0; } var v = Math.max(Date.now(), MP.v + 1);
-    mpPack(json).then(function (chunks) {
-      MP.v = v;
-      var parts = [];
+    var rp0 = g.rp; if (rp0 && !g.over) delete g.rp; var cur; try { cur = dsFlat(g); } finally { if (rp0) g.rp = rp0; }
+    var v = Math.max(Date.now(), MP.v + 1), prev = P2P.dsPrev, b = P2P.dsV || 0;
+    var open = P2P.slots.filter(function (s) { return s.state === 'open'; });
+    var needFull = open.filter(function (s) { return !prev || !s.dsOk; });
+    var dl = prev ? dsMsg(prev, cur, b) : null, fl = needFull.length ? dsMsg(null, cur, 0) : null;
+    P2P.dsPrev = cur; P2P.dsV = v; MP.v = v;
+    P2P.dsStat = P2P.dsStat || { d: 0, f: 0, db: 0, fb: 0 }; window.__ds = P2P.dsStat;
+    var packs = [dl ? mpPack(dl.json) : Promise.resolve(null), fl ? mpPack(fl.json) : Promise.resolve(null)];
+    Promise.all(packs).then(function (pk) {
       var PS = SB.on ? 60000 : 15000, sbAll = SB.on && PJ.peer && PJ.peer.sendAll, sentAll = false;
-      chunks.forEach(function (c) { for (var i = 0; i < c.length; i += PS) parts.push(c.slice(i, i + PS)); });
-      P2P.slots.forEach(function (s) {
+      var split = function (chunks) { var parts = []; chunks.forEach(function (c) { for (var i = 0; i < c.length; i += PS) parts.push(c.slice(i, i + PS)); }); return parts; };
+      var dp = pk[0] ? split(pk[0]) : null, fp = pk[1] ? split(pk[1]) : null;
+      if (dp) { P2P.dsStat.d++; P2P.dsStat.db += dp.join('').length; }
+      open.forEach(function (s) {
         if (s.state !== 'open') return;
-        if (sbAll && s.pj) { if (!sentAll) { sentAll = true; parts.forEach(function (d, i) { PJ.peer.sendAll(JSON.stringify({ t: 's', v: v, i: i, n: parts.length, d: d })); }); } return; }
-        parts.forEach(function (d, i) { p2pSendTo(s.dc, { t: 's', v: v, i: i, n: parts.length, d: d }); });
+        if (fp && (!prev || !s.dsOk)) {
+          P2P.dsStat.f++; P2P.dsStat.fb += fp.join('').length;
+          fp.forEach(function (d, i) { p2pSendTo(s.dc, { t: 's', k: 'f', v: v, i: i, n: fp.length, d: d }); });
+          s.dsOk = true; s.fullAt = Date.now(); return;
+        }
+        if (!dp) return;
+        if (sbAll && s.pj) { if (!sentAll) { sentAll = true; dp.forEach(function (d, i) { PJ.peer.sendAll(JSON.stringify({ t: 's', k: 'd', b: b, v: v, i: i, n: dp.length, d: d })); }); } return; }
+        dp.forEach(function (d, i) { p2pSendTo(s.dc, { t: 's', k: 'd', b: b, v: v, i: i, n: dp.length, d: d }); });
       });
-    }).then(function () { if (done) done(); }).catch(function () { MP.dirty = true; })
+    }).then(function () { if (done) done(); }).catch(function () { MP.dirty = true; P2P.dsPrev = null; })
       .then(function () { MP.busy = false; MP.lastPub = Date.now(); if (MP.dirty && !MP.pubT) MP.pubT = setTimeout(mpDoPublish, 2500); });
   }
   function p2pClose() {
@@ -10012,6 +10042,48 @@ if (typeof module !== 'undefined') module.exports = G;
       '#ap.apwrap>*{flex-shrink:0}#ap.apwrap{white-space:normal!important;flex-wrap:wrap;overflow:visible!important;row-gap:0;line-height:1.25;font-size:calc(11px * var(--fs,1))!important;align-content:center}';
     document.head.appendChild(st);
   })();
+  /* ===== 同步只傳有變動的部分（差異同步） ===== */
+  var DS_A = { p: 1 }, DS_O = { dip: 1, fac: 1, hs: 1, lm: 1 };
+  function dsFlat(o) {
+    var out = {};
+    Object.keys(o).forEach(function (k) {
+      var v = o[k]; if (v === undefined || typeof v === 'function') return;
+      if (DS_A[k] && Array.isArray(v)) { out[k + '\t#'] = String(v.length); for (var i = 0; i < v.length; i++) out[k + '\t' + i] = JSON.stringify(v[i] === undefined ? null : v[i]); }
+      else if (DS_O[k] && v && typeof v === 'object' && !Array.isArray(v)) { out[k + '\t{'] = '1'; Object.keys(v).forEach(function (s) { if (v[s] !== undefined && typeof v[s] !== 'function') out[k + '\t' + s] = JSON.stringify(v[s]); }); }
+      else { var j = JSON.stringify(v); if (j !== undefined) out[k] = j; }
+    });
+    return out;
+  }
+  /* 產生傳送用的文字：b=基準版本（0 代表完整），set=有變動的部分，del=刪掉的部分 */
+  function dsMsg(prev, cur, b) {
+    var set = [], del = [], k;
+    for (k in cur) if (!prev || prev[k] !== cur[k]) set.push(JSON.stringify(k) + ':' + cur[k]);
+    if (prev) for (k in prev) if (!(k in cur)) del.push(k);
+    return { n: set.length + del.length, json: '{"b":' + (prev ? b : 0) + ',"set":{' + set.join(',') + '},"del":' + JSON.stringify(del) + '}' };
+  }
+  /* 朋友端：把收到的部分套進自己的副本，再組回完整的遊戲狀態 */
+  function dsApply(store, msg) {
+    var s = msg.set || {}, k;
+    for (k in s) store[k] = JSON.stringify(s[k]);
+    (msg.del || []).forEach(function (d) { delete store[d]; });
+  }
+  function dsBuild(store) {
+    var tops = {}, order = [], k, t, i;
+    for (k in store) {
+      i = k.indexOf('\t'); t = i < 0 ? k : k.slice(0, i);
+      var e = tops[t]; if (!e) { e = tops[t] = { w: null, sub: [], len: -1, obj: false }; order.push(t); }
+      if (i < 0) e.w = store[k];
+      else { var sub = k.slice(i + 1); if (sub === '#') e.len = +store[k]; else if (sub === '{') e.obj = true; else e.sub.push([sub, store[k]]); }
+    }
+    var parts = order.map(function (t) {
+      var e = tops[t], v;
+      if (e.len >= 0) { var arr = new Array(e.len); e.sub.forEach(function (x) { var n = +x[0]; if (n >= 0 && n < e.len) arr[n] = x[1]; }); for (var q = 0; q < e.len; q++) if (arr[q] === undefined) arr[q] = 'null'; v = '[' + arr.join(',') + ']'; }
+      else if (e.obj) v = '{' + e.sub.map(function (x) { return JSON.stringify(x[0]) + ':' + x[1]; }).join(',') + '}';
+      else v = e.w;
+      return v == null ? null : JSON.stringify(t) + ':' + v;
+    }).filter(function (x) { return x; });
+    return JSON.parse('{' + parts.join(',') + '}');
+  }
   /* 全服大事件：等畫面上沒有其他視窗時才跳出來 */
   function showBigAnn() {
     if (!ui.bigAnn || !ui.bigAnn.length || !g || !$('#modal').hidden) return;
