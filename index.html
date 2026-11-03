@@ -434,7 +434,7 @@ button{font:inherit;color:inherit}
     <div class="startmap" id="startmap" aria-hidden="true"></div>
     <div class="sc-in gx">
       <p class="eyebrow">MEDIEVAL: WORLD DOMINATION · 1096 AD</p>
-      <p class="muted small" id="verline">版本 v235 · 2026-11-03 · 同盟（公會）、野外營地、每日任務</p>
+      <p class="muted small" id="verline">版本 v236 · 2026-11-04 · 推播通知（被攻打、被宣戰、同盟邀請、全服大事）</p>
       <h1>中世紀：世界霸權</h1>
       <p class="lead">1095 年，教宗在克萊蒙發出號召，整個歐洲動了起來。選一個勢力（共 121 個），再從該文明歷史上的君主裡挑一位登基；在四千多個六角格地塊的世界裡，與基督教世界、伊斯蘭世界與即將到來的蒙古鐵騎周旋。可以結盟借道、派商隊與商船貿易、派密探、遠征遠方、研究科技升級時代、替自己的城市取名。沒有回合上限，直到有人稱霸，或你失去一切。</p>
       <div id="startopts"></div>
@@ -7830,7 +7830,7 @@ if (typeof module !== 'undefined') module.exports = G;
       var se = r && r.data && r.data.session;
       if (se && se.user) return se.user;
       return cl.auth.signInAnonymously().then(function (r2) { if (r2.error || !r2.data || !r2.data.user) throw (r2.error || new Error('auth')); return r2.data.user; });
-    }).then(function (u) { SB.uid = u.id; SB.anon = !!u.is_anonymous; SB.meta = u.user_metadata || {}; SB.email = u.email || ''; MPID = u.id; adNonce(cl, u.id); return cl; }, function (e) { SB.authErr = true; sbErr('登入', e); return cl; });
+    }).then(function (u) { SB.uid = u.id; SB.anon = !!u.is_anonymous; SB.meta = u.user_metadata || {}; SB.email = u.email || ''; MPID = u.id; adNonce(cl, u.id); setTimeout(function () { try { puResync(); } catch (e) {} }, 2000); return cl; }, function (e) { SB.authErr = true; sbErr('登入', e); return cl; });
   }
   function sbErr(where, e, extra) { var m = (e && (e.message || e.code || e.status)) || e || ''; SB.lastErr = where + '：' + String(m).slice(0, 80) + (extra ? '（' + extra + '）' : ''); try { console.log('[SB]', SB.lastErr, e); } catch (x) {} return SB.lastErr; }
   function isMe(pid) { return !!pid && (pid === MPID || pid === MPID0); }
@@ -8516,6 +8516,7 @@ if (typeof module !== 'undefined') module.exports = G;
     '<li><b>登陸作戰一年一次</b>：每支艦隊每年只能搶灘作戰一次，打輸退回船上的殘部也不能馬上再登陸；從已經行動過的地載上船的部隊，這支艦隊今年也不能搶灘（但可以在自己的地下船）。</li>' +
     '<li><b>伺服器房間與即時模式</b>：多人連線的 5 碼房間現在放在伺服器上，遊戲進度也存在伺服器。房主關掉遊戲，其他人會自動換一個人接手繼續；所有人都不在時，下次任何人輸入代碼就能接著玩。房主開房時可以把「時間流逝」設成即時（例如每 10 分鐘過一年）：大家隨時下指令，時間到自動進下一年，離開期間該過的年份下次開房時會一次補上（最多 12 年）；不在線的人國家照樣在，但不會動。遊戲中途有新朋友輸入代碼，可以挑一個還沒有人玩的國家加入。</li>' +
     '<li><b>📽 整局重播</b>：遊戲結束時，結算畫面有「播放整局重播」。地圖會從第一年播到最後一年，所有國家的領土同時擴張；旁邊的大事記會依年份列出誰加入、誰建城、誰向誰宣戰、哪國被誰消滅、名城易主和全服事件，右邊是當年的領地排名。可以暫停、調速度（1×／2×／5×），也能拖時間軸跳到任何一年；多人時預設放大到玩家所在的區域，按「全世界」看整張地圖。</li>' +
+    '<li><b>🔔 通知</b>（伺服器）：到「帳號」按「開啟通知」。遊戲關著的時候，有人攻打你、向你宣戰、邀請你加入同盟，或發生全服大事，手機會跳通知（同一個人最多每 8 分鐘一則）。要用安裝到桌面的版本或 Chrome。</li>' +
     '<li><b>⚑ 同盟</b>（伺服器）：按上方的「⚑ 同盟」。花 100 金幣建立同盟（最多 6 國），盟主可以邀請玩家。成員之間自動結盟、不能互相宣戰；可以互送金幣、糧食（每年各最多 300）和援軍（首都到首都，每年最多 20 兵，要 1 點行動點）。盟主可以把一座名城設成同盟目標，任何成員拿下，全員 +150 金幣、民心 +3。退出同盟後 8 年內不能對前盟友宣戰。</li><li><b>⛺ 野外營地</b>（伺服器）：玩家領地附近會冒出土匪營地 ⛺、叛軍據點 🔥、古代遺跡 🏛。開拓令不能直接佔，要派兵打下來，可以得到金幣、糧食、降兵或開拓令。沒人打的話 25 年後會消失，再冒出新的。</li><li><b>📜 每日任務</b>（伺服器）：每天台灣時間 0 點換 3 個新任務（佔地、打營地、徵兵、研究、建城、支援盟友），完成一個領 80 金幣和 50 糧食，三個全領完再加 150 金幣和 1 張開拓令。</li>' +
     '<li><b>👤 帳號</b>（伺服器）：一開始是訪客帳號，只認得這支手機的這個瀏覽器。到伺服器選單的「帳號」綁定 Email，換手機或清除資料後，用「我已經保存過，登入」輸入同一個 Email，點信裡的連結就能回到原本的國家（不用密碼）。</li>' +
     '<li><b>🛡 檢舉與管理</b>（伺服器）：在聊天訊息旁按「⋯」可以封鎖或檢舉。檢舉會送給管理員，管理員可以禁言、暫時踢出、強制改名或收回國家。名字裡的髒話會被換掉。</li><li><b>📋 你不在的時候</b>（伺服器）：離開至少一年再回來，會先看到這段期間的報告：失去或新增的地（被誰打下）、誰向你宣戰、哪國滅亡、全服事件。</li><li><b>🏆 名人堂</b>：伺服器每一輪打到 1453 年結束，前五名的同盟會被永久記下來，在伺服器選單按「名人堂」可以看歷屆紀錄。</li>' +
@@ -10515,6 +10516,7 @@ if (typeof module !== 'undefined') module.exports = G;
     var sum = '領地：' + (s.own || []).length + ' → <b>' + G.ownedTotal(g, f) + '</b> 塊' + (nl ? '（失去 ' + nl + '）' : '') + (gain ? '（新增 ' + gain + '）' : '');
     ui.awayHtml = '<div class="mtag">你不在的時候</div><h2 id="mtitle">' + esc(head) + '</h2><p class="mtext">' + sum + '</p>' +
       (items.length ? '<ul class="awl">' + items.slice(0, 14).map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + (items.length > 14 ? '<li class="muted">…還有 ' + (items.length - 14) + ' 件事</li>' : '') + '</ul>' : '<p class="muted">這段時間很平靜，沒有人來打你。</p>') +
+      (typeof Notification !== 'undefined' && Notification.permission !== 'granted' ? '<p class="muted small">想在被攻打時收到手機通知？到「帳號」開啟通知。 <button class="btn" data-act="acct">開啟通知</button></p>' : '') +
       '<button class="btn primary" data-act="closemodal">知道了</button>';
   }
   function awShow() { if (!ui.awayHtml || !g || !$('#modal').hidden) return; $('#mbody').innerHTML = ui.awayHtml; ui.awayHtml = null; $('#modal').hidden = false; }
@@ -10583,9 +10585,10 @@ if (typeof module !== 'undefined') module.exports = G;
     else h += '<p class="mtext">' + (ACC.mode === 'bind' ? '輸入你的 Email，我們會寄一封確認信給你。' : '輸入之前綁定的 Email，我們會寄登入連結給你。<br><span class="muted small">登入後，這個瀏覽器會換成那個帳號；現在這個訪客帳號的國家就不會再用到了。</span>') + '</p>' +
       '<input id="accin" type="email" inputmode="email" autocomplete="email" maxlength="120" placeholder="you@example.com" value="' + esc(ACC.email) + '" style="width:100%;box-sizing:border-box;padding:9px 10px;border-radius:8px;border:1px solid #555;background:#0b1418;color:#fff;font-size:16px">' +
       (ACC.msg ? '<p class="warn">' + esc(ACC.msg) + '</p>' : '') + '<div style="margin-top:8px"><button class="btn primary" data-act="accsend"' + (ACC.busy ? ' disabled' : '') + '>' + (ACC.busy ? '寄送中…' : '寄出') + '</button> <button class="btn" data-act="accstep" data-m="idle">取消</button></div>';
+    if (SB.uid) h += puBox();
     h += '<details style="margin-top:14px"><summary class="muted small">帳號 ID（設定管理員用）</summary><p class="small" style="word-break:break-all;user-select:text;-webkit-user-select:text">' + esc(SB.uid || '（還沒登入）') + '</p><button class="btn" data-act="sbcopyid">複製 ID</button></details>' +
       '<button class="btn" data-act="mp" style="margin-top:10px">返回</button>';
-    $('#mbody').innerHTML = h; $('#modal').hidden = false;
+    $('#mbody').innerHTML = h; $('#modal').hidden = false; try { puRender(); } catch (e) {}
   }
   function accOpen() { ACC.msg = ''; if (ACC.step !== 'sent') ACC.step = 'idle'; sbLoad().then(sbAuth).then(function () { accRender(); }, function () { accRender(); }); accRender(); }
   function accSend() {
@@ -10719,6 +10722,104 @@ if (typeof module !== 'undefined') module.exports = G;
     document.head.appendChild(st);
   })();
   (function () { var rp0 = renderPanel; renderPanel = function () { rp0.apply(this, arguments); try { var pn = document.getElementById('panel'); if (pn && ui.sel != null && g && g.camp && g.camp[ui.sel] && !pn.querySelector('.campinfo')) { var ci = campInfo(ui.sel); if (ci) pn.insertAdjacentHTML('afterbegin', ci); } } catch (e) {} }; })();
+  /* ===== 推播通知：遊戲關著時，被攻打、被宣戰、全服大事會跳通知 ===== */
+  var PU = { st: {}, at: {}, busy: false, pub: null };
+  function puCan() { return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window && (location.protocol === 'https:' || location.hostname === 'localhost'); }
+  function puB64(s) { var p = '='.repeat((4 - s.length % 4) % 4), b = atob((s + p).replace(/-/g, '+').replace(/_/g, '/')), a = new Uint8Array(b.length); for (var i = 0; i < b.length; i++) a[i] = b.charCodeAt(i); return a; }
+  function puFn(body) { return SB.cl.functions.invoke('mw-push', { body: body }).then(function (r) { if (r && r.error) throw r.error; return (r && r.data) || {}; }); }
+  function puSite() { return location.origin + location.pathname; }
+  function puState() {
+    if (!puCan()) return Promise.resolve('no');
+    return navigator.serviceWorker.getRegistration().then(function (reg) {
+      if (!reg) return 'nosw';
+      return reg.pushManager.getSubscription().then(function (s) { return s && Notification.permission === 'granted' ? 'on' : Notification.permission === 'denied' ? 'denied' : 'off'; });
+    }).catch(function () { return 'no'; });
+  }
+  function puSave(sub) {
+    var j = sub.toJSON();
+    return SB.cl.from('mw_push').upsert({ endpoint: j.endpoint, uid: SB.uid, sub: j }).then(function (r) { if (r && r.error) throw r.error; });
+  }
+  function puOn() {
+    if (!SB.cl || !SB.uid) return Promise.reject(new Error('還沒連上伺服器'));
+    if (!puCan()) return Promise.reject(new Error('這個瀏覽器不支援通知（請用安裝到桌面的版本，或 Chrome 開啟）'));
+    var reg;
+    return Notification.requestPermission().then(function (p) { if (p !== 'granted') throw new Error('你沒有允許通知。要到瀏覽器的網站設定裡把通知打開。'); return navigator.serviceWorker.ready; })
+      .then(function (r) { reg = r; return PU.pub ? { pub: PU.pub } : puFn({ action: 'pub' }); })
+      .then(function (d) { if (!d.pub) throw new Error('伺服器的通知程式還沒裝好'); PU.pub = d.pub; return reg.pushManager.getSubscription(); })
+      .then(function (s) { return s || reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: puB64(PU.pub) }); })
+      .then(function (s) { return puSave(s).catch(function () { return s.unsubscribe().then(function () { return reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: puB64(PU.pub) }); }).then(puSave); }); })
+      .then(function () { return puFn({ action: 'test', url: puSite() }).catch(function () {}); });
+  }
+  function puOff() {
+    return navigator.serviceWorker.getRegistration().then(function (reg) { return reg && reg.pushManager.getSubscription(); }).then(function (s) {
+      if (!s) return; var ep = s.endpoint; return s.unsubscribe().then(function () { if (SB.cl) return SB.cl.from('mw_push').delete().eq('endpoint', ep); });
+    });
+  }
+  /* 換帳號（Email 登入）後，把這支手機的通知改到新帳號 */
+  function puResync() {
+    if (!puCan() || !SB.cl || !SB.uid || Notification.permission !== 'granted') return;
+    navigator.serviceWorker.getRegistration().then(function (reg) { return reg && reg.pushManager.getSubscription(); }).then(function (s) { if (s) puSave(s).catch(function () {}); }).catch(function () {});
+  }
+  function puBox() {
+    return '<div id="pubox" class="adcard" style="margin-top:12px"><b>🔔 通知</b><div id="pust" class="muted small">檢查中…</div></div>';
+  }
+  function puRender() {
+    var el = $('#pust'); if (!el) return;
+    puState().then(function (s) {
+      var el2 = $('#pust'); if (!el2) return;
+      el2.innerHTML = s === 'on' ? '✅ 已開啟：遊戲關著時，有人攻打你、向你宣戰、邀請你加入同盟，或發生全服大事，手機會跳通知。<div class="adrow"><button class="btn" data-act="puoff">關閉通知</button></div>'
+        : s === 'denied' ? '你之前拒絕了通知。要到瀏覽器的「網站設定 → 通知」把這個網站改成允許，再回來按開啟。<div class="adrow"><button class="btn" data-act="puon">再試一次</button></div>'
+        : s === 'no' ? '這裡不能開通知。請用安裝到桌面的版本（或用 Chrome 打開遊戲網址）。'
+        : '遊戲關著的時候，有人攻打你或向你宣戰，手機會跳通知叫你回來。<div class="adrow"><button class="btn primary" data-act="puon">開啟通知</button></div>';
+    });
+  }
+  /* ---------- 房主：替離線的玩家發通知 ---------- */
+  function puUids() {
+    var m = {}, on = {};
+    Object.keys(MP.players || {}).forEach(function (u) { var q = MP.players[u]; if (!q || !q.f) return; var pid = u === 'host' ? MPID : q.pid; if (!pid) return; m[q.f] = pid; if (u === 'host' || !q.off) on[q.f] = 1; });
+    return { uid: m, on: on };
+  }
+  function puTick() {
+    if (!SB.on || !SB.cl || MP.role !== 'host' || !SB.hostCode || !g || !g.srv || PU.busy) return;
+    var U = puUids(), items = [], now = Date.now();
+    var hum = G.humansOf(g).filter(function (f, i, A) { return f && A.indexOf(f) === i; });
+    var bigNew = (g.ann || []).filter(function (a) { return a.big && a.t > (PU.annT || 0); });
+    if (PU.annT == null) { PU.annT = g.turn; bigNew = []; }
+    else if (bigNew.length) PU.annT = Math.max.apply(null, bigNew.map(function (a) { return a.t; }));
+    hum.forEach(function (f) {
+      var uid = U.uid[f]; if (!uid) return;
+      if (U.on[f]) { delete PU.st[f]; return; }
+      var own = []; G.LANDIDS.forEach(function (i) { if (g.p[i].o === f) own.push(i); });
+      var s = PU.st[f];
+      if (!s) { PU.st[f] = { own: own, t: g.turn, lostN: 0, warT: g.turn, inv: !!(g.alInv && g.alInv[f]) }; return; }
+      var seen = {}; s.own.forEach(function (i) { seen[i] = 1; }); own.forEach(function (i) { if (!seen[i]) s.own.push(i); });
+      var lines = [], by = {};
+      s.own.forEach(function (i) { var o = g.p[i].o; if (o !== f) by[o || ''] = (by[o || ''] || 0) + 1; });
+      var lost = Object.keys(by).reduce(function (a, k) { return a + by[k]; }, 0);
+      if (lost > s.lostN) { var top = Object.keys(by).sort(function (a, b) { return by[b] - by[a]; })[0]; lines.push('⚔️ 你已經失去 ' + lost + ' 塊地' + (top ? '（主要被' + G.nm(top) + '攻下）' : '') + '，快回來防守！'); s.lostN = lost; }
+      (g.wars || []).forEach(function (w) { var wk = 'w' + w.a + w.t; if (w.b === f && w.t >= s.t && !s[wk]) { s[wk] = 1; lines.push('📜 ' + G.nm(w.a) + '向你宣戰了！'); } });
+      (g.pw || []).forEach(function (w) { if (w.b === f && !s['pw' + w.a]) { s['pw' + w.a] = 1; lines.push('📜 ' + G.nm(w.a) + '送來宣戰書，明年開戰。'); } });
+      var inv = !!(g.alInv && g.alInv[f]); if (inv && !s.inv) lines.push('⚑ ' + G.nm(g.alInv[f].by) + '邀請你加入同盟。'); s.inv = inv;
+      bigNew.forEach(function (a) { lines.push(a.text.slice(0, 60)); });
+      if (g.over && !s.over) { s.over = 1; lines.push('🏆 這一輪結束了，快來看結算和整局重播！'); }
+      if (!lines.length) return;
+      if (now - (PU.at[f] || 0) < 8 * 60000) { s.pend = (s.pend || []).concat(lines).slice(-4); return; }
+      var all = (s.pend || []).concat(lines); s.pend = null; PU.at[f] = now;
+      items.push({ uid: uid, title: '中世紀世界霸權 · ' + G.nm(f), body: all.slice(-3).join('\n') });
+    });
+    if (!items.length) return;
+    PU.busy = true;
+    puFn({ action: 'send', code: SB.hostCode, items: items, url: puSite() }).catch(function () {}).then(function () { PU.busy = false; });
+  }
+  setInterval(function () { try { puTick(); } catch (e) {} }, 15000);
+  document.addEventListener('click', function (e) {
+    var t = e.target && e.target.closest && e.target.closest('[data-act]'); if (!t) return;
+    var a = t.getAttribute('data-act');
+    if (a === 'puon') { var el = $('#pust'); if (el) el.textContent = '設定中…'; puOn().then(function () { toast('通知已開啟 ✅ 應該會馬上收到一則測試通知。'); puRender(); }, function (er) { var el3 = $('#pust'); if (el3) el3.innerHTML = '<span class="warn">' + esc(String((er && er.message) || er || '失敗')) + '</span><div class="adrow"><button class="btn" data-act="puon">再試一次</button></div>'; }); }
+    else if (a === 'puoff') puOff().then(function () { toast('通知已關閉。'); puRender(); }, function () { puRender(); });
+    else return;
+    e.stopPropagation(); e.preventDefault();
+  }, true);
   /* 全服大事件：等畫面上沒有其他視窗時才跳出來 */
   function showBigAnn() {
     if (!ui.bigAnn || !ui.bigAnn.length || !g || !$('#modal').hidden) return;
