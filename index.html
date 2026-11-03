@@ -434,7 +434,7 @@ button{font:inherit;color:inherit}
     <div class="startmap" id="startmap" aria-hidden="true"></div>
     <div class="sc-in gx">
       <p class="eyebrow">MEDIEVAL: WORLD DOMINATION · 1096 AD</p>
-      <p class="muted small" id="verline">版本 v219 · 2026-11-03 · 地上的盾牌換成國家徽章；被劫商隊、沉沒商船標示狀態</p>
+      <p class="muted small" id="verline">版本 v220 · 2026-11-03 · 白手起家只有玩家的國家，沒有電腦國家</p>
       <h1>中世紀：世界霸權</h1>
       <p class="lead">1095 年，教宗在克萊蒙發出號召，整個歐洲動了起來。選一個勢力（共 121 個），再從該文明歷史上的君主裡挑一位登基；在四千多個六角格地塊的世界裡，與基督教世界、伊斯蘭世界與即將到來的蒙古鐵騎周旋。可以結盟借道、派商隊與商船貿易、派密探、遠征遠方、研究科技升級時代、替自己的城市取名。沒有回合上限，直到有人稱霸，或你失去一切。</p>
       <div id="startopts"></div>
@@ -1623,19 +1623,38 @@ function newGame0(pid, diff) {
 
 /* ---------- 經濟 ---------- */
 /* 白手起家：每國只留首都（mode 1 再加首都旁邊一圈），其他領土變成中立地 */
-function applyStartMode(g, mode) {
+function smNeutral(g, id) {
+  var p = g.p[id], t = TERR[id];
+  p.o = null; delete p.fv; delete p.ord; p.ar = []; p.acted = false;
+  p.t = (p.L > 0 ? 2 + 2 * p.L : 2) + (t === 'm' ? 1 : 0) + (CITY[id] ? 1 : 0);
+}
+function smSpawn(g, f) {
+  /* 白手起家中途加入的國家：在自己的首都（和旁邊一圈中立地）出現 */
+  var c = CAPITAL[f], mode = g.startMode || 2, fs = g.fac[f];
+  if (c == null || !g.p[c] || (g.p[c].o && g.p[c].o !== f)) return false;
+  var cp = g.p[c]; cp.o = f; delete cp.fv; delete cp.ord; cp.ar = []; cp.t = Math.max(cp.t, mode === 2 ? 12 : 10);
+  if (mode === 1) NB[c].forEach(function (n) { var q = g.p[n]; if (q && LAND[n] && !q.o) { q.o = f; q.t = Math.max(q.t, 3); } });
+  fs.alive = true; fs.everAlive = true; fs.gold = Math.max(fs.gold || 0, 220); fs.food = Math.max(fs.food || 0, 140); fs.morale = Math.max(fs.morale || 0, 75);
+  _own = null; return true;
+}
+function applyStartMode(g, mode, humans) {
   if (!(mode === 1 || mode === 2)) return;
   g.startMode = mode;
+  if (humans && humans.length) {
+    g.noAI = true;
+    FIDS.forEach(function (f) {
+      var fs = g.fac[f]; if (!fs || humans.indexOf(f) >= 0) return;
+      owned(g, f).forEach(function (id) { smNeutral(g, id); });
+      fs.alive = false; fs.everAlive = false; fs.ships = 0;
+    });
+    g.fl = fleets(g).filter(function (x) { return x.f === 'pir' || humans.indexOf(x.f) >= 0; }); fdirty();
+    _own = null;
+  }
   FIDS.forEach(function (f) {
     var fs = g.fac[f]; if (!fs || !fs.alive) return;
     var c = CAPITAL[f], keep = {}; if (c == null || !g.p[c] || g.p[c].o !== f) c = owned(g, f)[0]; if (c == null) return;
     keep[c] = 1; if (mode === 1) NB[c].forEach(function (n) { if (g.p[n] && g.p[n].o === f && LAND[n]) keep[n] = 1; });
-    owned(g, f).forEach(function (id) {
-      if (keep[id]) return;
-      var p = g.p[id], t = TERR[id];
-      p.o = null; delete p.fv; delete p.ord; p.ar = []; p.acted = false;
-      p.t = (p.L > 0 ? 2 + 2 * p.L : 2) + (t === 'm' ? 1 : 0) + (CITY[id] ? 1 : 0);
-    });
+    owned(g, f).forEach(function (id) { if (!keep[id]) smNeutral(g, id); });
     var cp = g.p[c]; cp.t = Math.max(cp.t, mode === 2 ? 12 : 10);
     fs.gold += 120; fs.food += 60;
   });
@@ -5061,7 +5080,7 @@ function cvF(f, m) { var c = cultOf(f); return m[c] !== undefined ? m[c] : m.eu;
 function pickEvent(g) {
   /* 繼承危機、遠征提議這類一定要讓玩家看到的後續事件，排在史實事件前面 */
   if (g.chain) for (var ui0 = 0; ui0 < g.chain.length; ui0++) { var cu = g.chain[ui0]; if (CH_URGENT[cu.id] && cu.t <= g.turn && !(cu.d && cu.d.f && cu.d.f !== g.player) && CHAIN[cu.id]) { g.chain.splice(ui0, 1); if (cu.d) g.evData = cu.d; var evu = Object.create(CHAIN[cu.id]); evu._d = cu.d || null; evu._urgent = 1; return evu; } }
-  var ev = null, hl = HIST[g.turn];
+  var ev = null, hl = g.noAI ? null : HIST[g.turn];
   if (hl) for (var hi = 0; hi < hl.length && !ev; hi++) if ((!hl[hi].for || hl[hi].for.indexOf(g.player) >= 0) && (!hl[hi].cond || hl[hi].cond(g, g.player))) ev = hl[hi];
   if (!ev && g.chain) {
     for (var ci = 0; ci < g.chain.length; ci++) if (g.chain[ci].t <= g.turn && !(g.chain[ci].d && g.chain[ci].d.f && g.chain[ci].d.f !== g.player)) { var ce = g.chain.splice(ci, 1)[0]; if (CHAIN[ce.id]) { ev = CHAIN[ce.id]; if (ce.d) g.evData = ce.d; } break; }
@@ -6259,7 +6278,7 @@ function endTurn0(g) {
   merchantTick(g);
   caravanTick(g);
   FIDS.forEach(function (f) { if (g.fac[f].alive) { settle(g, f); addRx(g, f, 0.4 + techFx(g, f, 'rx')); } });
-  FIDS.forEach(function (f) { if (!isHum(g, f) && g.fac[f].alive) aiTurn(g, f); });
+  FIDS.forEach(function (f) { if (!g.noAI && !isHum(g, f) && g.fac[f].alive) aiTurn(g, f); });
   _bc = {};
   FIDS.forEach(function (f) { if (!isHum(g, f) && g.fac[f].alive) aiDiplomacy(g, f); });
   _bc = null;
@@ -6285,8 +6304,7 @@ function endTurn0(g) {
   var res = checkEnd(g);
   if (res) return res;
   g.turn++; g.apCap = apMax(g, g.player); g.ap = g.apCap; g.evResolved = false;
-  if (WORLD[g.turn]) WORLD[g.turn](g);
-  spawnTick(g);
+  if (!g.noAI) { if (WORLD[g.turn]) WORLD[g.turn](g); spawnTick(g); }
   LANDIDS.forEach(function (id) { g.p[id].acted = false; g.p[id].arr = false; });
   mpTurn(g);
   if (typeof armyGoTick === 'function') armyGoTick(g);
@@ -6401,7 +6419,7 @@ function mpBegin(g) {
 }
 /* 多人存檔重新開局：首都還在自己手上的國家都能選；重新分配誰是玩家 */
 function mpEligible(g) {
-  return PLAYABLE.filter(function (f) { var fs = g.fac[f], c = CAPITAL[f]; return fs && fs.alive && c != null && g.p[c] && g.p[c].o === f; });
+  return PLAYABLE.filter(function (f) { var fs = g.fac[f], c = CAPITAL[f]; if (!fs || c == null || !g.p[c]) return false; if (fs.alive) return g.p[c].o === f; return !!g.noAI && !g.p[c].o; });
 }
 function mpReassign(g, hostF, guests) {
   var old = {}, hp = {};
@@ -6409,6 +6427,7 @@ function mpReassign(g, hostF, guests) {
   MP_SW.forEach(function (k) { hp[k] = g[k]; }); old[g.player] = hp;
   if (g.hs) Object.keys(g.hs).forEach(function (f) { old[f] = g.hs[f]; });
   Object.keys(HQ).forEach(function (k) { delete HQ[k]; });
+  [hostF].concat(guests).forEach(function (f) { if (g.noAI && !g.fac[f].alive) smSpawn(g, f); });
   var H = old[hostF] || mk(hostF);
   g.player = hostF; g.host = hostF; MP_SW.forEach(function (k) { g[k] = H[k]; });
   if (!old[hostF]) logMsg(g, '西元 ' + year(g) + ' 年。你接手了' + FACTIONS[hostF].full + '。', 'info');
@@ -6499,7 +6518,7 @@ var G = {
   codex: codex, recruitCost: recruitCost, unitCost: unitCost, mercCost: mercCost, mixOf: mixOf, mercOf: mercOf, unitName: unitName, mercName: mercName, unitAllowed: unitAllowed, SPECIAL: SPECIAL, UNIT_NAMES: UNIT_NAMES, DEFMIX: DEFMIX, buildCost: buildCost, tradeGain: tradeGain, ritualCost: ritualCost, ritualGain: ritualGain,
   CV_COST: CV_COST, cvOf: cvOf, cvCap: cvCap, cvRouteOpts: cvRouteOpts, TAX_N: TAX_N, TAX_D: TAX_D, taxOf: taxOf, softCap: softCap, recLeft: recLeft, recLimit: recLimit, isMarried: isMarried, marryCost: marryCost, marryChance: marryChance, tributeCost: tributeCost, RESH: RESH, RES_N: RES_N, RES_D: RES_D, resCount: resCount, resFx: resFx, armySwap: armySwap, chainAdd: chainAdd, CHAIN: CHAIN, matchupHint: matchupHint, riverEdge: riverEdge, RIV_E: RIV_E, RIVERS: RIVERS, canPay: canPay, P: P, sendCount: sendCount, battleOdds: battleOdds, moveTargets: moveTargets, wallCost: wallCost, TECH: TECH, RUNIT: RUNIT, RSP: RSP, rulerGift: rulerGift, SPY: SPY, spyMods: spyMods, infOf: infOf, sancOf: sancOf, envoyLeft: envoyLeft, ENVOY_COST: ENVOY_COST, MERCH: MERCH, chron: chron, expState: expState, debtOf: debtOf, debtRate: debtRate, debtLimit: debtLimit, debtLenders: debtLenders, excommunicate: excommunicate, succWeak: succWeak, ORDS: ORDS, ORD_DON: ORD_DON, ordOn: ordOn, ordList: ordList, ordFav: ordFav, ordCanUse: ordCanUse, ordChapters: ordChapters, ordAidInfo: ordAidInfo, spyLeft: spyLeft, needRuler: needRuler, rulerChoices: rulerChoices, HIST_REL: HIST_REL, RULERS: RULERS, rulerOf: rulerOf, setRuler: setRuler, carOptions: carOptions, carActive: carActive, carMax: carMax, CAR_COST: CAR_COST, festLeft: festLeft, ROAD: ROAD, ROADSEG: ROADSEG, PASS: PASS, CAMEL: CAMEL, BLOCKED: BLOCKED, terrAtk: terrAtk, eraSync: eraSync, eraNum: eraNum, eraInfo: eraInfo, eraOf: eraOf, ERA_NAME: ERA_NAME, TECHS: TECHS, TBR: TBR, TECH_BY: TECH_BY, techLv: techLv, techState: techState, techHas: techHas, techFx: techFx, techCost: techCost, techWhy: techWhy, BLD: BLD, BLD_KEYS: BLD_KEYS, bldCount: bldCount, wallLv: wallLv, portOpen: portOpen, portsOpen: portsOpen, moveTroops: moveTroops,
   endTurn: endTurn, pickEvent: pickEvent, eventView: eventView, applyChoice: applyChoice, scoreOf: scoreOf,
-  setPNames: setPNames, applyStartMode: applyStartMode, cultOf: cultOf, lordsOf: lordsOf, FIEF_PER: FIEF_PER, fiefMax: fiefMax, fiefList: fiefList, cityN: cityN, FIEF_COST: FIEF_COST, FIEF_REWARD: FIEF_REWARD, isCapital: isCapital, msOf: msOf, NOHORSE: NOHORSE, deepOK: deepOK, msCap: msCap, MS_COST: MS_COST, nm: nm, aiTurn: aiTurn, portsOf: portsOf, genAt: genAt, resolveBattle: resolveBattle, citySiteBlock: citySiteBlock, buildCostG: buildCostG, settleName: settleName, isVillage: isVillage, RELICS: RELICS, REL_TXT: REL_TXT, relAt: relAt, gensOf: gensOf, genLv: genLv, genChoose: genChoose, genCandidates: genCandidates, LANDMARKS: LANDMARKS, LM_AT: LM_AT, lmInfo: lmInfo, lmBonus: lmBonus, callWarInfo: callWarInfo, culOf: culOf, culGain: culGain, CUL_WIN: CUL_WIN, msnTick: msnTick, surInfo: surInfo, moveCapCost: moveCapCost, syncCap: syncCap, xRate: xRate, xQuota: xQuota, genAvail: genAvail, genCost: genCost, GEN_MAX: GEN_MAX, GEN_TYPE: GEN_TYPE, GEN_TXT: GEN_TXT, GENS: GENS, shipsOf: shipsOf, fleets: fleets, fleetReach: seaReach, fleetStr: fleetStr, seaCapAt: seaCapAt, FLEET_MOVE: FLEET_MOVE, shipCap: shipCap, seaCapLeft: seaCapLeft, shipName: shipName, SHIP_COST: SHIP_COST, SHIP_CARRY: SHIP_CARRY, moraleMult: moraleMult, placeName: placeName, terrDef: terrDef,
+  setPNames: setPNames, applyStartMode: applyStartMode, smSpawn: smSpawn, cultOf: cultOf, lordsOf: lordsOf, FIEF_PER: FIEF_PER, fiefMax: fiefMax, fiefList: fiefList, cityN: cityN, FIEF_COST: FIEF_COST, FIEF_REWARD: FIEF_REWARD, isCapital: isCapital, msOf: msOf, NOHORSE: NOHORSE, deepOK: deepOK, msCap: msCap, MS_COST: MS_COST, nm: nm, aiTurn: aiTurn, portsOf: portsOf, genAt: genAt, resolveBattle: resolveBattle, citySiteBlock: citySiteBlock, buildCostG: buildCostG, settleName: settleName, isVillage: isVillage, RELICS: RELICS, REL_TXT: REL_TXT, relAt: relAt, gensOf: gensOf, genLv: genLv, genChoose: genChoose, genCandidates: genCandidates, LANDMARKS: LANDMARKS, LM_AT: LM_AT, lmInfo: lmInfo, lmBonus: lmBonus, callWarInfo: callWarInfo, culOf: culOf, culGain: culGain, CUL_WIN: CUL_WIN, msnTick: msnTick, surInfo: surInfo, moveCapCost: moveCapCost, syncCap: syncCap, xRate: xRate, xQuota: xQuota, genAvail: genAvail, genCost: genCost, GEN_MAX: GEN_MAX, GEN_TYPE: GEN_TYPE, GEN_TXT: GEN_TXT, GENS: GENS, shipsOf: shipsOf, fleets: fleets, fleetReach: seaReach, fleetStr: fleetStr, seaCapAt: seaCapAt, FLEET_MOVE: FLEET_MOVE, shipCap: shipCap, seaCapLeft: seaCapLeft, shipName: shipName, SHIP_COST: SHIP_COST, SHIP_CARRY: SHIP_CARRY, moraleMult: moraleMult, placeName: placeName, terrDef: terrDef,
   EVENTS: EVENTS, HIST: HIST, checkEnd: checkEnd, finish: finish, settle: settle, TERR_Y: TERR_Y,
   SAVE_VER: SAVE_VER, MAPSIG: MAPSIG, rel: rel, migrate: migrate, strength: strength, dipInfo: dipInfo, declareWar: declareWar, aiDiplomacy: aiDiplomacy,
   swapAmt: swapAmt, routeCands: routeCands, coastTarget: coastTarget, supplyDist: supplyDist, supRange: supRange, lordOf: lordOf, vassalsOf: vassalsOf, ownedTotal: ownedTotal, offerEvent: offerEvent, acceptChance: acceptChance,
@@ -6773,11 +6792,11 @@ if (typeof module !== 'undefined') module.exports = G;
         $('#mplist').insertAdjacentHTML('beforebegin', '<div class="flist"><b>回合倒數</b><select id="mplim" style="flex:1;min-width:0;padding:8px;border-radius:8px;border:1px solid var(--line);background:#1c1a14;color:inherit;font:inherit"><option value="0">關閉（等所有人）</option><option value="60">第一人結束後 60 秒</option><option value="120">第一人結束後 120 秒</option><option value="180">第一人結束後 180 秒</option><option value="300">第一人結束後 300 秒</option></select></div>');
         var lm = $('#mplim'); lm.value = String(MP.limit || 0);
         lm.addEventListener('change', function () { MP.limit = +this.value || 0; try { localStorage.setItem('crusade-mplim', String(MP.limit)); } catch (e) {} });
-        $('#mplist').insertAdjacentHTML('beforebegin', '<div class="flist"><b>開局領地</b><select id="mpstartm" style="flex:1;min-width:0;padding:8px;border-radius:8px;border:1px solid var(--line);background:#1c1a14;color:inherit;font:inherit"><option value="0">正常（照歷史上的領土）</option><option value="1">白手起家：首都＋旁邊一圈</option><option value="2">白手起家：只有首都</option></select></div><p class="muted small" style="margin-top:-4px">白手起家：所有國家（包含電腦）開局只有首都附近，其他地都是中立地，要自己一塊塊打、自己建城。</p>');
+        $('#mplist').insertAdjacentHTML('beforebegin', '<div class="flist"><b>開局領地</b><select id="mpstartm" style="flex:1;min-width:0;padding:8px;border-radius:8px;border:1px solid var(--line);background:#1c1a14;color:inherit;font:inherit"><option value="0">正常（照歷史上的領土）</option><option value="1">白手起家：首都＋旁邊一圈</option><option value="2">白手起家：只有首都</option></select></div><p class="muted small" style="margin-top:-4px">白手起家：地圖上只有玩家選的國家（沒有電腦國家），每人開局只有首都附近，其他地都是中立地，要自己一塊塊打、自己建城。</p>');
         var sm0 = $('#mpstartm'); sm0.value = String(STARTM || 0); sm0.addEventListener('change', function () { STARTM = +this.value || 0; try { localStorage.setItem('crusade-startm', String(STARTM)); } catch (e) {} });
       }
       if (MP.resG) { var sm1 = $('#mpstartm'); if (sm1) { var fl1 = sm1.closest('.flist'), nx1 = fl1.nextElementSibling; if (nx1 && nx1.tagName === 'P') nx1.remove(); fl1.remove(); } }
-      if (MP.elig && $('#mplist')) $('#mplist').insertAdjacentHTML('beforebegin', '<p class="muted small" style="border:1px solid var(--line);border-radius:8px;padding:8px"><b>繼續之前的遊戲（西元 ' + (MP.resY || '?') + ' 年）</b>：每個人重新選國家。首都還在自己手上的國家都能選（共 ' + MP.elig.length + ' 個），之前是電腦控制的也可以；首都被別國占走的就不能選。</p>');
+      if (MP.elig && $('#mplist')) $('#mplist').insertAdjacentHTML('beforebegin', '<p class="muted small" style="border:1px solid var(--line);border-radius:8px;padding:8px"><b>繼續之前的遊戲（西元 ' + (MP.resY || '?') + ' 年）</b>：每個人重新選國家。' + (MP.resG && MP.resG.noAI ? '白手起家：還沒出現的國家也能選，選了就會在自己的首都出現（共 ' + MP.elig.length + ' 個可選）；首都被別人占走的就不能選。' : '首都還在自己手上的國家都能選（共 ' + MP.elig.length + ' 個），之前是電腦控制的也可以；首都被別國占走的就不能選。') + '</p>');
       try { mpRgInit(); } catch (e) {}
       $('#mpfac').addEventListener('change', function () {
         var v = this.value || null;
@@ -6817,7 +6836,7 @@ if (typeof module !== 'undefined') module.exports = G;
     MP.phase = 'play'; MP.on = true; MP.role = 'host';
     var resumed = !!MP.resG;
     if (resumed) { g = MP.resG; MP.resG = null; G.mpReassign(g, hostF, guests); g.evResolved = true; }
-    else { g = G.newGame(hostF, DIFF); g.noCul = !CULON; if (STARTM) G.applyStartMode(g, STARTM); G.mpInit(g, guests); }
+    else { g = G.newGame(hostF, DIFF); g.noCul = !CULON; if (STARTM) G.applyStartMode(g, STARTM, [hostF].concat(guests)); G.mpInit(g, guests); }
     enterGame();
     MP.dirty = true;
     mpDoPublish(function () {
@@ -7610,9 +7629,10 @@ if (typeof module !== 'undefined') module.exports = G;
     '<li><b>軍團不能重複出擊</b>：今年行軍或打過仗的軍團解編後，士兵回到駐軍，但這塊地今年不能再出兵；用已經行動過的駐軍編成或補進軍團，那個軍團也要等明年才能出動。</li>' +
     '<li><b>繼續多人存檔</b>：讀取多人存檔後會先回到房間，每個人重新選國家；只要首都還在自己手上的國家都能選，之前是電腦控制的也可以，首都被別國占走的就不能選。之前玩過的人回來會自動先幫他選好原本的國家，想換可以再改。</li>' +
     '<li><b>地上的徽章</b>：每塊地上的盾牌就是擁有它的國家的徽章；盾牌左邊的小圓圈是那裡主要的兵種（交叉的劍＝步兵、弓＝弓兵、馬＝騎兵），下面的數字是兵力。</li>' +
+    '<li><b>白手起家沒有電腦國家</b>：不會冒出金國、蒙古這類新國家，沒有史實事件。之後繼續存檔時，有新朋友選了還沒出現的國家，那個國家才會在自己的首都出現；沒回來的玩家，他的國家會原地不動，不會被電腦接手。</li>' +
     '<li><b>點地＝查看</b>：點別人的地或中立地只會顯示它的資料，不會自動出兵；面板上有「⚔ 從旁邊的某地出兵」按鈕，按了才會選好出兵。已經選了自己的地、再點旁邊的地，那塊地會變成出兵目標（箭頭）；同一塊再點一次，就改成只查看它。打不到的遠處只會提示你要先把部隊調到哪裡，不會自己幫你調兵扣行動點。</li>' +
     '<li><b>電腦會守首都</b>：首都或大城被你的大軍逼近時，電腦會從附近調兵回防、優先在那裡補兵；普通和困難難度下，首都告急還會緊急徵召民兵（每 4 回合一次），所以最好先削弱它周圍的部隊再攻城。</li>' +
-    '<li><b>白手起家模式（多人連線限定）</b>：房主在多人房間裡的「開局領地」可以選「首都＋一圈」或「只有首都」。所有國家（包含電腦）一開始都只有這一點點地，其他地全部變成中立地；原本地圖上的城市變成有守軍的中立城，要自己一塊塊打下來，再蓋村莊、升級城市慢慢擴張。每國會多發 120 金、60 糧當起步資金。單人遊戲一律照歷史上的領土開局。</li>' +
+    '<li><b>白手起家模式（多人連線限定）</b>：房主在多人房間裡的「開局領地」可以選「首都＋一圈」或「只有首都」。地圖上只有玩家選的國家，沒有電腦國家；每國一開始都只有這一點點地，其他地全部變成中立地；原本地圖上的城市變成有守軍的中立城，要自己一塊塊打下來，再蓋村莊、升級城市慢慢擴張。每國會多發 120 金、60 糧當起步資金。單人遊戲一律照歷史上的領土開局。</li>' +
     '<li><b>國家徽章</b>：每個國家都有自己的盾牌徽章，出現在選國家的卡片、左上角、國家列表和外交名單上；地圖拉遠時，國名旁邊也會出現。歐洲多半是十字、鷹、百合花，伊斯蘭國家是新月與星，宋、遼、西夏、大理、高麗、大越用國號的字，日本是紅日，草原民族是部落符號，印度與東南亞是蓮花、法輪，美洲是金字塔與太陽。</li>' +
     '<li><b>點圖示看細節</b>：點地圖上的駱駝（商隊）或帶 $ 的小船（商船），會告訴你是哪一國的、從哪裡到哪裡、這趟賺了多少或在哪裡被劫。點有「封」字小旗的地，面板最上面會寫出這是哪一國分封給哪位領主的封地；你自己的封地還會顯示忠誠度。</li>' +
     '<li><b>多人連線的國名</b>：真人玩家控制的國家，名字後面會加上玩家暱稱，例如「北宋（阿明）」，地圖上方的國家列表、外交名單和戰報都看得到。</li>' +
