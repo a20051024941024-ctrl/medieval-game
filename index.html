@@ -434,7 +434,7 @@ button{font:inherit;color:inherit}
     <div class="startmap" id="startmap" aria-hidden="true"></div>
     <div class="sc-in gx">
       <p class="eyebrow">MEDIEVAL: WORLD DOMINATION · 1096 AD</p>
-      <p class="muted small" id="verline">版本 v227 · 2026-11-03 · 伺服器連線顯示錯誤原因、失敗自動重試</p>
+      <p class="muted small" id="verline">版本 v228 · 2026-11-03 · 公開伺服器只留第一服（白手起家）、伺服器新手教學、修正連線逾時訊息</p>
       <h1>中世紀：世界霸權</h1>
       <p class="lead">1095 年，教宗在克萊蒙發出號召，整個歐洲動了起來。選一個勢力（共 121 個），再從該文明歷史上的君主裡挑一位登基；在四千多個六角格地塊的世界裡，與基督教世界、伊斯蘭世界與即將到來的蒙古鐵騎周旋。可以結盟借道、派商隊與商船貿易、派密探、遠征遠方、研究科技升級時代、替自己的城市取名。沒有回合上限，直到有人稱霸，或你失去一切。</p>
       <div id="startopts"></div>
@@ -7477,7 +7477,7 @@ if (typeof module !== 'undefined') module.exports = G;
       var se = r && r.data && r.data.session;
       if (se && se.user) return se.user;
       return cl.auth.signInAnonymously().then(function (r2) { if (r2.error || !r2.data || !r2.data.user) throw (r2.error || new Error('auth')); return r2.data.user; });
-    }).then(function (u) { SB.uid = u.id; SB.anon = !!u.is_anonymous; MPID = u.id; return cl; }, function (e) { SB.authErr = true; sbErr('登入', e); return cl; });
+    }).then(function (u) { SB.uid = u.id; SB.anon = !!u.is_anonymous; SB.meta = u.user_metadata || {}; MPID = u.id; return cl; }, function (e) { SB.authErr = true; sbErr('登入', e); return cl; });
   }
   function sbErr(where, e, extra) { var m = (e && (e.message || e.code || e.status)) || e || ''; SB.lastErr = where + '：' + String(m).slice(0, 80) + (extra ? '（' + extra + '）' : ''); try { console.log('[SB]', SB.lastErr, e); } catch (x) {} return SB.lastErr; }
   function isMe(pid) { return !!pid && (pid === MPID || pid === MPID0); }
@@ -7537,6 +7537,7 @@ if (typeof module !== 'undefined') module.exports = G;
         var gone = {}; ((ev && ev.leftPresences) || []).forEach(function (p) { if (p && p.id) gone[p.id] = 1; }); if (ev && ev.key) gone[ev.key] = 1;
         Object.keys(self.conns).forEach(function (k) { var c = self.conns[k]; if (gone[c.peer] && !c.closed) { c.closed = true; c.emit('close'); } });
       });
+      setTimeout(function () { if (!opened && !self.destroyed) sbErr('即時頻道', '12 秒沒有回應'); }, 12000);
       ch.subscribe(function (st, err) {
         if (st === 'SUBSCRIBED' && !opened) {
           opened = true;
@@ -7632,7 +7633,11 @@ if (typeof module !== 'undefined') module.exports = G;
     if (!row) return p2pGuestMenu('找不到房間 ' + code + '：請確認 5 個字母沒打錯。');
     if (!row.state) return p2pGuestMenu('房間 ' + code + ' 還沒開始遊戲，房主也不在線。請等房主上線再試。');
     if (row.info && row.info.over) return p2pGuestMenu('房間 ' + code + ' 的遊戲已經結束了。');
-    return mpUnpack([row.state]).then(function (txt) { sbResume(code, row.info || {}, JSON.parse(txt), nick); });
+    return mpUnpack([row.state]).then(function (txt) {
+      var st = JSON.parse(txt), P = pubOf(code);
+      if (P && (st.startMode || 0) !== P.sm) return sbCreatePub(code, nick, row);
+      sbResume(code, row.info || {}, st, nick);
+    });
   }
   function sbCanHold(st, f) {
     var fs = f && st.fac[f], c = G.CAPITAL[f];
@@ -7709,9 +7714,7 @@ if (typeof module !== 'undefined') module.exports = G;
   }
   /* ===== 公開伺服器：固定的幾個世界，任何人隨時進出，像九萬畝的「服」 ===== */
   var PUBS = [
-    { code: 'SVONE', n: '第一服（快節奏）', d: '照歷史領土開局 · 一年最多 15 分鐘', sm: 0, tick: 15 },
-    { code: 'SVTWO', n: '第二服', d: '白手起家（只有首都、沒有電腦國家）· 一年最多 30 分鐘', sm: 2, tick: 30 },
-    { code: 'SVTRE', n: '第三服（慢慢玩）', d: '白手起家 · 一年最多 1 小時', sm: 2, tick: 60 }
+    { code: 'SVONE', n: '第一服', d: '白手起家（只有首都、沒有電腦國家）· 一年最多 15 分鐘', sm: 2, tick: 15 }
   ];
   function pubOf(code) { var r = null; PUBS.forEach(function (p) { if (p.code === code) r = p; }); return r; }
   function sbPubList() {
@@ -7733,11 +7736,34 @@ if (typeof module !== 'undefined') module.exports = G;
       });
     }).catch(function (e) { var st1 = document.getElementById('sbstat'); if (st1) st1.textContent = '伺服器：❌ 連不上（' + sbErr('查詢', e) + '）'; PUBS.forEach(function (p) { var el = document.getElementById('sbps-' + p.code); if (el) el.textContent = '伺服器暫時連不上'; }); });
   }
-  function sbPub(code) {
+  /* 新手教學：帳號第一次進伺服器前，先建議完成單人新手教學（完成後記在帳號上） */
+  function tutIsDone() { try { if (localStorage.getItem('crusade-tutdone') === '1') return true; } catch (e) {} return !!(SB.meta && SB.meta.tut); }
+  function tutMarkDone() {
+    var was = tutIsDone();
+    try { localStorage.setItem('crusade-tutdone', '1'); } catch (e) {}
+    if (SB.meta) SB.meta.tut = 1;
+    if (SB.cl && SB.uid) { try { SB.cl.auth.updateUser({ data: { tut: 1 } }).catch(function () {}); } catch (e) {} }
+    return !was;
+  }
+  function sbTutAsk(code) {
+    $('#mbody').innerHTML = '<div class="mtag">公開伺服器</div><h2 id="mtitle">第一次玩嗎？</h2><p class="mtext">伺服器上的時間會一直往前走，還有其他玩家。建議先花大約 5 分鐘做完<b>新手教學</b>：在自己的單人遊戲裡，手指會一步步教你選地、出兵、徵兵、結束回合。做完會記在你的帳號上，之後就不會再問。</p>' +
+      '<div class="choices"><button class="choice" data-act="tutgo"><span class="cl">📘 先做新手教學</span><span class="ch">單人練習，不影響伺服器上的國家</span></button>' +
+      '<button class="choice" data-act="sbpubgo" data-c="' + code + '"><span class="cl">我會玩了，直接進伺服器</span><span class="ch">之後也可以從開始畫面選「簡單」難度重新學</span></button></div>' +
+      '<button class="btn" data-act="mp">返回</button>';
+    $('#modal').hidden = false;
+  }
+  function tutGo() {
+    var d0 = document.querySelector('[data-act=diff][data-v="0"]'); if (d0) d0.click();
+    var g1 = document.querySelector('[data-act=guide][data-v="1"]'); if (g1) g1.click();
+    $('#modal').hidden = true; try { window.scrollTo(0, 0); } catch (e) {}
+    toast('已經切到「簡單」並打開新手引導。選一個國家開始（標著「新手推薦」的最好上手）。');
+  }
+  function sbPub(code, skipTut) {
     var nick = mpReadNick();
     p2pGuestMenu('正在連到' + (pubOf(code) || {}).n + '…');
     pjLoad().then(function () {
       if (!SB.on) return mpMenu('伺服器暫時連不上，公開伺服器現在不能用。（' + (SB.lastErr || '即時連線失敗') + '）');
+      if (!skipTut && !tutIsDone()) return sbTutAsk(code);
       pjJoin(code, nick);
     }, function () { mpMenu('伺服器暫時連不上，公開伺服器現在不能用。（' + (SB.lastErr || '載入失敗') + '）'); });
   }
@@ -7845,11 +7871,11 @@ if (typeof module !== 'undefined') module.exports = G;
         MP.mode = 'p2p'; MP.role = 'guest'; MP.phase = MP.on ? 'play' : 'lobby'; MP.shell = false; MP.players = {}; MP.info = { host: 'host', status: 'lobby' };
         var dc = pjWrap(conn); p2pGuestBind(dc, nick);
         var on0 = dc.onopen; dc.onopen = function () { done = true; if (on0) on0(); P2P.gotHost = false; var tr = 0; (function again() { setTimeout(function () { if (P2P.gotHost || P2P.hostDc !== dc || dc.readyState !== 'open' || ++tr > 4) return; p2pSendTo(dc, { t: 'hello', name: nick, ver: PVER, pid: MPID, pid2: MPID0 }); again(); }, 4000); })(); };
-        setTimeout(function () { if (!done) p2pGuestMenu('連不上房間 ' + code + '。請確認代碼正確、房主的畫面還開著；不行的話改用長邀請碼。'); }, 20000);
+        setTimeout(function () { if (!done) { done = true; p2pGuestMenu('連不上房間 ' + code + '。請確認代碼正確、房主的畫面還開著；不行的話改用長邀請碼。' + (SB.on ? '（' + (SB.lastErr || '即時頻道一直沒有回應') + '）' : '')); } }, SB.on ? 30000 : 20000);
       });
       peer.on('error', function (err) {
         if (done) return;
-        if (SB.on && err && err.type === 'peer-unavailable') return sbOpenRoom(code, nick);
+        if (SB.on && err && err.type === 'peer-unavailable') { done = true; return sbOpenRoom(code, nick); }
         p2pGuestMenu(err && err.type === 'peer-unavailable' ? '找不到房間 ' + code + '：請確認 5 個字母沒打錯、房主的畫面還開著。' : '房間代碼服務暫時連不上，請改用長邀請碼。' + (err && err.detail ? '（' + err.detail + '）' : (SB.lastErr ? '（' + SB.lastErr + '）' : '')));
       });
     }).catch(function () { p2pGuestMenu('房間代碼服務載入失敗，請改用長邀請碼。'); });
@@ -8090,7 +8116,8 @@ if (typeof module !== 'undefined') module.exports = G;
     '<li><b>公告也會報</b>：你的將領陣亡、退休、遇刺或新加入，有新將領可以招募；誰向你宣戰、你鄰國之間誰宣戰（其他地方只報場數）；哪個國家被誰消滅。</li>' +
     '<li><b>登陸作戰一年一次</b>：每支艦隊每年只能搶灘作戰一次，打輸退回船上的殘部也不能馬上再登陸；從已經行動過的地載上船的部隊，這支艦隊今年也不能搶灘（但可以在自己的地下船）。</li>' +
     '<li><b>伺服器房間與即時模式</b>：多人連線的 5 碼房間現在放在伺服器上，遊戲進度也存在伺服器。房主關掉遊戲，其他人會自動換一個人接手繼續；所有人都不在時，下次任何人輸入代碼就能接著玩。房主開房時可以把「時間流逝」設成即時（例如每 10 分鐘過一年）：大家隨時下指令，時間到自動進下一年，離開期間該過的年份下次開房時會一次補上（最多 12 年）；不在線的人國家照樣在，但不會動。遊戲中途有新朋友輸入代碼，可以挑一個還沒有人玩的國家加入。</li>' +
-    '<li><b>公開伺服器</b>：多人連線裡有「第一、二、三服」，不用約代碼，任何人隨時都能進。挑一個還沒有人選的國家，那個國家就是你的：別人不能再選，你下線了也會留給你。所有規則都用遊戲年份算：<br>・<b>一年多長</b>：第一服最多 15 分鐘、第二服 30 分鐘、第三服 1 小時；開局前 50 年最多 5 分鐘；在線的人都按完「結束回合」、而且這一年已經過了 2 分鐘，就提早進下一年。<br>・<b>行動點可以存</b>：沒用完的會留到下一年，最多存 3 年份。<br>・<b>新手保護 12 年</b>：中途加入的人，12 年內不能被玩家打，也不能打玩家；加入時科技會補到其他玩家平均的 7 成，金幣、糧食補到平均的一半。<br>・<b>玩家之間</b>：宣戰要先送宣戰書，明年才開戰；停戰後至少 8 年不能再宣戰。打電腦不受影響。<br>・<b>閒置收回</b>：連續 48 年沒有下指令（只開著遊戲不算），國家會被收回給別人選；前 10 年會先提醒。<br>・<b>1453 年結算</b>：打到 1453 年就看分數排名，這一輪結束；之後再進入那一服就開新的一輪。</li>' +
+    '<li><b>伺服器的新手教學</b>：第一次進公開伺服器前，會先問你要不要做新手教學（在自己的單人遊戲裡，約 5 分鐘）。做完或選「我會玩了」之後會記在帳號上，不會再問。</li>' +
+    '<li><b>公開伺服器</b>：多人連線裡有「公開伺服器（第一服）」，不用約代碼，任何人隨時都能進。挑一個還沒有人選的國家，那個國家就是你的：別人不能再選，你下線了也會留給你。伺服器是白手起家：只有玩家的國家、沒有電腦國家，每人從首都開始。所有規則都用遊戲年份算：<br>・<b>一年多長</b>：最多 15 分鐘；開局前 50 年最多 5 分鐘；在線的人都按完「結束回合」、而且這一年已經過了 2 分鐘，就提早進下一年。<br>・<b>行動點可以存</b>：沒用完的會留到下一年，最多存 3 年份。<br>・<b>新手保護 12 年</b>：中途加入的人，12 年內不能被玩家打，也不能打玩家；加入時科技會補到其他玩家平均的 7 成，金幣、糧食補到平均的一半。<br>・<b>玩家之間</b>：宣戰要先送宣戰書，明年才開戰；停戰後至少 8 年不能再宣戰。打電腦不受影響。<br>・<b>閒置收回</b>：連續 48 年沒有下指令（只開著遊戲不算），國家會被收回給別人選；前 10 年會先提醒。<br>・<b>1453 年結算</b>：打到 1453 年就看分數排名，這一輪結束；之後再進入那一服就開新的一輪。</li>' +
     '<li><b>點地＝查看</b>：點別人的地或中立地只會顯示它的資料，不會自動出兵；面板上有「⚔ 從旁邊的某地出兵」按鈕，按了才會選好出兵。已經選了自己的地、再點旁邊的地，那塊地會變成出兵目標（箭頭）；同一塊再點一次，就改成只查看它。打不到的遠處只會提示你要先把部隊調到哪裡，不會自己幫你調兵扣行動點。</li>' +
     '<li><b>電腦會守首都</b>：首都或大城被你的大軍逼近時，電腦會從附近調兵回防、優先在那裡補兵；普通和困難難度下，首都告急還會緊急徵召民兵（每 4 回合一次），所以最好先削弱它周圍的部隊再攻城。</li>' +
     '<li><b>白手起家模式（多人連線限定）</b>：房主在多人房間裡的「開局領地」可以選「首都＋一圈」或「只有首都」。地圖上只有玩家選的國家，沒有電腦國家；每國一開始都只有這一點點地，其他地全部變成中立地；原本地圖上的城市變成有守軍的中立城，要自己一塊塊打下來，再蓋村莊、升級城市慢慢擴張。每國會多發 120 金、60 糧當起步資金。單人遊戲一律照歷史上的領土開局。</li>' +
@@ -9289,7 +9316,7 @@ if (typeof module !== 'undefined') module.exports = G;
       else { tx = '第 5 步：先點手指指的那一格（你兵最多的地塊）。'; spec = { hex: best }; }
     }
     else if (T.step === 4) { tx = '第 7 步：這一年做完了，按「結束回合」進入下一年。'; spec = { sel: '[data-act=end]' }; }
-    else { var ld = T.ld || {}; tx = '🎉 基本操作學會了！接下來想學什麼？（點一個）<div class="tutmenu">' + TLES.map(function (L) { var ok = !L.need || L.need(f); return '<button data-act="tutles" data-l="' + L.id + '"' + (ok ? '' : ' disabled') + '>' + (ld[L.id] ? '✓ ' : '') + L.name + (ok ? '' : '（' + L.why + '）') + '</button>'; }).join('') + '</div>'; }
+    else { var ld = T.ld || {}; if (!T.doneMk) { T.doneMk = 1; if (tutMarkDone()) setTimeout(function () { toast('新手教學完成！之後可以到「多人連線 → 公開伺服器」跟大家一起玩。'); }, 1500); } tx = '🎉 基本操作學會了！接下來想學什麼？（點一個）<div class="tutmenu">' + TLES.map(function (L) { var ok = !L.need || L.need(f); return '<button data-act="tutles" data-l="' + L.id + '"' + (ok ? '' : ' disabled') + '>' + (ld[L.id] ? '✓ ' : '') + L.name + (ok ? '' : '（' + L.why + '）') + '</button>'; }).join('') + '</div>'; }
     var tip = null;
     if (spec && spec.sel) tip = /bigmap/.test(spec.sel) ? (T.d === 4 ? '再按一次「大」還原' : '按這裡放大地圖') : /desel/.test(spec.sel) ? '按這個 ✕ 取消選取' : /recruit/.test(spec.sel) ? '按這裡補兵' : /=go/.test(spec.sel) ? '按這裡確認出兵' : /=end/.test(spec.sel) ? '按這裡結束這一年' : null;
     else if (spec && spec.hex != null) tip = spec.hex === G.CAPITAL[f] ? '點這裡：你的首都' : spec.hex === best ? '點這裡：兵最多的地' : '點這裡當出兵目標' + (g.p[spec.hex].o ? '' : '（中立地）');
@@ -10399,6 +10426,8 @@ if (typeof module !== 'undefined') module.exports = G;
     if (a === 'p2presume') return p2pResume(b.getAttribute('data-k'));
     if (a === 'p2pdel') { var dk = b.getAttribute('data-k'); if (b.getAttribute('data-sure') !== '1') { b.setAttribute('data-sure', '1'); b.textContent = '確定刪除？'; return; } try { localStorage.removeItem(mpSlotKey(dk === 'L' ? 'L' : +dk)); } catch (e) {} toast('已刪除這個多人存檔。'); return mpMenu(); }
     if (a === 'sbpub') return sbPub(b.getAttribute('data-c'));
+    if (a === 'sbpubgo') { tutMarkDone(); return sbPub(b.getAttribute('data-c'), true); }
+    if (a === 'tutgo') return tutGo();
     if (a === 'sbpick') { var sv0 = $('#sbpick') && $('#sbpick').value; if (!sv0) return toast('請先選一個國家。'); p2pSendTo(P2P.hostDc, { t: 'pickf', f: sv0 }); $('#mbody').innerHTML = '<div class="mtag">伺服器房間</div><p class="mtext">加入中…</p>'; return; }
     if (a === 'mpleave') return mpLeave();
     if (a === 'mpforce') return mpForce();
