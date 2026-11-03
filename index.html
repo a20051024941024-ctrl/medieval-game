@@ -434,7 +434,7 @@ button{font:inherit;color:inherit}
     <div class="startmap" id="startmap" aria-hidden="true"></div>
     <div class="sc-in gx">
       <p class="eyebrow">MEDIEVAL: WORLD DOMINATION · 1096 AD</p>
-      <p class="muted small" id="verline">版本 v233 · 2026-11-03 · 檢舉與管理員、名字過濾、身分確認、你不在時的報告、名人堂</p>
+      <p class="muted small" id="verline">版本 v234 · 2026-11-03 · 帳號綁定 Email（換手機也找得回國家）</p>
       <h1>中世紀：世界霸權</h1>
       <p class="lead">1095 年，教宗在克萊蒙發出號召，整個歐洲動了起來。選一個勢力（共 121 個），再從該文明歷史上的君主裡挑一位登基；在四千多個六角格地塊的世界裡，與基督教世界、伊斯蘭世界與即將到來的蒙古鐵騎周旋。可以結盟借道、派商隊與商船貿易、派密探、遠征遠方、研究科技升級時代、替自己的城市取名。沒有回合上限，直到有人稱霸，或你失去一切。</p>
       <div id="startopts"></div>
@@ -7636,7 +7636,7 @@ if (typeof module !== 'undefined') module.exports = G;
       var se = r && r.data && r.data.session;
       if (se && se.user) return se.user;
       return cl.auth.signInAnonymously().then(function (r2) { if (r2.error || !r2.data || !r2.data.user) throw (r2.error || new Error('auth')); return r2.data.user; });
-    }).then(function (u) { SB.uid = u.id; SB.anon = !!u.is_anonymous; SB.meta = u.user_metadata || {}; MPID = u.id; adNonce(cl, u.id); return cl; }, function (e) { SB.authErr = true; sbErr('登入', e); return cl; });
+    }).then(function (u) { SB.uid = u.id; SB.anon = !!u.is_anonymous; SB.meta = u.user_metadata || {}; SB.email = u.email || ''; MPID = u.id; adNonce(cl, u.id); return cl; }, function (e) { SB.authErr = true; sbErr('登入', e); return cl; });
   }
   function sbErr(where, e, extra) { var m = (e && (e.message || e.code || e.status)) || e || ''; SB.lastErr = where + '：' + String(m).slice(0, 80) + (extra ? '（' + extra + '）' : ''); try { console.log('[SB]', SB.lastErr, e); } catch (x) {} return SB.lastErr; }
   function isMe(pid) { return !!pid && (pid === MPID || pid === MPID0); }
@@ -7879,14 +7879,14 @@ if (typeof module !== 'undefined') module.exports = G;
   function sbPubList() {
     return '<div class="gh" style="margin:8px 0 4px">🌍 公開伺服器（隨時進出，國家選了就是你的）</div><p id="sbstat" class="muted small" style="margin:0 0 4px">伺服器：檢查中…</p><div class="choices">' + PUBS.map(function (p) {
       return '<button class="choice" data-act="sbpub" data-c="' + p.code + '"><span class="cl">' + p.n + '</span><span class="ch">' + esc(p.d) + '<br><span id="sbps-' + p.code + '" class="muted">查詢中…</span></span></button>';
-    }).join('') + '</div><button class="btn" data-act="tutgo" style="margin:2px 0 8px">📘 新手教學（單人練習，隨時可以重看）</button> <button class="btn" data-act="fame" style="margin:2px 0 8px">🏆 名人堂</button> <button class="btn" data-act="adpanel" id="adbtn" hidden style="margin:2px 0 8px">🛠 管理</button>';
+    }).join('') + '</div><button class="btn" data-act="tutgo" style="margin:2px 0 8px">📘 新手教學（單人練習，隨時可以重看）</button> <button class="btn" data-act="acct" style="margin:2px 0 8px">👤 帳號</button> <button class="btn" data-act="fame" style="margin:2px 0 8px">🏆 名人堂</button> <button class="btn" data-act="adpanel" id="adbtn" hidden style="margin:2px 0 8px">🛠 管理</button>';
   }
   function sbPubStatus() {
     sbLoad().then(sbAuth).then(function (cl) {
       return cl.from('mw_rooms').select('code,info').in('code', PUBS.map(function (p) { return p.code; }));
     }).then(function (r) {
       if (r && r.error) throw r.error;
-      var st0 = document.getElementById('sbstat'); if (st0) { st0.textContent = '伺服器：✅ 已連上' + (SB.uid ? '（' + (SB.anon ? '訪客帳號' : '帳號') + ' ' + SB.uid.slice(0, 6) + '）' : '（⚠ 沒有登入：' + (SB.lastErr || '原因不明') + '）'); if (SB.uid) { st0.setAttribute('data-act', 'sbmyid'); st0.style.cursor = 'pointer'; } }
+      var st0 = document.getElementById('sbstat'); if (st0) { st0.innerHTML = '伺服器：✅ 已連上' + (SB.uid ? (SB.email && !SB.anon ? '（帳號 ' + esc(accMask(SB.email)) + '）' : '（訪客帳號 ' + SB.uid.slice(0, 6) + '）<b style="color:#f1d48c"> ⚠ 按這裡保存帳號</b>') : '（⚠ 沒有登入：' + esc(SB.lastErr || '原因不明') + '）'); if (SB.uid) { st0.setAttribute('data-act', 'sbmyid'); st0.style.cursor = 'pointer'; } }
       adCheck().then(function (ok) { var ab = document.getElementById('adbtn'); if (ab) ab.hidden = !ok; });
       var m = {}; ((r && r.data) || []).forEach(function (x) { m[x.code] = x.info || {}; });
       PUBS.forEach(function (p) {
@@ -8322,6 +8322,7 @@ if (typeof module !== 'undefined') module.exports = G;
     '<li><b>登陸作戰一年一次</b>：每支艦隊每年只能搶灘作戰一次，打輸退回船上的殘部也不能馬上再登陸；從已經行動過的地載上船的部隊，這支艦隊今年也不能搶灘（但可以在自己的地下船）。</li>' +
     '<li><b>伺服器房間與即時模式</b>：多人連線的 5 碼房間現在放在伺服器上，遊戲進度也存在伺服器。房主關掉遊戲，其他人會自動換一個人接手繼續；所有人都不在時，下次任何人輸入代碼就能接著玩。房主開房時可以把「時間流逝」設成即時（例如每 10 分鐘過一年）：大家隨時下指令，時間到自動進下一年，離開期間該過的年份下次開房時會一次補上（最多 12 年）；不在線的人國家照樣在，但不會動。遊戲中途有新朋友輸入代碼，可以挑一個還沒有人玩的國家加入。</li>' +
     '<li><b>📽 整局重播</b>：遊戲結束時，結算畫面有「播放整局重播」。地圖會從第一年播到最後一年，所有國家的領土同時擴張；旁邊的大事記會依年份列出誰加入、誰建城、誰向誰宣戰、哪國被誰消滅、名城易主和全服事件，右邊是當年的領地排名。可以暫停、調速度（1×／2×／5×），也能拖時間軸跳到任何一年；多人時預設放大到玩家所在的區域，按「全世界」看整張地圖。</li>' +
+    '<li><b>👤 帳號</b>（伺服器）：一開始是訪客帳號，只認得這支手機的這個瀏覽器。到伺服器選單的「帳號」綁定 Email，換手機或清除資料後，用「我已經保存過，登入」輸入同一個 Email，點信裡的連結就能回到原本的國家（不用密碼）。</li>' +
     '<li><b>🛡 檢舉與管理</b>（伺服器）：在聊天訊息旁按「⋯」可以封鎖或檢舉。檢舉會送給管理員，管理員可以禁言、暫時踢出、強制改名或收回國家。名字裡的髒話會被換掉。</li><li><b>📋 你不在的時候</b>（伺服器）：離開至少一年再回來，會先看到這段期間的報告：失去或新增的地（被誰打下）、誰向你宣戰、哪國滅亡、全服事件。</li><li><b>🏆 名人堂</b>：伺服器每一輪打到 1453 年結束，前五名的同盟會被永久記下來，在伺服器選單按「名人堂」可以看歷屆紀錄。</li>' +
     '<li><b>💬 聊天</b>（多人連線才有）：按地圖左下角的 💬 打開聊天。<b>全服</b>頻道大家都看得到；<b>同盟</b>頻道只有你和你的玩家盟友（盟友的盟友也算）看得到。一則最多 120 字，太快連發會被擋，髒話會變成＊。不想看到某個人的訊息，按他名字旁的「⋯」就能封鎖（只有你看不到，可以在下方取消）。中途加入的人會看到最近 30 則全服訊息。</li>' +
     '<li><b>🌍 伺服器的全服事件</b>（只有伺服器才有）：<br>・<b>⚔ 十字軍號召</b>（1147、1189 年）：基督教國家首都 +12 兵、+150 金幣；之後 8 年，在耶路撒冷附近有領地的基督教與伊斯蘭玩家每年都有增援。<br>・<b>🌪 蒙古崛起</b>（1206 年）：蒙古大軍在草原出現（玩家越強，蒙古越強），向所有玩家宣戰，到 1300 年前每年都會補兵。攻下蒙古的地每塊 25 金幣；把蒙古消滅，全服玩家各得 300 金幣、民心 +5，攻下最多蒙古領地的人再加 300 金幣。<br>・<b>🏴‍☠️ 海盜潮</b>（1250、1380 年）：每位玩家的港口外會出現海盜艦隊。<br>・<b>💀 黑死病</b>（1347 年起四年）：各地守軍大減、民心 −8；有糧倉或教堂的地損失減半。</li>' +
@@ -10345,7 +10346,7 @@ if (typeof module !== 'undefined') module.exports = G;
       adSendCmd(c);
     }
     else if (a === 'fame') adFame();
-    else if (a === 'sbmyid') {
+    else if (a === 'sbmyid_old') {
       $('#mbody').innerHTML = '<div class="mtag">帳號</div><h2 id="mtitle">我的帳號 ID</h2><p class="mtext" style="word-break:break-all;user-select:text;-webkit-user-select:text">' + esc(SB.uid || '（還沒登入）') + '</p><p class="muted small">設定管理員時需要這串 ID。這是訪客帳號：清除瀏覽器資料或換手機就會變成新的帳號。</p><button class="btn primary" data-act="sbcopyid">複製</button> <button class="btn" data-act="mp">返回</button>';
       $('#modal').hidden = false;
     }
@@ -10362,6 +10363,83 @@ if (typeof module !== 'undefined') module.exports = G;
       '.awl{margin:6px 0 12px;padding-left:18px;line-height:1.6}.cdot{display:inline-block;width:10px;height:10px;border-radius:50%;margin:0 3px;vertical-align:middle;border:1px solid rgba(255,255,255,.5)}';
     document.head.appendChild(st);
   })();
+  /* ===== 帳號：訪客帳號綁定 Email（換手機也找得回國家） ===== */
+  var ACC = { step: 'idle', mode: 'bind', email: '', msg: '', busy: false, timer: null };
+  function accSite() { return location.origin + location.pathname; }
+  function accMask(e) { e = String(e || ''); var i = e.indexOf('@'); return i > 1 ? e.slice(0, 2) + '***' + e.slice(i) : e; }
+  function accErr(e) {
+    var m = String((e && (e.message || e.code)) || e || '');
+    if (/rate|security purposes|too many|seconds/i.test(m)) return '寄信太頻繁了，等幾分鐘再試（免費方案每小時只能寄幾封）。';
+    if (/already.*registered|already been registered|exists/i.test(m)) return '這個 Email 已經保存過別的帳號了，請改用「我已經保存過，登入」。';
+    if (/signups not allowed|not found|user not found/i.test(m)) return '這個 Email 還沒有保存過帳號，請先在原本的手機按「綁定 Email」。';
+    if (/redirect/i.test(m)) return '伺服器還沒設定好遊戲網址（Redirect URL）。';
+    return '發生錯誤：' + m.slice(0, 80);
+  }
+  function accRender() {
+    var h = '<div class="mtag">👤 帳號</div><h2 id="mtitle">我的帳號</h2>';
+    if (!SB.uid) h += '<p class="warn">還沒連上伺服器，請先回到多人連線選單等它連上。</p>';
+    else if (SB.email && !SB.anon) h += '<p class="mtext">✅ 已保存到 <b>' + esc(accMask(SB.email)) + '</b>。</p><p class="muted small">換手機、換瀏覽器時，在這裡按「我已經保存過，登入」，輸入同一個 Email，就會回到你原本的國家。</p><button class="btn" data-act="accstep" data-m="login">用別的 Email 登入</button>';
+    else if (ACC.step === 'idle') h += '<p class="mtext">你現在是<b>訪客帳號</b>：國家和管理員身分只認得這支手機的這個瀏覽器。清除資料、換手機就找不回來。</p><p class="muted small">綁定 Email 之後，換手機、換瀏覽器都能回到同一個國家。不用密碼，登入時會寄一封信給你，點信裡的連結就好。</p>' +
+      '<button class="btn primary" data-act="accstep" data-m="bind">綁定 Email 保存帳號</button> <button class="btn" data-act="accstep" data-m="login">我已經保存過，登入</button>';
+    else if (ACC.step === 'sent') h += '<p class="mtext">' + (ACC.mode === 'bind'
+      ? '📧 確認信已寄到 <b>' + esc(ACC.email) + '</b>。打開信，點裡面的確認連結（用哪支手機、哪個瀏覽器打開都可以），這裡會自動顯示「已保存」。'
+      : '📧 登入信已寄到 <b>' + esc(ACC.email) + '</b>。請用<b>你要玩遊戲的這個瀏覽器</b>打開信裡的連結，就會回到遊戲並換成那個帳號。') + '</p><p class="muted small">沒收到的話看一下垃圾郵件。信是英文的（Supabase 寄的），點裡面的連結就好。</p><button class="btn" data-act="accstep" data-m="' + ACC.mode + '">重新輸入</button>';
+    else h += '<p class="mtext">' + (ACC.mode === 'bind' ? '輸入你的 Email，我們會寄一封確認信給你。' : '輸入之前綁定的 Email，我們會寄登入連結給你。<br><span class="muted small">登入後，這個瀏覽器會換成那個帳號；現在這個訪客帳號的國家就不會再用到了。</span>') + '</p>' +
+      '<input id="accin" type="email" inputmode="email" autocomplete="email" maxlength="120" placeholder="you@example.com" value="' + esc(ACC.email) + '" style="width:100%;box-sizing:border-box;padding:9px 10px;border-radius:8px;border:1px solid #555;background:#0b1418;color:#fff;font-size:16px">' +
+      (ACC.msg ? '<p class="warn">' + esc(ACC.msg) + '</p>' : '') + '<div style="margin-top:8px"><button class="btn primary" data-act="accsend"' + (ACC.busy ? ' disabled' : '') + '>' + (ACC.busy ? '寄送中…' : '寄出') + '</button> <button class="btn" data-act="accstep" data-m="idle">取消</button></div>';
+    h += '<details style="margin-top:14px"><summary class="muted small">帳號 ID（設定管理員用）</summary><p class="small" style="word-break:break-all;user-select:text;-webkit-user-select:text">' + esc(SB.uid || '（還沒登入）') + '</p><button class="btn" data-act="sbcopyid">複製 ID</button></details>' +
+      '<button class="btn" data-act="mp" style="margin-top:10px">返回</button>';
+    $('#mbody').innerHTML = h; $('#modal').hidden = false;
+  }
+  function accOpen() { ACC.msg = ''; if (ACC.step !== 'sent') ACC.step = 'idle'; sbLoad().then(sbAuth).then(function () { accRender(); }, function () { accRender(); }); accRender(); }
+  function accSend() {
+    var inp = $('#accin'), v = inp ? inp.value.trim() : '';
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)) { ACC.msg = 'Email 格式不對。'; return accRender(); }
+    if (!SB.cl) { ACC.msg = '還沒連上伺服器。'; return accRender(); }
+    ACC.email = v; ACC.busy = true; ACC.msg = ''; accRender();
+    var p = ACC.mode === 'bind' ? SB.cl.auth.updateUser({ email: v }, { emailRedirectTo: accSite() }) : SB.cl.auth.signInWithOtp({ email: v, options: { shouldCreateUser: false, emailRedirectTo: accSite() } });
+    p.then(function (r) {
+      ACC.busy = false;
+      if (r && r.error) { ACC.msg = accErr(r.error); return accRender(); }
+      ACC.step = 'sent'; if (ACC.mode === 'bind') accWatch(); accRender();
+    }, function (e) { ACC.busy = false; ACC.msg = accErr(e); accRender(); });
+  }
+  function accWatch() {
+    clearInterval(ACC.timer);
+    ACC.timer = setInterval(function () {
+      if (!SB.cl) return;
+      SB.cl.auth.getUser().then(function (r) {
+        var u = r && r.data && r.data.user; if (!u || !u.email) return;
+        clearInterval(ACC.timer); SB.email = u.email; SB.anon = false; ACC.step = 'idle';
+        toast('帳號已經保存到你的 Email ✅');
+        var mb = $('#mbody'); if (mb && /我的帳號/.test(mb.textContent || '') && !$('#modal').hidden) accRender();
+      }, function () {});
+    }, 4000);
+  }
+  /* 從信裡的連結回到遊戲：讓 Supabase 讀網址上的登入資料，再把網址清乾淨 */
+  function accReturn() {
+    var h = location.hash || '';
+    if (!/access_token=|error_description=|refresh_token=/.test(h)) return;
+    var bad = /error_description=/.test(h);
+    setTimeout(function () {
+      sbLoad().then(function (cl) { return cl.auth.getSession(); }).then(function (r) {
+        try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
+        var u = r && r.data && r.data.session && r.data.session.user;
+        if (bad || !u) return toast('這個連結已經失效，請重新寄一次。');
+        SB.uid = null; return sbAuth(SB.cl).then(function () { toast(u.email ? '已用 ' + accMask(u.email) + ' 登入 ✅' : '已登入 ✅'); });
+      }).catch(function () { try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {} });
+    }, 300);
+  }
+  accReturn(); addEventListener('hashchange', accReturn);
+  document.addEventListener('click', function (e) {
+    var t = e.target && e.target.closest && e.target.closest('[data-act]'); if (!t) return;
+    var a = t.getAttribute('data-act');
+    if (a === 'acct' || a === 'sbmyid') accOpen();
+    else if (a === 'accstep') { var m = t.getAttribute('data-m'); if (m === 'idle') ACC.step = 'idle'; else { ACC.mode = m; ACC.step = 'email'; } ACC.msg = ''; clearInterval(ACC.timer); accRender(); }
+    else if (a === 'accsend') accSend();
+    else return;
+    e.stopPropagation(); e.preventDefault();
+  }, true);
   /* 全服大事件：等畫面上沒有其他視窗時才跳出來 */
   function showBigAnn() {
     if (!ui.bigAnn || !ui.bigAnn.length || !g || !$('#modal').hidden) return;
