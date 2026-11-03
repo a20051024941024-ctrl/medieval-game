@@ -434,7 +434,7 @@ button{font:inherit;color:inherit}
     <div class="startmap" id="startmap" aria-hidden="true"></div>
     <div class="sc-in gx">
       <p class="eyebrow">MEDIEVAL: WORLD DOMINATION · 1096 AD</p>
-      <p class="muted small" id="verline">版本 v236 · 2026-11-04 · 推播通知（被攻打、被宣戰、同盟邀請、全服大事）</p>
+      <p class="muted small" id="verline">版本 v237 · 2026-11-04 · 開拓令可以選要不要用</p>
       <h1>中世紀：世界霸權</h1>
       <p class="lead">1095 年，教宗在克萊蒙發出號召，整個歐洲動了起來。選一個勢力（共 121 個），再從該文明歷史上的君主裡挑一位登基；在四千多個六角格地塊的世界裡，與基督教世界、伊斯蘭世界與即將到來的蒙古鐵騎周旋。可以結盟借道、派商隊與商船貿易、派密探、遠征遠方、研究科技升級時代、替自己的城市取名。沒有回合上限，直到有人稱霸，或你失去一切。</p>
       <div id="startopts"></div>
@@ -6925,6 +6925,12 @@ P.dqClaim = function (g, i) {
   var wb = srvWarBlock;
   srvWarBlock = function (g, a, b) { var A = alOf(g, a); if (g.srv && A && A.m.indexOf(b) >= 0) return '你們在同一個同盟〔' + A.n + '〕，要先退出同盟才能宣戰。'; return wb.apply(this, arguments); };
 })();
+/* 出兵但不用開拓令（開拓令留著） */
+P.moveNT = function (g, from, to, ratio) {
+  var f = g.player, tk = g.tok && g.tok[f];
+  if (tk) g.tok[f] = 0;
+  try { return P.move(g, from, to, ratio); } finally { if (tk) g.tok[f] = tk; }
+};
 (function () {
   Object.keys(P).forEach(function (k) {
     var f0 = P[k];
@@ -8516,6 +8522,7 @@ if (typeof module !== 'undefined') module.exports = G;
     '<li><b>登陸作戰一年一次</b>：每支艦隊每年只能搶灘作戰一次，打輸退回船上的殘部也不能馬上再登陸；從已經行動過的地載上船的部隊，這支艦隊今年也不能搶灘（但可以在自己的地下船）。</li>' +
     '<li><b>伺服器房間與即時模式</b>：多人連線的 5 碼房間現在放在伺服器上，遊戲進度也存在伺服器。房主關掉遊戲，其他人會自動換一個人接手繼續；所有人都不在時，下次任何人輸入代碼就能接著玩。房主開房時可以把「時間流逝」設成即時（例如每 10 分鐘過一年）：大家隨時下指令，時間到自動進下一年，離開期間該過的年份下次開房時會一次補上（最多 12 年）；不在線的人國家照樣在，但不會動。遊戲中途有新朋友輸入代碼，可以挑一個還沒有人玩的國家加入。</li>' +
     '<li><b>📽 整局重播</b>：遊戲結束時，結算畫面有「播放整局重播」。地圖會從第一年播到最後一年，所有國家的領土同時擴張；旁邊的大事記會依年份列出誰加入、誰建城、誰向誰宣戰、哪國被誰消滅、名城易主和全服事件，右邊是當年的領地排名。可以暫停、調速度（1×／2×／5×），也能拖時間軸跳到任何一年；多人時預設放大到玩家所在的區域，按「全世界」看整張地圖。</li>' +
+    '<li><b>🏴 開拓令（可以選要不要用）</b>：往旁邊的中立地出兵時，會有兩個按鈕。「用開拓令佔領」：空地或小村莊直接佔領，只放 1 名開拓者，不花行動點；中立大城鎮則是不花行動點進攻。「派兵過去」：花 1 點行動點，軍隊整支開過去，開拓令留著。野外營地一定要派兵打。</li>' +
     '<li><b>🔔 通知</b>（伺服器）：到「帳號」按「開啟通知」。遊戲關著的時候，有人攻打你、向你宣戰、邀請你加入同盟，或發生全服大事，手機會跳通知（同一個人最多每 8 分鐘一則）。要用安裝到桌面的版本或 Chrome。</li>' +
     '<li><b>⚑ 同盟</b>（伺服器）：按上方的「⚑ 同盟」。花 100 金幣建立同盟（最多 6 國），盟主可以邀請玩家。成員之間自動結盟、不能互相宣戰；可以互送金幣、糧食（每年各最多 300）和援軍（首都到首都，每年最多 20 兵，要 1 點行動點）。盟主可以把一座名城設成同盟目標，任何成員拿下，全員 +150 金幣、民心 +3。退出同盟後 8 年內不能對前盟友宣戰。</li><li><b>⛺ 野外營地</b>（伺服器）：玩家領地附近會冒出土匪營地 ⛺、叛軍據點 🔥、古代遺跡 🏛。開拓令不能直接佔，要派兵打下來，可以得到金幣、糧食、降兵或開拓令。沒人打的話 25 年後會消失，再冒出新的。</li><li><b>📜 每日任務</b>（伺服器）：每天台灣時間 0 點換 3 個新任務（佔地、打營地、徵兵、研究、建城、支援盟友），完成一個領 80 金幣和 50 糧食，三個全領完再加 150 金幣和 1 張開拓令。</li>' +
     '<li><b>👤 帳號</b>（伺服器）：一開始是訪客帳號，只認得這支手機的這個瀏覽器。到伺服器選單的「帳號」綁定 Email，換手機或清除資料後，用「我已經保存過，登入」輸入同一個 Email，點信裡的連結就能回到原本的國家（不用密碼）。</li>' +
@@ -11261,6 +11268,7 @@ if (typeof module !== 'undefined') module.exports = G;
     }
     var gx = armSel ? null : G.genAt(g, f, from);
     if (gx && t.o !== f) h += '<p class="muted small">' + '將領 <b>' + esc(gx.n) + '</b>（' + G.GEN_TYPE[gx.t] + '）不會隨「直接出兵」出征；要帶將領請先編成軍團。' + '</p>';
+    var tkr = armSel || kind !== 'land' ? '' : tokRow(f, from, to, t); if (tkr) return h + tkr;
     return h + '<div class="row"><button class="btn primary" data-act="go"' + (needWar || g.ap <= 0 ? ' disabled' : '') + '><span>確認' + (t.o === f ? '調動' : '進攻') + '（−1 行動點）</span></button><button class="btn" data-act="canceltarget"><span>取消</span></button></div></div>';
   }
 
@@ -11584,6 +11592,20 @@ if (typeof module !== 'undefined') module.exports = G;
   function selectFleet(i) {
     ui.fleet = i; ui.sel = null; ui.target = null; ui.confirmEnd = false;
     renderPanel(); renderBar(); renderHL();
+  }
+  /* 開拓令：用不用由玩家決定 */
+  function tokRow(f, from, to, t) {
+    if (!g.srv || t.o || !G.LAND[to] || ((g.tok || {})[f] | 0) <= 0 || (g.camp && g.camp[to]) || G.NB[from].indexOf(to) < 0) return '';
+    var small = (t.L | 0) <= 1 && !(G.CITY[to] && G.CITY[to].lv >= 2) && !G.FAMOUS_AT[to], n = (g.tok[f] | 0);
+    return '<p class="muted small">🏴 你有 ' + n + ' 張開拓令。' + (small ? '用開拓令會直接佔領，只放 1 名開拓者過去，軍隊留在原地。' : '用開拓令可以不花行動點進攻。') + '想把軍隊整支開過去，就選「派兵過去」，開拓令會留著。</p>' +
+      '<div class="row"><button class="btn primary" data-act="go"><span>🏴 用開拓令' + (small ? '佔領（不帶兵、不花行動點）' : '進攻（不花行動點）') + '</span></button>' +
+      '<button class="btn" data-act="gont"' + (g.ap <= 0 ? ' disabled' : '') + '><span>⚔ 派兵過去（−1 行動點）</span></button>' +
+      '<button class="btn" data-act="canceltarget"><span>取消</span></button></div></div>';
+  }
+  function doMoveNT() {
+    var from = ui.sel, to = ui.target, r = G.P.moveNT(g, from, to, ui.ratio);
+    if (r.ok) { if (r.battle) ui.fx = { id: to, win: !!r.win }; ui.target = null; ui.mode = 'atk'; if (r.win || r.moved) ui.sel = to; }
+    return afterAction(r);
   }
   function doMove() {
     if (ui.tut && ui.tut.g === g && !ui.tut.skip && ui.tut.step === 3 && to0ok()) { var tq0 = g.p[ui.target]; tq0.t = Math.min(tq0.t, 1); }
@@ -11944,6 +11966,7 @@ if (typeof module !== 'undefined') module.exports = G;
       ui.army = null; return afterAction(mr || { ok: false, msg: '只有一支軍團。' });
     }
     if (a === 'go') return doMove();
+    if (a === 'gont') return doMoveNT();
   });
 
   bindMap();
