@@ -434,7 +434,7 @@ button{font:inherit;color:inherit}
     <div class="startmap" id="startmap" aria-hidden="true"></div>
     <div class="sc-in gx">
       <p class="eyebrow">MEDIEVAL: WORLD DOMINATION · 1096 AD</p>
-      <p class="muted small" id="verline">版本 v226 · 2026-11-03 · 訪客帳號、房主心跳</p>
+      <p class="muted small" id="verline">版本 v227 · 2026-11-03 · 伺服器連線顯示錯誤原因、失敗自動重試</p>
       <h1>中世紀：世界霸權</h1>
       <p class="lead">1095 年，教宗在克萊蒙發出號召，整個歐洲動了起來。選一個勢力（共 121 個），再從該文明歷史上的君主裡挑一位登基；在四千多個六角格地塊的世界裡，與基督教世界、伊斯蘭世界與即將到來的蒙古鐵騎周旋。可以結盟借道、派商隊與商船貿易、派密探、遠征遠方、研究科技升級時代、替自己的城市取名。沒有回合上限，直到有人稱霸，或你失去一切。</p>
       <div id="startopts"></div>
@@ -7477,18 +7477,19 @@ if (typeof module !== 'undefined') module.exports = G;
       var se = r && r.data && r.data.session;
       if (se && se.user) return se.user;
       return cl.auth.signInAnonymously().then(function (r2) { if (r2.error || !r2.data || !r2.data.user) throw (r2.error || new Error('auth')); return r2.data.user; });
-    }).then(function (u) { SB.uid = u.id; SB.anon = !!u.is_anonymous; MPID = u.id; return cl; }, function () { SB.authErr = true; return cl; });
+    }).then(function (u) { SB.uid = u.id; SB.anon = !!u.is_anonymous; MPID = u.id; return cl; }, function (e) { SB.authErr = true; sbErr('登入', e); return cl; });
   }
+  function sbErr(where, e, extra) { var m = (e && (e.message || e.code || e.status)) || e || ''; SB.lastErr = where + '：' + String(m).slice(0, 80) + (extra ? '（' + extra + '）' : ''); try { console.log('[SB]', SB.lastErr, e); } catch (x) {} return SB.lastErr; }
   function isMe(pid) { return !!pid && (pid === MPID || pid === MPID0); }
   /* 先試一下連不連得上（Claude 頁面裡可能被擋），連不上就退回原本的 PeerJS */
   function sbProbe(cl) {
     return new Promise(function (res, rej) {
       var done = false, ch = cl.channel('mwd-probe-' + Math.random().toString(36).slice(2, 8));
-      var t = setTimeout(function () { if (done) return; done = true; try { cl.removeChannel(ch); } catch (e) {} rej(new Error('timeout')); }, 8000);
-      ch.subscribe(function (st) {
+      var t = setTimeout(function () { if (done) return; done = true; sbErr('即時連線測試', '逾時'); try { cl.removeChannel(ch); } catch (e) {} rej(new Error('timeout')); }, 8000);
+      ch.subscribe(function (st, err) {
         if (done) return;
         if (st === 'SUBSCRIBED') { done = true; clearTimeout(t); try { cl.removeChannel(ch); } catch (e) {} res(cl); }
-        else if (st === 'CHANNEL_ERROR' || st === 'TIMED_OUT' || st === 'CLOSED') { done = true; clearTimeout(t); try { cl.removeChannel(ch); } catch (e) {} rej(new Error(st)); }
+        else if (st === 'CHANNEL_ERROR' || st === 'TIMED_OUT' || st === 'CLOSED') { done = true; clearTimeout(t); sbErr('即時連線測試', err || st, st); try { cl.removeChannel(ch); } catch (e) {} rej(new Error(st)); }
       });
     });
   }
@@ -7516,8 +7517,8 @@ if (typeof module !== 'undefined') module.exports = G;
       c.close = function () { if (c.closed) return; c.closed = true; self.out({ k: 'close', cid: cid, to: peerId }); c.emit('close'); };
       self.conns[cid] = c; return c;
     };
-    Peer.prototype.join = function (code, asHost, then) {
-      var self = this, opened = false;
+    Peer.prototype.join = function (code, asHost, then, tries) {
+      var self = this, opened = false; tries = tries || 0;
       var ch = self.ch = cl.channel('mwd1-' + code, { config: { broadcast: { self: false }, presence: { key: self.id } } });
       ch.on('broadcast', { event: 'm' }, function (msg) {
         var m = msg && msg.payload; if (!m || self.destroyed) return;
@@ -7536,7 +7537,7 @@ if (typeof module !== 'undefined') module.exports = G;
         var gone = {}; ((ev && ev.leftPresences) || []).forEach(function (p) { if (p && p.id) gone[p.id] = 1; }); if (ev && ev.key) gone[ev.key] = 1;
         Object.keys(self.conns).forEach(function (k) { var c = self.conns[k]; if (gone[c.peer] && !c.closed) { c.closed = true; c.emit('close'); } });
       });
-      ch.subscribe(function (st) {
+      ch.subscribe(function (st, err) {
         if (st === 'SUBSCRIBED' && !opened) {
           opened = true;
           if (!asHost) { ch.track({ id: self.id, role: 'guest' }); if (then) then(); return; }
@@ -7549,9 +7550,13 @@ if (typeof module !== 'undefined') module.exports = G;
               if (!ok) { self.destroy(); return self.emit('error', { type: 'unavailable-id' }); }
               ch.track({ id: self.id, role: 'host', mpid: MPID });
               SB.code = code; SB.hostCode = code; self.emit('open', self.id); if (MP.on && MP.role === 'host') setTimeout(function () { MP.dirty = true; sbSave(true); }, 0);
-            }, function () { self.destroy(); self.emit('error', { type: 'network' }); });
+            }, function (e) { sbErr('登記房主', e); self.destroy(); self.emit('error', { type: 'network', detail: SB.lastErr }); });
           }, 1200);
-        } else if ((st === 'CHANNEL_ERROR' || st === 'TIMED_OUT') && !opened) { opened = true; self.emit('error', { type: 'network' }); }
+        } else if ((st === 'CHANNEL_ERROR' || st === 'TIMED_OUT') && !opened) {
+          opened = true; sbErr('即時頻道', err || st, st);
+          if (tries < 1 && !self.destroyed) { try { cl.removeChannel(ch); } catch (e) {} self.ch = null; return setTimeout(function () { if (!self.destroyed) self.join(code, asHost, then, tries + 1); }, 1500); }
+          self.emit('error', { type: 'network', detail: SB.lastErr });
+        }
       });
     };
     Peer.prototype.connect = function (target) {
@@ -7570,13 +7575,13 @@ if (typeof module !== 'undefined') module.exports = G;
   /* 房主登記：新房間用新的代碼；繼續的房間把房主換成自己（同時兩個人搶時只有一個成功） */
   function sbRegister(code) {
     var info0 = { host: MPID, t: Date.now(), ver: PVER, players: {}, y: 0, tick: 0 };
-    if (SB.fresh) return SB.cl.from('mw_rooms').insert({ code: code, info: info0 }).then(function (r) { return !r.error; });
+    if (SB.fresh) return SB.cl.from('mw_rooms').insert({ code: code, info: info0 }).then(function (r) { if (r.error) sbErr('開房', r.error, r.error.code); return !r.error; });
     return SB.cl.from('mw_rooms').select('info').eq('code', code).maybeSingle().then(function (r) {
       if (r.error) throw r.error;
-      if (!r.data) return SB.cl.from('mw_rooms').insert({ code: code, info: info0 }).then(function (r2) { return !r2.error; });
+      if (!r.data) return SB.cl.from('mw_rooms').insert({ code: code, info: info0 }).then(function (r2) { if (r2.error) sbErr('開房', r2.error, r2.error.code); return !r2.error; });
       var old = (r.data.info && r.data.info.host) || '';
       if (isMe(old) && old === MPID) return true;
-      return SB.cl.rpc('mw_claim', { p_code: code, p_old: old, p_new: MPID }).then(function (r3) { return !r3.error && r3.data === true; });
+      return SB.cl.rpc('mw_claim', { p_code: code, p_old: old, p_new: MPID }).then(function (r3) { if (r3.error) sbErr('接手房間', r3.error); return !r3.error && r3.data === true; });
     });
   }
   /* 房主把進度存到伺服器（最多每 5 秒一次）；如果房主已經被別人接手，就退回朋友身分 */
@@ -7590,7 +7595,7 @@ if (typeof module !== 'undefined') module.exports = G;
     var info = { host: MPID, y: G.year(g), players: pl, tick: (g.rt && g.rt.tick) || 0, ver: PVER, t: Date.now(), over: !!g.over };
     mpPack(JSON.stringify(g)).then(function (ch) {
       return SB.cl.from('mw_rooms').update({ info: info, state: ch.join(''), updated_at: new Date().toISOString() }).eq('code', SB.hostCode).eq('info->>host', MPID).select('code');
-    }).then(function (r) { if (r && !r.error && r.data && !r.data.length) sbLostHost(); })
+    }).then(function (r) { if (r && r.error) sbErr('存檔', r.error, r.error.code); if (r && !r.error && r.data && !r.data.length) sbLostHost(); })
       .catch(function () {}).then(function () { SB.svBusy = false; if (SB.svAgain) { SB.svAgain = false; sbSave(); } });
   }
   function sbReload(code, ms) {
@@ -7619,7 +7624,7 @@ if (typeof module !== 'undefined') module.exports = G;
         });
       }
       return sbOpenRoom2(code, nick, row);
-    }).catch(function () { p2pGuestMenu('伺服器暫時連不上，請稍後再試。'); });
+    }).catch(function (e) { p2pGuestMenu('伺服器暫時連不上，請稍後再試。（' + sbErr('讀取房間', e) + '）'); });
   }
   function sbOpenRoom2(code, nick, row) {
     SB.wait = 0;
@@ -7710,7 +7715,7 @@ if (typeof module !== 'undefined') module.exports = G;
   ];
   function pubOf(code) { var r = null; PUBS.forEach(function (p) { if (p.code === code) r = p; }); return r; }
   function sbPubList() {
-    return '<div class="gh" style="margin:8px 0 4px">🌍 公開伺服器（隨時進出，國家選了就是你的）</div><div class="choices">' + PUBS.map(function (p) {
+    return '<div class="gh" style="margin:8px 0 4px">🌍 公開伺服器（隨時進出，國家選了就是你的）</div><p id="sbstat" class="muted small" style="margin:0 0 4px">伺服器：檢查中…</p><div class="choices">' + PUBS.map(function (p) {
       return '<button class="choice" data-act="sbpub" data-c="' + p.code + '"><span class="cl">' + p.n + '</span><span class="ch">' + esc(p.d) + '<br><span id="sbps-' + p.code + '" class="muted">查詢中…</span></span></button>';
     }).join('') + '</div>';
   }
@@ -7718,21 +7723,23 @@ if (typeof module !== 'undefined') module.exports = G;
     sbLoad().then(sbAuth).then(function (cl) {
       return cl.from('mw_rooms').select('code,info').in('code', PUBS.map(function (p) { return p.code; }));
     }).then(function (r) {
+      if (r && r.error) throw r.error;
+      var st0 = document.getElementById('sbstat'); if (st0) st0.textContent = '伺服器：✅ 已連上' + (SB.uid ? '（' + (SB.anon ? '訪客帳號' : '帳號') + ' ' + SB.uid.slice(0, 6) + '）' : '（⚠ 沒有登入：' + (SB.lastErr || '原因不明') + '）');
       var m = {}; ((r && r.data) || []).forEach(function (x) { m[x.code] = x.info || {}; });
       PUBS.forEach(function (p) {
         var el = document.getElementById('sbps-' + p.code); if (!el) return;
         var i = m[p.code], n = i && i.players ? Object.keys(i.players).length : 0, mine = i && i.players && (i.players[MPID] || i.players[MPID0]);
         el.textContent = !i || !i.y ? '還沒有人開服，你可以第一個進去' : i.over ? '這一服已經結束' : '西元 ' + i.y + ' 年 · ' + n + ' 位玩家' + (mine ? ' · 你是' + ((G.FACTIONS[mine.f] || {}).name || '?') : '');
       });
-    }).catch(function () { PUBS.forEach(function (p) { var el = document.getElementById('sbps-' + p.code); if (el) el.textContent = '伺服器暫時連不上'; }); });
+    }).catch(function (e) { var st1 = document.getElementById('sbstat'); if (st1) st1.textContent = '伺服器：❌ 連不上（' + sbErr('查詢', e) + '）'; PUBS.forEach(function (p) { var el = document.getElementById('sbps-' + p.code); if (el) el.textContent = '伺服器暫時連不上'; }); });
   }
   function sbPub(code) {
     var nick = mpReadNick();
     p2pGuestMenu('正在連到' + (pubOf(code) || {}).n + '…');
     pjLoad().then(function () {
-      if (!SB.on) return mpMenu('伺服器暫時連不上，公開伺服器現在不能用。');
+      if (!SB.on) return mpMenu('伺服器暫時連不上，公開伺服器現在不能用。（' + (SB.lastErr || '即時連線失敗') + '）');
       pjJoin(code, nick);
-    }, function () { mpMenu('伺服器暫時連不上，公開伺服器現在不能用。'); });
+    }, function () { mpMenu('伺服器暫時連不上，公開伺服器現在不能用。（' + (SB.lastErr || '載入失敗') + '）'); });
   }
   /* 公開伺服器還沒開服（或開服的人沒按開始就離開）：由你開服 */
   function sbCreatePub(code, nick, row) {
@@ -7766,7 +7773,7 @@ if (typeof module !== 'undefined') module.exports = G;
   function pjLoad() {
     if (window.Peer) return Promise.resolve(window.Peer);
     if (PJ.lib) return PJ.lib;
-    PJ.lib = sbLoad().then(sbAuth).then(sbProbe).then(function (cl) { SB.on = true; return sbPeerCtor(cl); }).catch(function () { SB.on = false; PJ.lib = null; return pjLoad0(); });
+    PJ.lib = sbLoad().catch(function (e) { sbErr('載入', e); throw e; }).then(sbAuth).then(sbProbe).then(function (cl) { SB.on = true; return sbPeerCtor(cl); }).catch(function () { SB.on = false; PJ.lib = null; return pjLoad0(); });
     return PJ.lib;
   }
   function pjLoad0() {
@@ -7820,11 +7827,11 @@ if (typeof module !== 'undefined') module.exports = G;
         peer.on('error', function (err) {
           if (err && err.type === 'unavailable-id' && SB.on && PJ.want) { var w0 = PJ.want; PJ.want = ''; toast('房間 ' + w0 + ' 已經有人在主持，改用朋友身分加入…'); return sbReload(w0, 900); }
           if (err && err.type === 'unavailable-id' && tries < 4) { try { peer.destroy(); } catch (e) {} return attempt(); }
-          if (!PJ.code) { PJ.err = (err && err.type) || '錯誤'; pjRender(); }
+          if (!PJ.code) { PJ.err = (err && (err.detail || err.type)) || SB.lastErr || '錯誤'; pjRender(); }
         });
         peer.on('disconnected', function () { try { peer.reconnect(); } catch (e) {} });
       })();
-    }).catch(function () { PJ.err = '載入失敗'; pjRender(); });
+    }).catch(function () { PJ.err = SB.lastErr || '載入失敗'; pjRender(); });
   }
   function pjJoin(code, nick) {
     code = String(code || '').toUpperCase().replace(/[^A-Z]/g, '');
@@ -7843,7 +7850,7 @@ if (typeof module !== 'undefined') module.exports = G;
       peer.on('error', function (err) {
         if (done) return;
         if (SB.on && err && err.type === 'peer-unavailable') return sbOpenRoom(code, nick);
-        p2pGuestMenu(err && err.type === 'peer-unavailable' ? '找不到房間 ' + code + '：請確認 5 個字母沒打錯、房主的畫面還開著。' : '房間代碼服務暫時連不上，請改用長邀請碼。');
+        p2pGuestMenu(err && err.type === 'peer-unavailable' ? '找不到房間 ' + code + '：請確認 5 個字母沒打錯、房主的畫面還開著。' : '房間代碼服務暫時連不上，請改用長邀請碼。' + (err && err.detail ? '（' + err.detail + '）' : (SB.lastErr ? '（' + SB.lastErr + '）' : '')));
       });
     }).catch(function () { p2pGuestMenu('房間代碼服務載入失敗，請改用長邀請碼。'); });
   }
