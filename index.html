@@ -434,7 +434,7 @@ button{font:inherit;color:inherit}
     <div class="startmap" id="startmap" aria-hidden="true"></div>
     <div class="sc-in gx">
       <p class="eyebrow">MEDIEVAL: WORLD DOMINATION · 1096 AD</p>
-      <p class="muted small" id="verline">版本 v224 · 2026-11-03 · 伺服器房間（Supabase）與即時模式</p>
+      <p class="muted small" id="verline">版本 v225 · 2026-11-03 · 公開伺服器與伺服器規則（保護、宣戰書、存行動點、閒置收回、1453 結算）</p>
       <h1>中世紀：世界霸權</h1>
       <p class="lead">1095 年，教宗在克萊蒙發出號召，整個歐洲動了起來。選一個勢力（共 121 個），再從該文明歷史上的君主裡挑一位登基；在四千多個六角格地塊的世界裡，與基督教世界、伊斯蘭世界與即將到來的蒙古鐵騎周旋。可以結盟借道、派商隊與商船貿易、派密探、遠征遠方、研究科技升級時代、替自己的城市取名。沒有回合上限，直到有人稱霸，或你失去一切。</p>
       <div id="startopts"></div>
@@ -3930,6 +3930,7 @@ function demandOrWar(g, a, x) {
 function declareWar(g, a, b, cause) {
   var r = rel(g, a, b);
   if (r.state === 'war') return;
+  if (g.srv && isHum(g, a) && isHum(g, b) && (srvProt(g, a) || srvProt(g, b))) return;
   var breach = r.truce > 0, betray = r.state === 'ally', fs = g.fac[a];
   if (g.mar && g.mar[marKey(a, b)]) { delete g.mar[marKey(a, b)]; fs.morale = clamp(fs.morale - 6, 0, 100); g.rep[a] = clamp(g.rep[a] - 25, 0, 100); logRel(g, a, b, nm(a) + '撕毀了與' + nm(b) + '的姻親關係，諸國側目。', 'bad'); }
   r.state = 'war'; r.truce = 0; r.trade = 0; r.warT = 0;
@@ -3983,6 +3984,7 @@ function excommunicate(g, a) {
 function makePeace(g, a, b, truce) {
   var r = rel(g, a, b); infAdd(g, a, -3); infAdd(g, b, -3);
   r.state = 'peace'; r.truce = truce; r.warT = 0;
+  if (g.srv && isHum(g, a) && isHum(g, b)) r.ptT = g.turn;
   logRel(g, a, b, nm(a) + '與' + nm(b) + '停戰。', 'good');
   chron(g, a, '與' + nm(b) + '停戰。'); chron(g, b, '與' + nm(a) + '停戰。');
 }
@@ -4051,6 +4053,13 @@ function actTribute(g, f, x) {
 function actDeclare(g, f, x) {
   if (!g.fac[x] || !g.fac[x].alive) return fail('對方已經不存在。');
   if (rel(g, f, x).state === 'war') return fail('已經處於交戰狀態。');
+  var bw = srvWarBlock(g, f, x); if (bw) return fail(bw);
+  if (g.srv && isHum(g, f) && isHum(g, x)) {
+    if ((g.pw || []).some(function (w) { return (w.a === f && w.b === x) || (w.a === x && w.b === f); })) return fail('宣戰書已經送出了，明年開戰。');
+    (g.pw || (g.pw = [])).push({ a: f, b: x, t: g.turn + 1 });
+    asPlayer(g, x, function () { logMsg(g, '🔥 ' + nm(f) + '送來宣戰書：明年（西元 ' + (year(g) + 1) + ' 年）起雙方交戰，快準備！', 'bad'); });
+    return good('宣戰書已送給' + nm(x) + '：明年起雙方交戰（讓對方有時間準備）。');
+  }
   declareWar(g, f, x);
   return good('你向' + nm(x) + '宣戰。');
 }
@@ -6322,7 +6331,8 @@ function endTurn0(g) {
   }
   var res = checkEnd(g);
   if (res) return res;
-  g.turn++; g.apCap = apMax(g, g.player); g.ap = g.apCap; g.evResolved = false;
+  var apKeep = g.srv ? Math.max(0, g.ap | 0) : 0;
+  g.turn++; g.apCap = apMax(g, g.player); g.ap = g.srv ? Math.min(g.apCap * 3, g.apCap + apKeep) : g.apCap; g.evResolved = false;
   if (!g.noAI) { if (WORLD[g.turn]) WORLD[g.turn](g); spawnTick(g); }
   LANDIDS.forEach(function (id) { g.p[id].acted = false; g.p[id].arr = false; });
   mpTurn(g);
@@ -6467,8 +6477,56 @@ function mpAddHuman(g, f) {
   if (!g.fac[f].alive) return fail('這個國家已經滅亡。');
   var h = { ap: 0, apCap: 0, evResolved: true, evData: null, log: [], evView: null }; h.apCap = apMax(g, f); h.ap = h.apCap;
   g.hs[f] = h; g.offs = g.offs || {}; g.offs[f] = []; g.ended = g.ended || {};
-  asPlayer(g, f, function () { logMsg(g, '西元 ' + year(g) + ' 年。你接手了' + FACTIONS[f].full + '。', 'info'); });
+  if (g.srv) {
+    (g.prot || (g.prot = {}))[f] = g.turn + SRV_PROT; (g.act || (g.act = {}))[f] = g.turn;
+    humansOf(g).forEach(function (x) { if (x === f) return; var r = rel(g, f, x); if (r.state === 'war') { r.state = 'peace'; r.warT = 0; } });
+    srvCatchUp(g, f);
+  }
+  asPlayer(g, f, function () { logMsg(g, '西元 ' + year(g) + ' 年。你接手了' + FACTIONS[f].full + '。' + (g.srv ? '前 ' + SRV_PROT + ' 年有新手保護：其他玩家不能打你，你也不能打玩家。' : ''), 'info'); });
   _own = null; return good('加入成功。');
+}
+/* 公開伺服器：新手保護、宣戰預告、玩家停戰下限、後進補助、閒置收回、1453 結算 */
+var SRV_PROT = 12, SRV_IDLE = 48, SRV_WARN = 10, SRV_TRUCE = 8, SRV_ENDY = 1453;
+function srvProt(g, f) { var t = g.prot && g.prot[f]; return t && t > g.turn ? t - g.turn : 0; }
+function srvWarBlock(g, a, b) {
+  if (!g.srv || !isHum(g, a) || !isHum(g, b)) return '';
+  if (srvProt(g, a)) return '你還在新手保護期（還有 ' + srvProt(g, a) + ' 年），不能對玩家宣戰。';
+  if (srvProt(g, b)) return nm(b) + '還在新手保護期（還有 ' + srvProt(g, b) + ' 年），不能對他宣戰。';
+  var r = rel(g, a, b); if (r.ptT != null && g.turn < r.ptT + SRV_TRUCE) return '你們停戰還不滿 ' + SRV_TRUCE + ' 年（還有 ' + (r.ptT + SRV_TRUCE - g.turn) + ' 年才能再宣戰）。';
+  return '';
+}
+function srvCatchUp(g, f) {
+  var others = humansOf(g).filter(function (x) { return x !== f && g.fac[x] && g.fac[x].alive; }); if (!others.length) return;
+  var at = 0, ag = 0, af = 0; others.forEach(function (x) { at += techLv(g, x); ag += g.fac[x].gold; af += g.fac[x].food; });
+  at /= others.length; ag /= others.length; af /= others.length;
+  var want = Math.floor(at * 0.7), tk = techTk(g, f), guard = 0;
+  while (techLv(g, f) < want && guard++ < 80) {
+    var av = techAvail(g, f).sort(function (p, q) { return p.t - q.t || p.y - q.y; }); if (!av.length) break;
+    tk[av[0].id] = 1;
+  }
+  g.fac[f].tech = Object.keys(tk).length; try { gunSet(g, f); } catch (e) {}
+  var fs = g.fac[f]; fs.gold = Math.max(fs.gold, Math.round(ag * 0.5)); fs.food = Math.max(fs.food, Math.round(af * 0.5));
+  var c = CAPITAL[f]; if (c != null && g.p[c] && g.p[c].o === f) g.p[c].t = Math.max(g.p[c].t, 20);
+}
+/* 每年：宣戰書生效、閒置收回 */
+function srvTick(g) {
+  if (!g.srv) return;
+  (g.pw || []).slice().forEach(function (w) {
+    if (w.t > g.turn) return;
+    g.pw.splice(g.pw.indexOf(w), 1);
+    if (g.fac[w.a].alive && g.fac[w.b].alive && rel(g, w.a, w.b).state !== 'war') declareWar(g, w.a, w.b, true);
+  });
+  var act = g.act || (g.act = {});
+  Object.keys(g.hs || {}).forEach(function (f) {
+    if (!g.fac[f].alive) return;
+    var idle = g.turn - (act[f] != null ? act[f] : (g.srv.t0 || 1));
+    if (idle >= SRV_IDLE) {
+      delete g.hs[f]; if (g.offs) delete g.offs[f]; if (g.ended) delete g.ended[f]; if (g.prot) delete g.prot[f]; delete act[f]; delete HQ[f];
+      logMsg(g, nm(f) + '的君主太久沒有下令，國家被收回，其他人可以選它了。', 'war');
+    } else if (idle >= SRV_IDLE - SRV_WARN) {
+      asPlayer(g, f, function () { logMsg(g, '⚠ 你已經 ' + idle + ' 年沒有下指令，再 ' + (SRV_IDLE - idle) + ' 年沒動靜，國家就會被收回。', 'bad'); });
+    }
+  });
 }
 function mpResume(g) {
   if (!g.hs) return;
@@ -6479,7 +6537,8 @@ function mpResume(g) {
 function mpTurn(g) {
   if (!g.hs) return;
   g.ended = {};
-  Object.keys(g.hs).forEach(function (f) { var h = g.hs[f]; h.apCap = apMax(g, f); h.ap = h.apCap; h.evResolved = false; });
+  Object.keys(g.hs).forEach(function (f) { var h = g.hs[f], keep = g.srv ? Math.max(0, h.ap | 0) : 0; h.apCap = apMax(g, f); h.ap = g.srv ? Math.min(h.apCap * 3, h.apCap + keep) : h.apCap; h.evResolved = false; });
+  srvTick(g);
   mpBegin(g);
 }
 function mpChoose(g, f, i) {
@@ -6506,6 +6565,7 @@ function mpAdvance(g) {
   humansOf(g).forEach(function (f) { pre[f] = { n: ownedN(g, f), gold: Math.floor(g.fac[f].gold) }; });
   var yr = year(g);
   g_noLive = 1; var res; try { res = endTurn(g); } finally { g_noLive = 0; }
+  if (!res && g.srv && !g.over && year(g) > (g.srv.endY || SRV_ENDY)) { var bh = null; humansOf(g).forEach(function (f) { if (g.fac[f].alive && (bh === null || scoreOf(g, f) > scoreOf(g, bh))) bh = f; }); res = finish(g, 'season', bh); }
   if (g.hs) Object.keys(g.hs).forEach(function (f) {
     asPlayer(g, f, function () {
       var n = ownedN(g, f), d = n - pre[f].n, gd = Math.floor(g.fac[f].gold) - pre[f].gold;
@@ -6530,6 +6590,7 @@ function mpMirror(m, me) {
     var f0 = P[k];
     P[k] = function (g) {
       if (g.ended && g.ended[g.player]) return fail('你已結束回合，等待其他玩家。');
+      if (g.srv) (g.act || (g.act = {}))[g.player] = g.turn;
       return f0.apply(null, arguments);
     };
   });
@@ -6553,7 +6614,7 @@ var G = {
   EVENTS: EVENTS, HIST: HIST, checkEnd: checkEnd, finish: finish, settle: settle, TERR_Y: TERR_Y,
   SAVE_VER: SAVE_VER, MAPSIG: MAPSIG, rel: rel, migrate: migrate, strength: strength, dipInfo: dipInfo, declareWar: declareWar, aiDiplomacy: aiDiplomacy,
   swapAmt: swapAmt, routeCands: routeCands, coastTarget: coastTarget, supplyDist: supplyDist, supRange: supRange, lordOf: lordOf, vassalsOf: vassalsOf, ownedTotal: ownedTotal, offerEvent: offerEvent, acceptChance: acceptChance,
-  fleetCap: fleetCap, isHum: isHum, humansOf: humansOf, asPlayer: asPlayer, mpInit: mpInit, mpEligible: mpEligible, mpAddHuman: mpAddHuman, mpReassign: mpReassign, mpChoose: mpChoose, mpEnd: mpEnd, mpAllEnded: mpAllEnded, mpWaiting: mpWaiting, mpAdvance: mpAdvance, mpMirror: mpMirror, mpView: mpView, mpResume: mpResume,
+  fleetCap: fleetCap, isHum: isHum, humansOf: humansOf, asPlayer: asPlayer, mpInit: mpInit, mpEligible: mpEligible, mpAddHuman: mpAddHuman, srvProt: srvProt, srvWarBlock: srvWarBlock, mpReassign: mpReassign, mpChoose: mpChoose, mpEnd: mpEnd, mpAllEnded: mpAllEnded, mpWaiting: mpWaiting, mpAdvance: mpAdvance, mpMirror: mpMirror, mpView: mpView, mpResume: mpResume,
   holyKind: holyKind, armies: armies, garrisonOf: garrisonOf, armyReach: armyReach, armyDijk: armyDijk, zocAt: zocAt, armyPlan: armyPlan, armyRaidTargets: armyRaidTargets, armyMP: armyMP, armyRem: armyRem, mvCost: mvCost, rulerLv: rulerLv, rulerInfo: rulerInfo, vetLv: vetLv, RX_T: RX_T, holyKind: holyKind, holyCost: holyCost, canHoly: canHoly, isChristian: isChristian, START_YEAR: START_YEAR, LON: LON, LAT: LAT, WORLD: WORLD
 };
 if (typeof module !== 'undefined') module.exports = G;
@@ -6704,12 +6765,13 @@ if (typeof module !== 'undefined') module.exports = G;
       (msg ? '<p class="warn">' + esc(msg) + '</p>' : '') +
       '<div class="flist"><b>你的暱稱</b><input id="mpnick" maxlength="12" value="' + esc(mpNick()) + '" placeholder="暱稱" style="flex:1;min-width:0;padding:10px;border-radius:8px;border:1px solid var(--line);background:rgba(0,0,0,.25);color:inherit;font:inherit"></div>' +
       (p2pOk() ? '<div class="gh" style="margin:8px 0 4px">免登入連線（推薦，朋友不需要 Claude 帳號）</div>' : '<p class="warn">免登入直連在 Claude 的頁面裡被瀏覽器擋住了（缺少 WebRTC），目前做不到。只能用下面「登入房間」，朋友需要被你邀請並登入 Claude。</p>') +
-      (p2pOk() ? '<div class="choices">' + '</div>' + mpSavedList() + '<div class="choices">' + '<button class="choice" data-act="p2phost"><span class="cl">我是房主</span><span class="ch">產生邀請碼，用 LINE 傳給朋友</span></button>' +
+      (p2pOk() ? '<div class="choices">' + '</div>' + sbPubList() + mpSavedList() + '<div class="choices">' + '<button class="choice" data-act="p2phost"><span class="cl">我是房主</span><span class="ch">產生邀請碼，用 LINE 傳給朋友</span></button>' +
       '<button class="choice" data-act="p2pguest"><span class="cl">我是朋友</span><span class="ch">貼上房主給的邀請碼</span></button></div>' : '') +
       '<details' + (p2pOk() ? '' : ' open') + ' style="margin-top:12px"><summary class="muted small">用 Claude 登入的房間代碼（進階，朋友要被邀請並登入）</summary><div class="choices" style="margin-top:8px"><button class="choice" data-act="mpcreate"><span class="cl">建立登入房間</span><span class="ch">朋友需要登入 Claude 並有 Contributor 權限</span></button>' +
       '<div class="flist"><input id="mpcode" maxlength="8" autocapitalize="off" autocomplete="off" placeholder="房間代碼" style="flex:1;min-width:0;padding:10px;border-radius:8px;border:1px solid var(--line);background:rgba(0,0,0,.25);color:inherit;font:inherit"><button class="btn primary" data-act="mpjoin">加入</button></div></div></details>' +
       '<button class="btn" style="margin-top:10px" data-act="closemodal">關閉</button>';
     $('#modal').hidden = false;
+    if (p2pOk()) try { sbPubStatus(); } catch (e) {}
   }
   function mpReadNick() { var e = $('#mpnick'); var v = e ? e.value.trim().slice(0, 12) : mpNick(); if (v) mpSetNick(v); return v || mpNick() || '玩家'; }
   function mpCreate() {
@@ -6832,6 +6894,10 @@ if (typeof module !== 'undefined') module.exports = G;
         $('#mplist').insertAdjacentHTML('beforebegin', '<div class="flist"><b>時間流逝</b><select id="mptick" style="flex:1;min-width:0;padding:8px;border-radius:8px;border:1px solid var(--line);background:#1c1a14;color:inherit;font:inherit">' + [[0, '等大家都按「結束回合」'], [2, '即時：每 2 分鐘過一年'], [5, '即時：每 5 分鐘過一年'], [10, '即時：每 10 分鐘過一年'], [30, '即時：每 30 分鐘過一年'], [60, '即時：每 1 小時過一年'], [180, '即時：每 3 小時過一年'], [720, '即時：每 12 小時過一年'], [1440, '即時：每天過一年']].map(function (x) { return '<option value="' + x[0] + '">' + x[1] + '</option>'; }).join('') + '</select></div><p class="muted small" style="margin-top:-4px">即時：大家隨時下指令，時間到自動進下一年；不在線的人國家照樣在、但不會動；在線的人都按完「結束回合」會提早進下一年。' + (SB.on ? '' : '（要等伺服器房間連上才會在房主離線時繼續）') + '</p>');
         var tk0 = $('#mptick'); tk0.value = String(MP.tick || 0); tk0.addEventListener('change', function () { MP.tick = +this.value || 0; try { localStorage.setItem('crusade-mptick', String(MP.tick)); } catch (e) {} });
       }
+      if (MP.pub && $('#mplist')) {
+        ['mpstartm', 'mptick', 'mplim'].forEach(function (id) { var e0 = $('#' + id); if (!e0) return; var fl2 = e0.closest('.flist'), nx2 = fl2 && fl2.nextElementSibling; if (nx2 && nx2.tagName === 'P') nx2.remove(); if (fl2) fl2.remove(); });
+        $('#mplist').insertAdjacentHTML('beforebegin', '<p class="muted small" style="border:1px solid var(--line);border-radius:8px;padding:8px"><b>🌍 公開伺服器 ' + esc(MP.pub.n) + '</b>：' + esc(MP.pub.d) + '。選好國家按「開始遊戲」就能玩，不用等別人；之後任何人隨時都能進來挑還沒人選的國家。</p>');
+      }
       try { mpRgInit(); } catch (e) {}
       $('#mpfac').addEventListener('change', function () {
         var v = this.value || null;
@@ -6857,13 +6923,14 @@ if (typeof module !== 'undefined') module.exports = G;
     var sb = $('#mpstartb');
     if (sb) {
       var chosen = ids.filter(function (u) { return MP.players[u].f; });
-      var need = MP.resG && SB.on ? 1 : 2, ok = chosen.length >= need && chosen.length === ids.length && !!mine;
+      var need = (MP.resG && SB.on) || MP.pub ? 1 : 2, ok = chosen.length >= need && chosen.length === ids.length && !!mine;
       sb.disabled = !ok;
       var m = $('#mpmsg'); if (m) m.textContent = ids.length < need ? '至少需要 2 位玩家。' : chosen.length < ids.length ? '還有人沒選勢力。' : !mine ? '你也要選一個勢力。' : '可以開始了。';
     }
   }
   /* ---- 房主 ---- */
   function mpHostStart() {
+    var pubP = MP.pub, smS = STARTM, tkS = MP.tick; if (pubP && !MP.resG) { STARTM = pubP.sm; MP.tick = pubP.tick; }
     var ids = Object.keys(MP.players), hostF = MP.players[MP.uid].f, guests = [];
     if (MP.mode === 'p2p') P2P.slots.forEach(function (s) { if (s.state !== 'open') { try { s.pc.close(); } catch (e) {} } });
     MP.facOf = {};
@@ -6873,6 +6940,8 @@ if (typeof module !== 'undefined') module.exports = G;
     var resumed = !!MP.resG;
     if (resumed) { g = MP.resG; MP.resG = null; G.mpReassign(g, hostF, guests); g.evResolved = true; if (MP.tick > 0) g.rt = { tick: MP.tick, next: (g.rt && g.rt.next > Date.now()) ? g.rt.next : Date.now() + MP.tick * 60000 }; }
     else { g = G.newGame(hostF, DIFF); g.noCul = !CULON; if (STARTM) G.applyStartMode(g, STARTM, [hostF].concat(guests)); G.mpInit(g, guests); if (MP.tick > 0) g.rt = { tick: MP.tick, next: Date.now() + MP.tick * 60000 }; }
+    if (pubP && !resumed) { g.srv = { t0: g.turn, endY: 1453 }; g.rt = { tick: pubP.tick, early: 5, min: 2 }; rtSched(); }
+    if (pubP) { STARTM = smS; MP.tick = tkS; }
     enterGame();
     MP.dirty = true;
     mpDoPublish(function () {
@@ -6892,11 +6961,12 @@ if (typeof module !== 'undefined') module.exports = G;
       toast('已接手房間。');
     });
   }
-  function mpTryAdvance() {
+  function mpTryAdvance(fromTick) {
     rtOffEnd();
     if (!G.mpAllEnded(g)) { renderBar(); mpPublish(true); return false; }
+    if (rtTooSoon()) { if (!fromTick) { renderBar(); mpPublish(true); } return false; }
     var res = G.mpAdvance(g);
-    if (g.rt && g.rt.tick > 0) g.rt.next = Date.now() + g.rt.tick * 60000;
+    rtSched(); srvDropIdle();
     if (res) { renderAll(); showEnd(); mpPublish(true); return true; }
     if (g.hegPending) { renderAll(); showHeg(); mpPublish(true); return true; }
     beginTurn(); mpPublish(true); return true;
@@ -7135,8 +7205,9 @@ if (typeof module !== 'undefined') module.exports = G;
         rtOffEnd();
         if (!(g.rt.next > 0)) g.rt.next = Date.now() + g.rt.tick * 60000;
         if (Date.now() >= g.rt.next) { G.humansOf(g).forEach(function (f) { g.ended[f] = true; }); toast('時間到，進入下一年。'); mpTryAdvance(); return; }
-        if (G.mpAllEnded(g)) { mpTryAdvance(); return; }
+        if (G.mpAllEnded(g) && !rtTooSoon()) { mpTryAdvance(true); return; }
       }
+      if (MP.on && MP.role === 'host' && g && g.over && MP.pub && !SB.endT) { SB.endT = setTimeout(function () { try { sbSave(true); } catch (e) {} setTimeout(function () { try { if (PJ.peer) PJ.peer.destroy(); } catch (e) {} PJ.peer = null; PJ.code = ''; SB.hostCode = ''; SB.endT = null; MP.on = false; MP.phase = null; toast('這一輪結束了。再進入這一服就會開新的一輪。'); }, 3000); }, 60000); }
       if (SB.on && SB.cl && SB.hostCode && MP.on && MP.role === 'host' && Date.now() - SB.chkT > 20000) { SB.chkT = Date.now(); SB.cl.from('mw_rooms').select('info').eq('code', SB.hostCode).maybeSingle().then(function (r) { var h0 = r && r.data && r.data.info && r.data.info.host; if (h0 && h0 !== MPID) sbLostHost(); }, function () {}); }
       var el = document.getElementById('mpcd');
       if (MP.on && MP.role === 'host' && g && !g.over && g.ended && MP.limit > 0) {
@@ -7154,6 +7225,7 @@ if (typeof module !== 'undefined') module.exports = G;
   }, 1000);
   function mpBarFix() {
     var me = g.player, hum = G.humansOf(g), ended = g.ended && g.ended[me], chips = '';
+    if (g.srv && G.srvProt(g, me)) chips += '<span class="muted small" style="color:#9fe0a0">🛡新手保護 ' + G.srvProt(g, me) + ' 年' + esc(rtApprox(G.srvProt(g, me))) + '</span> ';
     hum.forEach(function (f) {
       var done = !g.fac[f].alive || (g.ended && g.ended[f]);
       var offF = Object.keys(MP.players || {}).some(function (u) { return MP.players[u].off && MP.players[u].f === f; });
@@ -7233,7 +7305,7 @@ if (typeof module !== 'undefined') module.exports = G;
   function p2pHost() {
     if (!p2pOk()) return p2pMenu(p2pWhy());
     var nick = mpReadNick();
-    MP.mode = 'p2p'; MP.role = 'host'; MP.uid = 'host'; MP.nick = nick; MP.phase = 'lobby'; MP.shell = false; MP.svSlot = 0; MP.svDropL = 0; SB.fresh = true; MP.resG = null; MP.resPl = null; MP.elig = null; MP.resY = 0;
+    MP.mode = 'p2p'; MP.role = 'host'; MP.uid = 'host'; MP.nick = nick; MP.phase = 'lobby'; MP.shell = false; MP.svSlot = 0; MP.svDropL = 0; SB.fresh = true; MP.pub = null; MP.resG = null; MP.resPl = null; MP.elig = null; MP.resY = 0;
     MP.players = { host: { f: null, name: nick } }; MP.info = { host: 'host', status: 'lobby' };
     P2P.slots = []; P2P.n = 0; P2P.lobbyKey = '';
     MP.room = { emit: function (topic, data) { if (topic === 'r') p2pReply(data); return Promise.resolve(); } };
@@ -7465,7 +7537,7 @@ if (typeof module !== 'undefined') module.exports = G;
             sbRegister(code).then(function (ok) {
               if (!ok) { self.destroy(); return self.emit('error', { type: 'unavailable-id' }); }
               ch.track({ id: self.id, role: 'host', mpid: MPID });
-              SB.code = code; SB.hostCode = code; self.emit('open', self.id);
+              SB.code = code; SB.hostCode = code; self.emit('open', self.id); if (MP.on && MP.role === 'host') setTimeout(function () { MP.dirty = true; sbSave(true); }, 0);
             }, function () { self.destroy(); self.emit('error', { type: 'network' }); });
           }, 1200);
         } else if ((st === 'CHANNEL_ERROR' || st === 'TIMED_OUT') && !opened) { opened = true; self.emit('error', { type: 'network' }); }
@@ -7525,6 +7597,7 @@ if (typeof module !== 'undefined') module.exports = G;
     p2pGuestMenu('房間 ' + code + ' 目前沒有人在線，正在從伺服器載入遊戲…');
     SB.cl.from('mw_rooms').select('*').eq('code', code).maybeSingle().then(function (r) {
       var row = r && r.data;
+      if ((!row || !row.state || (row.info && row.info.over)) && pubOf(code)) return sbCreatePub(code, nick, row);
       if (!row) return p2pGuestMenu('找不到房間 ' + code + '：請確認 5 個字母沒打錯。');
       if (!row.state) return p2pGuestMenu('房間 ' + code + ' 還沒開始遊戲，房主也不在線。請等房主上線再試。');
       if (row.info && row.info.over) return p2pGuestMenu('房間 ' + code + ' 的遊戲已經結束了。');
@@ -7540,7 +7613,7 @@ if (typeof module !== 'undefined') module.exports = G;
   function sbResume(code, info, st, nick) {
     var pls = info.players || {}, my = pls[MPID];
     var pk = mpPickSlot(); MP.svSlot = pk.k;
-    MP.mode = 'p2p'; MP.role = 'host'; MP.uid = 'host'; MP.nick = nick; MP.shell = false; MP.sbRoom = true;
+    MP.mode = 'p2p'; MP.role = 'host'; MP.uid = 'host'; MP.nick = nick; MP.shell = false; MP.sbRoom = true; MP.pub = pubOf(code);
     P2P.slots = []; P2P.n = 0; P2P.lobbyKey = '';
     MP.room = { emit: function (topic, data) { if (topic === 'r') p2pReply(data); return Promise.resolve(); } };
     SB.fresh = false;
@@ -7579,7 +7652,7 @@ if (typeof module !== 'undefined') module.exports = G;
       var res = G.mpAdvance(g); n++;
       if (res || g.over || g.hegPending) break;
     }
-    g.rt.next = Date.now() + ms;
+    rtSched();
     if (g.over || g.hegPending) { renderAll(); if (g.over) showEnd(); else showHeg(); return n; }
     beginTurn();
     return n;
@@ -7592,17 +7665,77 @@ if (typeof module !== 'undefined') module.exports = G;
   function rtClock(ms) { var s = Math.max(0, Math.ceil(ms / 1000)), h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), ss = s % 60; return (h ? h + ':' + ('0' + m).slice(-2) : m) + ':' + ('0' + ss).slice(-2); }
   /* 遊戲中途有新朋友進來：讓他從還沒有人玩的國家裡挑一個 */
   function sbEligNow() { if (!g) return []; return G.mpEligible(g).filter(function (f) { return !G.isHum(g, f); }); }
-  function sbPickUI(elig) {
+  function sbPickUI(elig, noai) {
     MP.elig = elig; MP.players = MP.players || {};
     var F = G.FACTIONS, opts = '<option value="">— 選擇你的國家 —</option>';
     mpRgGroups().forEach(function (gr) {
       var fs = gr.fs.filter(function (f) { return elig.indexOf(f) >= 0; }); if (!fs.length) return;
       opts += '<optgroup label="' + esc(gr.t) + '">' + fs.map(function (f) { return '<option value="' + f + '">' + esc(F[f].name) + '</option>'; }).join('') + '</optgroup>';
     });
-    $('#mbody').innerHTML = '<div class="mtag">伺服器房間</div><h2 id="mtitle">加入進行中的遊戲</h2><p class="mtext">這局已經開始了。選一個還沒有人玩的國家加入' + (g && g.noAI ? '（白手起家：選了之後，那個國家會在自己的首都出現）' : '（會從電腦手上接手）') + '。</p>' +
+    $('#mbody').innerHTML = '<div class="mtag">伺服器房間</div><h2 id="mtitle">加入進行中的遊戲</h2><p class="mtext">這局已經開始了。選一個還沒有人玩的國家加入' + (noai ? '（白手起家：選了之後，那個國家會在自己的首都出現）' : '（會從電腦手上接手）') + '。</p>' +
       '<div class="flist"><select id="sbpick" style="flex:1;min-width:0;padding:10px;border-radius:8px;border:1px solid var(--line);background:#1c1a14;color:inherit;font:inherit">' + opts + '</select></div>' +
       '<button class="btn primary" data-act="sbpick" style="margin-top:10px">加入</button> <button class="btn" data-act="mpleave">離開</button>';
     $('#modal').hidden = false;
+  }
+  /* ===== 公開伺服器：固定的幾個世界，任何人隨時進出，像九萬畝的「服」 ===== */
+  var PUBS = [
+    { code: 'SVONE', n: '第一服（快節奏）', d: '照歷史領土開局 · 一年最多 15 分鐘', sm: 0, tick: 15 },
+    { code: 'SVTWO', n: '第二服', d: '白手起家（只有首都、沒有電腦國家）· 一年最多 30 分鐘', sm: 2, tick: 30 },
+    { code: 'SVTRE', n: '第三服（慢慢玩）', d: '白手起家 · 一年最多 1 小時', sm: 2, tick: 60 }
+  ];
+  function pubOf(code) { var r = null; PUBS.forEach(function (p) { if (p.code === code) r = p; }); return r; }
+  function sbPubList() {
+    return '<div class="gh" style="margin:8px 0 4px">🌍 公開伺服器（隨時進出，國家選了就是你的）</div><div class="choices">' + PUBS.map(function (p) {
+      return '<button class="choice" data-act="sbpub" data-c="' + p.code + '"><span class="cl">' + p.n + '</span><span class="ch">' + esc(p.d) + '<br><span id="sbps-' + p.code + '" class="muted">查詢中…</span></span></button>';
+    }).join('') + '</div>';
+  }
+  function sbPubStatus() {
+    sbLoad().then(function (cl) {
+      return cl.from('mw_rooms').select('code,info').in('code', PUBS.map(function (p) { return p.code; }));
+    }).then(function (r) {
+      var m = {}; ((r && r.data) || []).forEach(function (x) { m[x.code] = x.info || {}; });
+      PUBS.forEach(function (p) {
+        var el = document.getElementById('sbps-' + p.code); if (!el) return;
+        var i = m[p.code], n = i && i.players ? Object.keys(i.players).length : 0, mine = i && i.players && i.players[MPID];
+        el.textContent = !i || !i.y ? '還沒有人開服，你可以第一個進去' : i.over ? '這一服已經結束' : '西元 ' + i.y + ' 年 · ' + n + ' 位玩家' + (mine ? ' · 你是' + ((G.FACTIONS[mine.f] || {}).name || '?') : '');
+      });
+    }).catch(function () { PUBS.forEach(function (p) { var el = document.getElementById('sbps-' + p.code); if (el) el.textContent = '伺服器暫時連不上'; }); });
+  }
+  function sbPub(code) {
+    var nick = mpReadNick();
+    p2pGuestMenu('正在連到' + (pubOf(code) || {}).n + '…');
+    pjLoad().then(function () {
+      if (!SB.on) return mpMenu('伺服器暫時連不上，公開伺服器現在不能用。');
+      pjJoin(code, nick);
+    }, function () { mpMenu('伺服器暫時連不上，公開伺服器現在不能用。'); });
+  }
+  /* 公開伺服器還沒開服（或開服的人沒按開始就離開）：由你開服 */
+  function sbCreatePub(code, nick, row) {
+    var P = pubOf(code);
+    MP.mode = 'p2p'; MP.role = 'host'; MP.uid = 'host'; MP.nick = nick; MP.phase = 'lobby'; MP.shell = false; MP.on = false;
+    MP.svSlot = 0; MP.svDropL = 0; MP.resG = null; MP.resPl = null; MP.elig = null; MP.resY = 0; MP.pub = P;
+    SB.fresh = !row;
+    MP.players = { host: { f: null, name: nick, pid: MPID } }; MP.info = { host: 'host', status: 'lobby' };
+    P2P.slots = []; P2P.n = 0; P2P.lobbyKey = '';
+    MP.room = { emit: function (topic, data) { if (topic === 'r') p2pReply(data); return Promise.resolve(); } };
+    mpRenderLobby(); p2pRenderSlots(); pjHostStart(code);
+  }
+  /* 這一年最晚什麼時候結束：開局前 50 年比較快；大家都按完、而且滿 2 分鐘就提早 */
+  function rtSched() {
+    if (!g || !g.rt || !(g.rt.tick > 0)) return;
+    g.rt.start = Date.now();
+    var len = g.rt.early && G.year(g) < 1146 ? Math.min(g.rt.early, g.rt.tick) : g.rt.tick;
+    g.rt.next = g.rt.start + len * 60000;
+  }
+  function rtTooSoon() { return !!(g && g.rt && g.rt.min && g.rt.start && Date.now() - g.rt.start < g.rt.min * 60000 && Date.now() < g.rt.next); }
+  function rtApprox(n) {
+    if (!g || !g.rt || !(g.rt.tick > 0) || !(n > 0)) return '';
+    var m = n * g.rt.tick; return '，最多約 ' + (m >= 1440 ? (m / 1440).toFixed(1).replace(/\.0$/, '') + ' 天' : m >= 60 ? (m / 60).toFixed(1).replace(/\.0$/, '') + ' 小時' : m + ' 分鐘');
+  }
+  /* 太久沒下指令被收回的國家：從玩家名單拿掉 */
+  function srvDropIdle() {
+    if (!g || !g.srv) return;
+    Object.keys(MP.players || {}).forEach(function (u) { var q = MP.players[u]; if (u !== 'host' && q && q.f && !G.isHum(g, q.f)) { delete MP.players[u]; delete MP.facOf[u]; } });
   }
 
   function pjLoad() {
@@ -7925,6 +8058,7 @@ if (typeof module !== 'undefined') module.exports = G;
     '<li><b>公告也會報</b>：你的將領陣亡、退休、遇刺或新加入，有新將領可以招募；誰向你宣戰、你鄰國之間誰宣戰（其他地方只報場數）；哪個國家被誰消滅。</li>' +
     '<li><b>登陸作戰一年一次</b>：每支艦隊每年只能搶灘作戰一次，打輸退回船上的殘部也不能馬上再登陸；從已經行動過的地載上船的部隊，這支艦隊今年也不能搶灘（但可以在自己的地下船）。</li>' +
     '<li><b>伺服器房間與即時模式</b>：多人連線的 5 碼房間現在放在伺服器上，遊戲進度也存在伺服器。房主關掉遊戲，其他人會自動換一個人接手繼續；所有人都不在時，下次任何人輸入代碼就能接著玩。房主開房時可以把「時間流逝」設成即時（例如每 10 分鐘過一年）：大家隨時下指令，時間到自動進下一年，離開期間該過的年份下次開房時會一次補上（最多 12 年）；不在線的人國家照樣在，但不會動。遊戲中途有新朋友輸入代碼，可以挑一個還沒有人玩的國家加入。</li>' +
+    '<li><b>公開伺服器</b>：多人連線裡有「第一、二、三服」，不用約代碼，任何人隨時都能進。挑一個還沒有人選的國家，那個國家就是你的：別人不能再選，你下線了也會留給你。所有規則都用遊戲年份算：<br>・<b>一年多長</b>：第一服最多 15 分鐘、第二服 30 分鐘、第三服 1 小時；開局前 50 年最多 5 分鐘；在線的人都按完「結束回合」、而且這一年已經過了 2 分鐘，就提早進下一年。<br>・<b>行動點可以存</b>：沒用完的會留到下一年，最多存 3 年份。<br>・<b>新手保護 12 年</b>：中途加入的人，12 年內不能被玩家打，也不能打玩家；加入時科技會補到其他玩家平均的 7 成，金幣、糧食補到平均的一半。<br>・<b>玩家之間</b>：宣戰要先送宣戰書，明年才開戰；停戰後至少 8 年不能再宣戰。打電腦不受影響。<br>・<b>閒置收回</b>：連續 48 年沒有下指令（只開著遊戲不算），國家會被收回給別人選；前 10 年會先提醒。<br>・<b>1453 年結算</b>：打到 1453 年就看分數排名，這一輪結束；之後再進入那一服就開新的一輪。</li>' +
     '<li><b>點地＝查看</b>：點別人的地或中立地只會顯示它的資料，不會自動出兵；面板上有「⚔ 從旁邊的某地出兵」按鈕，按了才會選好出兵。已經選了自己的地、再點旁邊的地，那塊地會變成出兵目標（箭頭）；同一塊再點一次，就改成只查看它。打不到的遠處只會提示你要先把部隊調到哪裡，不會自己幫你調兵扣行動點。</li>' +
     '<li><b>電腦會守首都</b>：首都或大城被你的大軍逼近時，電腦會從附近調兵回防、優先在那裡補兵；普通和困難難度下，首都告急還會緊急徵召民兵（每 4 回合一次），所以最好先削弱它周圍的部隊再攻城。</li>' +
     '<li><b>白手起家模式（多人連線限定）</b>：房主在多人房間裡的「開局領地」可以選「首都＋一圈」或「只有首都」。地圖上只有玩家選的國家，沒有電腦國家；每國一開始都只有這一點點地，其他地全部變成中立地；原本地圖上的城市變成有守軍的中立城，要自己一塊塊打下來，再蓋村莊、升級城市慢慢擴張。每國會多發 120 金、60 糧當起步資金。單人遊戲一律照歷史上的領土開局。</li>' +
@@ -8936,6 +9070,7 @@ if (typeof module !== 'undefined') module.exports = G;
     else if (o.reason === 'hegemony') why = F[o.winner].name + '佔領了 ' + G.WIN_P + ' 個以上的地塊，確立霸權。';
     else if (o.reason === 'culture') why = F[o.winner].name + '累積了足夠的文化，成為這個時代的燈塔。';
     else if (o.reason === 'settled') why = '你選擇在這裡結算本局。';
+    else if (o.reason === 'season') why = '這一服打到 1453 年，這一輪結束了！分數第一的玩家是' + F[o.winner].name + '。之後再進入這一服，就會開新的一輪。';
     else why = '遊戲結束。';
     var order = G.FIDS.slice().sort(function (a, b) { return o.scores[b] - o.scores[a]; });
     var rows = order.map(function (f, i) {
@@ -9924,6 +10059,7 @@ if (typeof module !== 'undefined') module.exports = G;
     G.FIDS.filter(function (x) { return x !== f && g.fac[x].alive; }).sort(function (a, b) { var da = G.dipInfo(g, f, a), db = G.dipInfo(g, f, b); return (db.alive - da.alive) || ((db.state === 'war') - (da.state === 'war')) || (db.border - da.border); }).forEach(function (x) {
       var d = G.dipInfo(g, f, x);
       var stTxt = d.state === 'war' ? '交戰中 · 第 ' + d.warT + ' 回合' : d.state === 'ally' ? (d.lord === f ? '你的附庸' : d.lord === x ? '你的宗主' : '同盟') : '和平';
+      if (g.srv) { var pv0 = G.srvProt(g, x); if (pv0) stTxt += ' · 🛡新手保護 ' + pv0 + ' 年' + rtApprox(pv0); if ((g.pw || []).some(function (w) { return (w.a === f && w.b === x) || (w.a === x && w.b === f); })) stTxt += ' · 🔥宣戰書已送出，明年開戰'; }
       h += '<div class="dcard" data-n="' + esc(G.nm(x)) + '" data-st="' + d.state + '" data-al="' + (d.alive ? 1 : 0) + '" data-bd="' + (d.border ? 1 : 0) + '"><div class="dh"><button class="dn dgo" data-act="dipgo" data-f="' + x + '" aria-label="前往' + esc(G.nm(x)) + '的領土">' + crestSVG(x, 22, 'cr-dip') + G.nm(x) + ' 📍</button><span class="st ' + d.state + '">' + stTxt + '</span></div>';
       var kk = (g.kl && g.kl[x]) || [], kline = kk.length ? '<p class="dmeta" style="width:100%">⚔ 消滅過 ' + kk.length + ' 國：' + kk.map(function (z) { return esc(G.nm(z.f)) + '（' + z.y + '）'; }).join('、') + '</p>' : '';
       if (!d.alive) { h += '<p class="dmeta">已經滅亡。</p>' + kline + '</div>'; return; }
@@ -10230,6 +10366,7 @@ if (typeof module !== 'undefined') module.exports = G;
     if (a === 'pjshare') { if (PJ.code) p2pShare('中世紀世界霸權', '來玩《中世紀：世界霸權》！多人連線 → 我是朋友 → 輸入房間代碼：' + PJ.code, location.origin + location.pathname + '#room=' + PJ.code); return; }
     if (a === 'p2presume') return p2pResume(b.getAttribute('data-k'));
     if (a === 'p2pdel') { var dk = b.getAttribute('data-k'); if (b.getAttribute('data-sure') !== '1') { b.setAttribute('data-sure', '1'); b.textContent = '確定刪除？'; return; } try { localStorage.removeItem(mpSlotKey(dk === 'L' ? 'L' : +dk)); } catch (e) {} toast('已刪除這個多人存檔。'); return mpMenu(); }
+    if (a === 'sbpub') return sbPub(b.getAttribute('data-c'));
     if (a === 'sbpick') { var sv0 = $('#sbpick') && $('#sbpick').value; if (!sv0) return toast('請先選一個國家。'); p2pSendTo(P2P.hostDc, { t: 'pickf', f: sv0 }); $('#mbody').innerHTML = '<div class="mtag">伺服器房間</div><p class="mtext">加入中…</p>'; return; }
     if (a === 'mpleave') return mpLeave();
     if (a === 'mpforce') return mpForce();
