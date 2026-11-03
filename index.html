@@ -434,7 +434,7 @@ button{font:inherit;color:inherit}
     <div class="startmap" id="startmap" aria-hidden="true"></div>
     <div class="sc-in gx">
       <p class="eyebrow">MEDIEVAL: WORLD DOMINATION · 1096 AD</p>
-      <p class="muted small" id="verline">版本 v221 · 2026-11-03 · 電腦拜占庭變強，君士坦丁堡有城牆</p>
+      <p class="muted small" id="verline">版本 v222 · 2026-11-03 · 公告加上將領、宣戰、滅亡</p>
       <h1>中世紀：世界霸權</h1>
       <p class="lead">1095 年，教宗在克萊蒙發出號召，整個歐洲動了起來。選一個勢力（共 121 個），再從該文明歷史上的君主裡挑一位登基；在四千多個六角格地塊的世界裡，與基督教世界、伊斯蘭世界與即將到來的蒙古鐵騎周旋。可以結盟借道、派商隊與商船貿易、派密探、遠征遠方、研究科技升級時代、替自己的城市取名。沒有回合上限，直到有人稱霸，或你失去一切。</p>
       <div id="startopts"></div>
@@ -3930,6 +3930,7 @@ function declareWar(g, a, b, cause) {
   var breach = r.truce > 0, betray = r.state === 'ally', fs = g.fac[a];
   if (g.mar && g.mar[marKey(a, b)]) { delete g.mar[marKey(a, b)]; fs.morale = clamp(fs.morale - 6, 0, 100); g.rep[a] = clamp(g.rep[a] - 25, 0, 100); logRel(g, a, b, nm(a) + '撕毀了與' + nm(b) + '的姻親關係，諸國側目。', 'bad'); }
   r.state = 'war'; r.truce = 0; r.trade = 0; r.warT = 0;
+  (g.wars || (g.wars = [])).push({ t: g.turn, a: a, b: b }); if (g.wars.length > 80) g.wars.splice(0, g.wars.length - 80);
   if (betray) { fs.morale = clamp(fs.morale - 12, 0, 100); g.rep[a] = clamp(g.rep[a] - 30, 0, 100); infAdd(g, a, 10); }
   else if (!cause) infAdd(g, a, breach ? 8 : 3);
   if (MERCH[b] && a !== b) { (g.sanc || (g.sanc = {}))[a] = g.turn + 8; FIDS.forEach(function (c) { if (c !== a && rel(g, c, b).trade > 0) rel(g, a, c).trade = 0; }); logMsg(g, '💰 ' + nm(a) + '攻打商業共和國' + nm(b) + '，各地商人聯合抵制：8 回合內' + nm(a) + '的貿易、商隊、商船收入減半，跟' + nm(b) + '的貿易夥伴解除協定。', a === g.player ? 'bad' : 'war'); wlog(g, nm(a) + '攻打' + nm(b) + '，遭到各地商人抵制。'); }
@@ -7646,6 +7647,7 @@ if (typeof module !== 'undefined') module.exports = G;
     '<li><b>地上的徽章</b>：每塊地上的盾牌就是擁有它的國家的徽章；盾牌左邊的小圓圈是那裡主要的兵種（交叉的劍＝步兵、弓＝弓兵、馬＝騎兵），下面的數字是兵力。</li>' +
     '<li><b>白手起家沒有電腦國家</b>：不會冒出金國、蒙古這類新國家，沒有史實事件。之後繼續存檔時，有新朋友選了還沒出現的國家，那個國家才會在自己的首都出現；沒回來的玩家，他的國家會原地不動，不會被電腦接手。</li>' +
     '<li><b>拜占庭的城牆</b>：拜占庭由電腦控制時，君士坦丁堡有狄奧多西城牆（城牆最高級、每年自動補兵，被圍時補得更快），帝國其他地方也會慢慢補兵、補錢，好讓它像歷史上一樣撐到 1453 年。帝國變大（超過 60 塊地）之後，只剩首都的城牆和補兵。想打下君士坦丁堡要準備大軍。</li>' +
+    '<li><b>公告也會報</b>：你的將領陣亡、退休、遇刺或新加入，有新將領可以招募；誰向你宣戰、你鄰國之間誰宣戰（其他地方只報場數）；哪個國家被誰消滅。</li>' +
     '<li><b>點地＝查看</b>：點別人的地或中立地只會顯示它的資料，不會自動出兵；面板上有「⚔ 從旁邊的某地出兵」按鈕，按了才會選好出兵。已經選了自己的地、再點旁邊的地，那塊地會變成出兵目標（箭頭）；同一塊再點一次，就改成只查看它。打不到的遠處只會提示你要先把部隊調到哪裡，不會自己幫你調兵扣行動點。</li>' +
     '<li><b>電腦會守首都</b>：首都或大城被你的大軍逼近時，電腦會從附近調兵回防、優先在那裡補兵；普通和困難難度下，首都告急還會緊急徵召民兵（每 4 回合一次），所以最好先削弱它周圍的部隊再攻城。</li>' +
     '<li><b>白手起家模式（多人連線限定）</b>：房主在多人房間裡的「開局領地」可以選「首都＋一圈」或「只有首都」。地圖上只有玩家選的國家，沒有電腦國家；每國一開始都只有這一點點地，其他地全部變成中立地；原本地圖上的城市變成有守軍的中立城，要自己一塊塊打下來，再蓋村莊、升級城市慢慢擴張。每國會多發 120 金、60 糧當起步資金。單人遊戲一律照歷史上的領土開局。</li>' +
@@ -8973,7 +8975,7 @@ if (typeof module !== 'undefined') module.exports = G;
     if (ui.tkKey === key) { if (ui.tkTurnSeen === g.turn) { ui.tkSnap = tkMyCities(); ui.tkTech = tkTechN(); } return; }
     var first = !ui.tkKey || ui.tkKey.split(':')[0] !== g.player;
     ui.tkKey = key; ui.tkTurnSeen = g.turn;
-    if (first) { ui.tkSnap = tkMyCities(); ui.tkTech = tkTechN(); return; }
+    if (first) { ui.tkSnap = tkMyCities(); ui.tkTech = tkTechN(); ui.tkLS = {}; tkNews(true); return; }
     var items = [];
     /* 城市被占 */
     Object.keys(ui.tkSnap || {}).forEach(function (k) { var id = +k, p = g.p[id]; if (p && p.o !== g.player) items.push({ t: '⚠ 你的城市「' + G.placeName(id) + '」被' + (p.o ? G.nm(p.o) : '叛軍') + '攻占了！', bad: true, id: id }); });
@@ -8982,10 +8984,38 @@ if (typeof module !== 'undefined') module.exports = G;
       if (e.t !== g.turn) return;
       if (/^商隊貿易|^商船貿易|商隊從.*歸來|商隊在路上被|商船在航線上被|劫掠了你的一艘商船|商隊遇襲/.test(e.text)) items.push({ t: (/商船/.test(e.text) ? '⛵ ' : '🐪 ') + e.text, bad: e.kind === 'bad' });
     });
+    tkNews(false).forEach(function (x) { items.push(x); });
     /* 科技 */
     var tn = tkTechN(); if (tn > 0 && (tn > (ui.tkTech || 0) || g.turn - (ui.tkTechAt || -99) >= 3)) { ui.tkTechAt = g.turn; items.push({ t: '🔬 有 ' + tn + ' 項科技可以研究了，按下面的「科技樹」', tech: true }); }
     ui.tkTech = tn; ui.tkSnap = tkMyCities();
     if (items.length) tickerShow(items);
+  }
+  /* 將領狀態、宣戰、滅亡 */
+  function tkNews(mark) {
+    var out = [], seen = ui.tkLS || (ui.tkLS = {}), me = g.player, T = g.turn;
+    var fresh = function (k, t) { if (seen[k]) return false; seen[k] = 1; return !mark && t >= T - 1; };
+    (g.log || []).forEach(function (e) {
+      if (!/年事已高|陣亡|戰死|隨國家覆滅|遇刺身亡|效忠於你|加入了你的麾下/.test(e.text)) return;
+      if (fresh('L' + e.t + '|' + e.text, e.t)) out.push({ t: '🎖 ' + e.text, bad: e.kind === 'bad' });
+    });
+    var ga = 0; try { ga = (G.genAvail(g, me) || []).length; } catch (x) {}
+    if (!mark && ga > (ui.tkGA || 0)) out.push({ t: '🎖 有 ' + ga + ' 位將領可以招募（點首都，在面板裡招募）' });
+    ui.tkGA = ga;
+    var nb = {}; G.LANDIDS.forEach(function (id) { if (g.p[id].o !== me) return; G.NB[id].forEach(function (n) { var q = g.p[n]; if (q && q.o && q.o !== me) nb[q.o] = 1; }); });
+    var other = 0;
+    (g.wars || []).forEach(function (w) {
+      if (!fresh('W' + w.t + w.a + w.b, w.t)) return;
+      if (w.b === me) out.push({ t: '🔥 ' + G.nm(w.a) + '向你宣戰了！', bad: true });
+      else if (w.a === me) out.push({ t: '⚔ 你向' + G.nm(w.b) + '宣戰。' });
+      else if (nb[w.a] || nb[w.b]) out.push({ t: '⚔ ' + G.nm(w.a) + '向' + G.nm(w.b) + '宣戰。' });
+      else other++;
+    });
+    if (other) out.push({ t: '⚔ 世界其他地方另有 ' + other + ' 場戰爭爆發。' });
+    (g.fallen || []).forEach(function (x) {
+      if (!fresh('F' + x.f + x.t, x.t)) return;
+      out.push({ t: x.by === me ? '👑 你消滅了' + G.nm(x.f) + '！' : '💀 ' + G.nm(x.f) + (x.by ? '被' + G.nm(x.by) + '消滅了。' : '滅亡了。'), bad: x.f === me });
+    });
+    return out;
   }
   function tickerShow(items) {
     var mw = document.querySelector('.mapwrap'); if (!mw) return;
