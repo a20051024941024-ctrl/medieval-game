@@ -434,7 +434,7 @@ button{font:inherit;color:inherit}
     <div class="startmap" id="startmap" aria-hidden="true"></div>
     <div class="sc-in gx">
       <p class="eyebrow">MEDIEVAL: WORLD DOMINATION · 1096 AD</p>
-      <p class="muted small" id="verline">版本 v240 · 2026-11-04 · 公開伺服器和朋友房間分成兩個入口</p>
+      <p class="muted small" id="verline">版本 v241 · 2026-11-04 · 快速服、地圖上的同盟、賽季獎牌、叛軍將領</p>
       <h1>中世紀：世界霸權</h1>
       <p class="lead">1095 年，教宗在克萊蒙發出號召，整個歐洲動了起來。選一個勢力（共 121 個），再從該文明歷史上的君主裡挑一位登基；在四千多個六角格地塊的世界裡，與基督教世界、伊斯蘭世界與即將到來的蒙古鐵騎周旋。可以結盟借道、派商隊與商船貿易、派密探、遠征遠方、研究科技升級時代、替自己的城市取名。沒有回合上限，直到有人稱霸，或你失去一切。</p>
       <div id="startopts"></div>
@@ -6517,7 +6517,7 @@ function mpAddHuman(g, f) {
   var h = { ap: 0, apCap: 0, evResolved: true, evData: null, log: [], evView: null }; h.apCap = apMax(g, f); h.ap = h.apCap;
   g.hs[f] = h; g.offs = g.offs || {}; g.offs[f] = []; g.ended = g.ended || {};
   if (g.srv) {
-    (g.prot || (g.prot = {}))[f] = g.turn + SRV_PROT; (g.act || (g.act = {}))[f] = g.turn; (g.tok || (g.tok = {}))[f] = SRV_TOK;
+    (g.prot || (g.prot = {}))[f] = g.turn + ((g.srv && g.srv.prot) || SRV_PROT); (g.act || (g.act = {}))[f] = g.turn; (g.tok || (g.tok = {}))[f] = SRV_TOK;
     humansOf(g).forEach(function (x) { if (x === f) return; var r = rel(g, f, x); if (r.state === 'war') { r.state = 'peace'; r.warT = 0; } });
     srvCatchUp(g, f);
   }
@@ -6649,11 +6649,12 @@ function srvTick(g) {
   Object.keys(g.hs || {}).forEach(function (f) {
     if (!g.fac[f].alive) return;
     var idle = g.turn - (act[f] != null ? act[f] : (g.srv.t0 || 1));
-    if (idle >= SRV_IDLE) {
+    var IDL = (g.srv && g.srv.idle) || SRV_IDLE, WRN = Math.min(SRV_WARN, Math.ceil(IDL / 3));
+    if (idle >= IDL) {
       delete g.hs[f]; if (g.offs) delete g.offs[f]; if (g.ended) delete g.ended[f]; if (g.prot) delete g.prot[f]; delete act[f]; delete HQ[f];
       logMsg(g, nm(f) + '的君主太久沒有下令，國家被收回，其他人可以選它了。', 'war');
-    } else if (idle >= SRV_IDLE - SRV_WARN) {
-      asPlayer(g, f, function () { logMsg(g, '⚠ 你已經 ' + idle + ' 年沒有下指令，再 ' + (SRV_IDLE - idle) + ' 年沒動靜，國家就會被收回。', 'bad'); });
+    } else if (idle >= IDL - WRN) {
+      asPlayer(g, f, function () { logMsg(g, '⚠ 你已經 ' + idle + ' 年沒有下指令，再 ' + (IDL - idle) + ' 年沒動靜，國家就會被收回。', 'bad'); });
     }
   });
 }
@@ -6873,7 +6874,16 @@ function campTick(g) {
 function campReward(g, f, id, c) {
   var F = g.fac[f], lv = c.lv || 1, txt = '';
   if (c.k === 'bandit') { var gd = 60 + 40 * lv, fd = 30 * lv; F.gold += gd; F.food += fd; txt = '剿滅' + CAMP_K.bandit + '！搜出 ' + gd + ' 金幣、' + fd + ' 糧食。'; }
-  else if (c.k === 'rebel') { var gd2 = 120 + 60 * lv, cp = CAPITAL[f]; F.gold += gd2; F.morale = clamp(F.morale + 2, 0, 100); if (cp != null && g.p[cp].o === f) g.p[cp].t += 5 * lv; txt = '平定' + CAMP_K.rebel + '！' + gd2 + ' 金幣、民心 +2，' + 5 * lv + ' 名降兵加入首都守軍。'; }
+  else if (c.k === 'rebel') {
+    var gd2 = 120 + 60 * lv, cp = CAPITAL[f]; F.gold += gd2; F.morale = clamp(F.morale + 2, 0, 100); if (cp != null && g.p[cp].o === f) g.p[cp].t += 5 * lv;
+    txt = '平定' + CAMP_K.rebel + '！' + gd2 + ' 金幣、民心 +2，' + 5 * lv + ' 名降兵加入首都守軍。';
+    if (gensOf(g, f).length < GEN_MAX && Math.random() < 0.35 + 0.15 * lv) {
+      var used = F.gused || [], pool = (GENS[f] || []).map(function (x, i) { return i; }).filter(function (i) { return used.indexOf(i) < 0; });
+      var av = genAvail(g, f).map(function (x) { return x.i; }), pick = av.length ? av[rint(av.length)] : pool.length ? pool[rint(pool.length)] : -1;
+      var gn = pick >= 0 ? genAdd(g, f, pick, 3) : null;
+      if (gn) txt += '叛軍首領' + gn.n + '投降了，願意為你效力（老練的' + GEN_TYPE[gn.t] + '，駐在首都）！';
+    }
+  }
   else { if (g.srv && Math.random() < 0.35) { g.tok = g.tok || {}; g.tok[f] = Math.min(SRV_TOK_MAX, (g.tok[f] | 0) + 2); txt = '探索' + CAMP_K.ruin + '，找到古代地圖：開拓令 +2！'; } else { var gd3 = 80 + rint(60 * lv + 40); F.gold += gd3; txt = '探索' + CAMP_K.ruin + '，挖出 ' + gd3 + ' 金幣的寶藏！'; } }
   asPlayer(g, f, function () { logMsg(g, '⛺ ' + txt, 'good'); });
   dqHit(g, f, 'camp', 1);
@@ -7301,7 +7311,7 @@ if (typeof module !== 'undefined') module.exports = G;
     var resumed = !!MP.resG;
     if (resumed) { g = MP.resG; MP.resG = null; G.mpReassign(g, hostF, guests); g.evResolved = true; if (MP.tick > 0) g.rt = { tick: MP.tick, next: (g.rt && g.rt.next > Date.now()) ? g.rt.next : Date.now() + MP.tick * 60000 }; }
     else { g = G.newGame(hostF, DIFF); g.noCul = !CULON; if (STARTM) G.applyStartMode(g, STARTM, [hostF].concat(guests)); G.mpInit(g, guests); if (MP.tick > 0) g.rt = { tick: MP.tick, next: Date.now() + MP.tick * 60000 }; }
-    if (pubP && !resumed) { g.srv = { t0: g.turn, endY: 1453, rid: Date.now() }; g.rt = { tick: pubP.tick, early: 5, min: 2 }; rtSched(); g.prot = {}; g.tok = {}; g.noCul = true; var hm0 = G.humansOf(g); hm0.forEach(function (f) { g.prot[f] = g.turn + 12; g.tok[f] = 3; hm0.forEach(function (x) { if (x !== f) { var r0 = G.rel(g, f, x); if (r0.state === 'war') { r0.state = 'peace'; r0.warT = 0; } } }); }); }
+    if (pubP && !resumed) { g.srv = { t0: g.turn, endY: pubP.endY || 1453, rid: Date.now(), prot: pubP.prot || 12, idle: pubP.idle || 48 }; g.rt = { tick: pubP.tick, early: pubP.tick > 5 ? 5 : 0, min: pubP.min || 2 }; rtSched(); g.prot = {}; g.tok = {}; g.noCul = true; var hm0 = G.humansOf(g); hm0.forEach(function (f) { g.prot[f] = g.turn + (pubP.prot || 12); g.tok[f] = 3; hm0.forEach(function (x) { if (x !== f) { var r0 = G.rel(g, f, x); if (r0.state === 'war') { r0.state = 'peace'; r0.warT = 0; } } }); }); }
     if (pubP) { STARTM = smS; MP.tick = tkS; }
     enterGame();
     MP.dirty = true;
@@ -8084,7 +8094,8 @@ if (typeof module !== 'undefined') module.exports = G;
   }
   /* ===== 公開伺服器：固定的幾個世界，任何人隨時進出，像九萬畝的「服」 ===== */
   var PUBS = [
-    { code: 'SVONE', n: '第一服', d: '白手起家（只有首都、沒有電腦國家）· 一年最多 15 分鐘', sm: 2, tick: 15 }
+    { code: 'SVONE', n: '第一服', d: '白手起家（只有首都、沒有電腦國家）· 一年最多 15 分鐘', sm: 2, tick: 15 },
+    { code: 'SVFST', n: '⚡ 快速服', d: '白手起家 · 一年最多 1 分鐘 · 打到 1156 年（約 1 小時一局）', sm: 2, tick: 1, endY: 1156, prot: 4, idle: 10, min: 0.5 }
   ];
   function pubOf(code) { var r = null; PUBS.forEach(function (p) { if (p.code === code) r = p; }); return r; }
   function sbPubList() {
@@ -8534,6 +8545,7 @@ if (typeof module !== 'undefined') module.exports = G;
     '<li><b>伺服器房間與即時模式</b>：多人連線的 5 碼房間現在放在伺服器上，遊戲進度也存在伺服器。房主關掉遊戲，其他人會自動換一個人接手繼續；所有人都不在時，下次任何人輸入代碼就能接著玩。房主開房時可以把「時間流逝」設成即時（例如每 10 分鐘過一年）：大家隨時下指令，時間到自動進下一年，離開期間該過的年份下次開房時會一次補上（最多 12 年）；不在線的人國家照樣在，但不會動。遊戲中途有新朋友輸入代碼，可以挑一個還沒有人玩的國家加入。</li>' +
     '<li><b>📽 整局重播</b>：遊戲結束時，結算畫面有「播放整局重播」。地圖會從第一年播到最後一年，所有國家的領土同時擴張；旁邊的大事記會依年份列出誰加入、誰建城、誰向誰宣戰、哪國被誰消滅、名城易主和全服事件，右邊是當年的領地排名。可以暫停、調速度（1×／2×／5×），也能拖時間軸跳到任何一年；多人時預設放大到玩家所在的區域，按「全世界」看整張地圖。</li>' +
     '<li><b>🏴 開拓令（可以選要不要用）</b>：往旁邊的中立地出兵時，會有兩個按鈕。「用開拓令佔領」：空地或小村莊直接佔領，只放 1 名開拓者，不花行動點；中立大城鎮則是不花行動點進攻。「派兵過去」：花 1 點行動點，軍隊整支開過去，開拓令留著。野外營地一定要派兵打。</li>' +
+    '<li><b>⚡ 快速服</b>：沒空打好幾天的話，可以進快速服。一樣是白手起家，一年最多 1 分鐘，打到 1156 年（大約 1 小時）就結算；新手保護 4 年，10 年沒下指令國家就會被收回。結束後重新進入，就是新的一局。</li><li><b>🥇 賽季獎牌</b>：每一輪結算時，前三名同盟的每位玩家都會拿到金、銀、銅牌，永久顯示在名字旁邊（聊天、同盟、點地塊時都看得到）。</li><li><b>⚑ 地圖上的同盟</b>：伺服器裡，有同盟的國家首都下面會顯示同盟名稱；點對方的地也會看到他屬於哪個同盟。叛軍據點打下來，有機會收服一位老練的將領。</li>' +
     '<li><b>🔔 通知</b>（伺服器）：到「帳號」按「開啟通知」。遊戲關著的時候，有人攻打你、向你宣戰、邀請你加入同盟，或發生全服大事，手機會跳通知（同一個人最多每 8 分鐘一則）。要用安裝到桌面的版本或 Chrome。</li>' +
     '<li><b>⚑ 同盟</b>（伺服器）：按上方的「⚑ 同盟」。花 100 金幣建立同盟（最多 6 國），盟主可以邀請玩家。成員之間自動結盟、不能互相宣戰；可以互送金幣、糧食（每年各最多 300）和援軍（首都到首都，每年最多 20 兵，要 1 點行動點）。盟主可以把一座名城設成同盟目標，任何成員拿下，全員 +150 金幣、民心 +3。退出同盟後 8 年內不能對前盟友宣戰。</li><li><b>⛺ 野外營地</b>（伺服器）：玩家領地附近會冒出土匪營地 ⛺、叛軍據點 🔥、古代遺跡 🏛。開拓令不能直接佔，要派兵打下來，可以得到金幣、糧食、降兵或開拓令。沒人打的話 25 年後會消失，再冒出新的。</li><li><b>📜 每日任務</b>（伺服器）：每天台灣時間 0 點換 3 個新任務（佔地、打營地、徵兵、研究、建城、支援盟友），完成一個領 80 金幣和 50 糧食，三個全領完再加 150 金幣和 1 張開拓令。</li>' +
     '<li><b>👤 帳號</b>（伺服器）：一開始是訪客帳號，只認得這支手機的這個瀏覽器。到伺服器選單的「帳號」綁定 Email，換手機或清除資料後，用「我已經保存過，登入」輸入同一個 Email，點信裡的連結就能回到原本的國家（不用密碼）。</li>' +
@@ -9053,7 +9065,7 @@ if (typeof module !== 'undefined') module.exports = G;
     });
     LIDS.forEach(function (id) {
       var cty = G.CITY[id];
-      if ((cty || (g.cn && g.cn[id])) && !o.demo) { var capH = !!(g.p[id].o && G.CAPITAL[g.p[id].o] === id); s += '<text class="nm l' + (cty ? cty.lv : 3) + (capH ? ' cp' : '') + '" x="' + HX[id].toFixed(1) + '" y="' + (HY[id] + (capH ? 44 : 40)).toFixed(1) + '" text-anchor="middle">' + (capH ? '★ ' : '') + esc(G.placeName(id)) + (G.relAt(g, id).length ? ' ◆' : '') + '</text>'; }
+      if ((cty || (g.cn && g.cn[id])) && !o.demo) { var capH = !!(g.p[id].o && G.CAPITAL[g.p[id].o] === id); s += '<text class="nm l' + (cty ? cty.lv : 3) + (capH ? ' cp' : '') + '" x="' + HX[id].toFixed(1) + '" y="' + (HY[id] + (capH ? 44 : 40)).toFixed(1) + '" text-anchor="middle">' + (capH ? '★ ' : '') + esc(G.placeName(id)) + (G.relAt(g, id).length ? ' ◆' : '') + '</text>'; if (capH && g.srv && G.alOf) { var alc = G.alOf(g, g.p[id].o); if (alc) s += '<text class="nm alt" x="' + HX[id].toFixed(1) + '" y="' + (HY[id] + 66).toFixed(1) + '" text-anchor="middle">⚑〔' + esc(alc.n) + '〕</text>'; } }
     });
     if (!o.demo) {
       G.fleets(g).forEach(function (fl) {
@@ -10022,7 +10034,7 @@ if (typeof module !== 'undefined') module.exports = G;
     list.slice(-80).forEach(function (x) {
       if (x.sys) { h += '<div class="cm sys">· ' + esc(x.text) + '</div>'; return; }
       if (CHAT.mute[x.f] && x.f !== me) return;
-      h += '<div class="cm' + (x.f === me ? ' me' : '') + '"><span class="cdot" style="background:' + (NC[x.f] || '#888') + '"></span><b style="color:' + (NC[x.f] || '#ddd') + '">' + esc(x.name) + '</b><span class="cf">（' + esc(chatFacName(x.f)) + '）</span>' +
+      h += '<div class="cm' + (x.f === me ? ' me' : '') + '"><span class="cdot" style="background:' + (NC[x.f] || '#888') + '"></span><b style="color:' + (NC[x.f] || '#ddd') + '">' + esc(x.name) + '</b>' + awdBadge(x.f) + '<span class="cf">（' + esc(chatFacName(x.f)) + '）</span>' +
         (x.f !== me ? '<button class="cmu" data-act="chatmenu" data-id="' + esc(x.id) + '" aria-label="更多">⋯</button>' : '') + '<div class="ct">' + esc(x.text) + '</div>' +
         (CHAT.menu === x.id ? '<div class="cmenu"><button data-act="chatmute" data-f="' + esc(x.f) + '">🚫 封鎖這個人</button><button data-act="chatreport" data-id="' + esc(x.id) + '">⚠️ 檢舉</button></div>' : '') + '</div>';
     });
@@ -10394,20 +10406,21 @@ if (typeof module !== 'undefined') module.exports = G;
   }
   function adPanel(tab) {
     tab = tab || AD.tab || 'rep'; AD.tab = tab;
-    var code = PUBS[0].code;
+    var code = AD.code || PUBS[0].code;
     $('#mbody').innerHTML = '<div class="mtag">🛠 管理員</div><h2 id="mtitle">伺服器管理</h2><div class="adtabs">' +
       [['rep', '檢舉'], ['pl', '玩家'], ['srv', '伺服器']].map(function (x) { return '<button class="btn' + (x[0] === tab ? ' primary' : '') + '" data-act="adtab" data-t="' + x[0] + '">' + x[1] + '</button>'; }).join('') +
-      '</div><div id="adbody" class="muted small">讀取中…</div><button class="btn" data-act="srvmenu" style="margin-top:10px">返回</button>';
+      '</div>' + (PUBS.length > 1 && tab !== 'rep' ? '<div class="adrow" style="margin-bottom:6px">伺服器：<select id="adsrv">' + PUBS.map(function (p) { return '<option value="' + p.code + '"' + (p.code === code ? ' selected' : '') + '>' + esc(p.n) + '</option>'; }).join('') + '</select></div>' : '') + '<div id="adbody" class="muted small">讀取中…</div><button class="btn" data-act="srvmenu" style="margin-top:10px">返回</button>';
     $('#modal').hidden = false;
+    var ss = $('#adsrv'); if (ss) ss.onchange = function () { AD.code = ss.value; adPanel(tab); };
     var body = function (h) { var b = $('#adbody'); if (b) b.innerHTML = h; };
     if (tab === 'rep') {
       SB.cl.from('mw_reports').select('*').eq('handled', false).order('id', { ascending: false }).limit(50).then(function (r) {
         if (r && r.error) return body('讀不到檢舉：' + esc(r.error.message || r.error.code || ''));
         var L = (r && r.data) || [];
         body(L.length ? L.map(function (x) {
-          return '<div class="adcard"><b>' + esc(x.target_name || '?') + '</b>' + (x.target_f ? '（' + esc(chatFacName(x.target_f)) + '）' : '') + ' · ' + esc(x.reason || '') +
+          return '<div class="adcard"><b>' + esc(x.target_name || '?') + '</b>' + (x.target_f ? '（' + esc(chatFacName(x.target_f)) + '）' : '') + ' · ' + esc(x.reason || '') + (pubOf(x.code) && PUBS.length > 1 ? ' · ' + esc(pubOf(x.code).n) : '') +
             (x.excerpt ? '<br>「' + esc(x.excerpt) + '」' : '') + '<br><span class="muted">' + esc((x.created_at || '').slice(0, 16).replace('T', ' ')) + (x.year ? ' · 遊戲 ' + x.year + ' 年' : '') + '</span>' +
-            '<div class="adrow">' + (x.target_f ? '<button class="btn" data-act="adpf" data-f="' + esc(x.target_f) + '">處理這個人</button>' : '') + '<button class="btn" data-act="adhandled" data-id="' + x.id + '">標成已處理</button></div></div>';
+            '<div class="adrow">' + (x.target_f ? '<button class="btn" data-act="adpf" data-f="' + esc(x.target_f) + '" data-c="' + esc(x.code || '') + '">處理這個人</button>' : '') + '<button class="btn" data-act="adhandled" data-id="' + x.id + '">標成已處理</button></div></div>';
         }).join('') : '目前沒有待處理的檢舉。');
       }, function () { body('讀取失敗。'); });
     } else if (tab === 'pl') {
@@ -10434,7 +10447,7 @@ if (typeof module !== 'undefined') module.exports = G;
     return { mute: '禁言 ' + who, unmute: '解除禁言 ' + who, kick: '踢出 ' + who, unban: '解除踢出 ' + who, name: '改名 ' + who + ' → ' + (c.to || ''), reclaim: '收回國家 ' + (c.f ? chatFacName(c.f) : ''), ann: '公告：' + (c.text || ''), end: '結束這一輪' }[c.k] || c.k;
   }
   function adSendCmd(c) {
-    var code = PUBS[0].code;
+    var code = AD.code || PUBS[0].code;
     SB.cl.from('mw_cmds').insert({ code: code, cmd: c }).then(function (r) {
       if (r && r.error) return toast('指令沒有送出：' + (r.error.message || r.error.code || ''));
       toast('已送出：' + adCmdText(c) + '。有人在玩時會馬上執行，沒人在玩就等下次有人開服。');
@@ -10489,8 +10502,9 @@ if (typeof module !== 'undefined') module.exports = G;
   function adFameTick() {
     if (!SB.on || !SB.cl || MP.role !== 'host' || !g || !g.srv || !g.over || g.over.reason !== 'season' || g.srv.fameSent) return;
     g.srv.fameSent = 1;
+    var uidOf = function (f) { var r = ''; Object.keys(MP.players || {}).forEach(function (u) { var q = MP.players[u]; if (q && q.f === f) r = u === 'host' ? MPID : (q.pid || ''); }); return r; };
     var nmOf = function (f) { var n = ''; Object.keys(MP.players || {}).forEach(function (u) { var q = MP.players[u]; if (q && q.f === f) n = q.name; }); return n; };
-    var st = []; try { st = G.srvStanding(g).slice(0, 5).map(function (x) { return { m: x.m.map(function (f) { return { f: f, n: G.FACTIONS[f].name, p: nmOf(f) }; }), c: x.n, sc: Math.round(x.sc) }; }); } catch (e) {}
+    var st = []; try { st = G.srvStanding(g).slice(0, 5).map(function (x) { return { m: x.m.map(function (f) { return { f: f, n: G.FACTIONS[f].name, p: nmOf(f), u: uidOf(f) }; }), c: x.n, sc: Math.round(x.sc) }; }); } catch (e) {}
     var data = { endY: G.year(g), fam: g.over.fam || null, top: st, players: G.humansOf(g).length };
     SB.cl.from('mw_fame').insert({ code: SB.hostCode, round: g.srv.rid || adNow(), data: data }).then(function () {}, function () {});
   }
@@ -10553,7 +10567,7 @@ if (typeof module !== 'undefined') module.exports = G;
     else if (a === 'adclose') { var el = $('#adrep'); if (el) el.remove(); }
     else if (a === 'adpanel') adCheck().then(function (ok) { if (ok) adPanel('rep'); else toast('你不是管理員。'); });
     else if (a === 'adtab') adPanel(t.getAttribute('data-t'));
-    else if (a === 'adpf') { AD.focusF = t.getAttribute('data-f'); adPanel('pl'); }
+    else if (a === 'adpf') { AD.focusF = t.getAttribute('data-f'); if (t.getAttribute('data-c')) AD.code = t.getAttribute('data-c'); adPanel('pl'); }
     else if (a === 'adhandled') { SB.cl.from('mw_reports').update({ handled: true }).eq('id', +t.getAttribute('data-id')).then(function () { adPanel('rep'); }); }
     else if (a === 'adcmd') {
       var k = t.getAttribute('data-k'), pid = t.getAttribute('data-p'), c = { k: k };
@@ -10662,7 +10676,7 @@ if (typeof module !== 'undefined') module.exports = G;
   }, true);
   /* ===== 同盟、每日任務、野外營地的畫面 ===== */
   function alMe() { return MP.role === 'host' ? g.player : (MP.me || g.player); }
-  function alPN(f) { var n = ''; try { n = rpPlayerName(f); } catch (e) {} return n && G.nm(f).indexOf('（' + n + '）') < 0 ? '（' + n + '）' : ''; }
+  function alPN(f) { var n = ''; try { n = rpPlayerName(f); } catch (e) {} return (n && G.nm(f).indexOf('（' + n + '）') < 0 ? '（' + n + '）' : '') + awdBadge(f); }
   function alChips(me) {
     if (!g || !g.srv) return '';
     var a = G.alOf(g, me), inv = !a && g.alInv && g.alInv[me], q = G.dqView(g, me), dn = q.q.filter(function (x) { return x.n >= x.need; }).length, cl = q.q.some(function (x) { return x.n >= x.need && !x.c; });
@@ -10742,7 +10756,8 @@ if (typeof module !== 'undefined') module.exports = G;
       '#alpanel~select,#mbody select{padding:6px;border-radius:8px;border:1px solid #555;background:#0b1418;color:#fff;font-size:15px;max-width:100%}';
     document.head.appendChild(st);
   })();
-  (function () { var rp0 = renderPanel; renderPanel = function () { rp0.apply(this, arguments); try { var pn = document.getElementById('panel'); if (pn && ui.sel != null && g && g.camp && g.camp[ui.sel] && !pn.querySelector('.campinfo')) { var ci = campInfo(ui.sel); if (ci) pn.insertAdjacentHTML('afterbegin', ci); } } catch (e) {} }; })();
+  (function () { var rp0 = renderPanel; renderPanel = function () { rp0.apply(this, arguments); try { var pn = document.getElementById('panel'); if (pn && ui.sel != null && g && g.camp && g.camp[ui.sel] && !pn.querySelector('.campinfo')) { var ci = campInfo(ui.sel); if (ci) pn.insertAdjacentHTML('afterbegin', ci); }
+      if (pn && ui.sel != null && g && g.srv && g.p[ui.sel] && g.p[ui.sel].o && !pn.querySelector('.alinfo')) { var ow = g.p[ui.sel].o, al1 = G.alOf(g, ow), mine = G.alOf(g, alMe()); if (al1 || awdBadge(ow)) pn.insertAdjacentHTML('afterbegin', '<div class="campinfo alinfo">' + (al1 ? '⚑ ' + esc(G.nm(ow)) + '屬於同盟〔' + esc(al1.n) + '〕' + (mine && mine === al1 ? '（你們是同一個同盟）' : '') + '，' + al1.m.length + ' 國' : esc(G.nm(ow))) + ' ' + awdBadge(ow) + '</div>'); } } catch (e) {} }; })();
   /* ===== 推播通知：遊戲關著時，被攻打、被宣戰、全服大事會跳通知 ===== */
   var PU = { st: {}, at: {}, busy: false, pub: null };
   function puCan() { return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window && (location.protocol === 'https:' || location.hostname === 'localhost'); }
@@ -10844,6 +10859,35 @@ if (typeof module !== 'undefined') module.exports = G;
   (function () { var st = document.createElement('style'); st.textContent = '.mphero{display:flex;flex-direction:column;gap:10px;margin:14px 0 18px}.mphero button{display:flex;align-items:center;gap:12px;width:100%;text-align:left;border-radius:16px;padding:14px 16px;cursor:pointer;font:inherit;color:inherit}' +
     '.mpbig{background:linear-gradient(135deg,#e7c573,#c9963e);color:#1b1406!important;border:0;box-shadow:0 6px 18px rgba(0,0,0,.45)}.spbig{background:rgba(12,24,29,.82);border:1px solid rgba(214,173,85,.55)}' +
     '.mphero .mi{font-size:30px;flex:none}.mphero .mt{flex:1;display:flex;flex-direction:column;gap:3px}.mphero b{font-size:calc(19px * var(--fs,1))}.mphero small{font-size:calc(13px * var(--fs,1));opacity:.85;line-height:1.4}.mphero .ma{font-size:26px;flex:none;opacity:.8}'; document.head.appendChild(st); })();
+  /* ===== 賽季獎牌：名人堂前三名的玩家，名字旁邊有獎牌 ===== */
+  var AWD = { u: {}, fu: {}, t: 0, ft: 0 };
+  try { AWD.u = JSON.parse(localStorage.getItem('crusade-awd') || '{}') || {}; } catch (e) {}
+  function awdLoad(force) {
+    if (!SB.cl || (!force && Date.now() - AWD.t < 600000)) return;
+    AWD.t = Date.now();
+    SB.cl.from('mw_fame').select('data').limit(200).then(function (r) {
+      if (!r || r.error) return; var U = {};
+      (r.data || []).forEach(function (row) { ((row.data && row.data.top) || []).slice(0, 3).forEach(function (t, k) { (t.m || []).forEach(function (m) { if (!m.u) return; var a = U[m.u] || (U[m.u] = { 1: 0, 2: 0, 3: 0 }); a[k + 1]++; }); }); });
+      AWD.u = U; try { localStorage.setItem('crusade-awd', JSON.stringify(U)); } catch (e) {}
+    }, function () {});
+  }
+  function awdMap() {
+    if (!SB.cl || !g || !g.srv || Date.now() - AWD.ft < 120000) return;
+    var code = SB.hostCode || SB.code || SB.pubJoin; if (!code) return;
+    AWD.ft = Date.now();
+    SB.cl.from('mw_rooms').select('info').eq('code', code).maybeSingle().then(function (r) {
+      var pl = r && r.data && r.data.info && r.data.info.players; if (!pl) return; var m = {};
+      Object.keys(pl).forEach(function (u) { if (pl[u] && pl[u].f) m[pl[u].f] = u; }); AWD.fu = m;
+    }, function () {});
+  }
+  function awdBadge(f) {
+    if (!g || !g.srv) return '';
+    var u = AWD.fu[f] || (f === alMe() ? SB.uid : ''), a = u && AWD.u[u]; if (!a) return '';
+    var s = ''; [[1, '🥇'], [2, '🥈'], [3, '🥉']].forEach(function (x) { if (a[x[0]]) s += x[1] + (a[x[0]] > 1 ? '×' + a[x[0]] : ''); });
+    return s ? '<span class="awd" title="歷屆名次">' + s + '</span>' : '';
+  }
+  setInterval(function () { try { if (MP.on && g && g.srv) { awdLoad(); awdMap(); } } catch (e) {} }, 5000);
+  (function () { var st = document.createElement('style'); st.textContent = '#map text.nm.alt{fill:#f1d48c;font-size:15px;font-weight:700;paint-order:stroke;stroke:#1b1406;stroke-width:4px}.awd{margin-left:3px;font-size:.9em}'; document.head.appendChild(st); })();
   /* 全服大事件：等畫面上沒有其他視窗時才跳出來 */
   function showBigAnn() {
     if (!ui.bigAnn || !ui.bigAnn.length || !g || !$('#modal').hidden) return;
@@ -11797,7 +11841,7 @@ if (typeof module !== 'undefined') module.exports = G;
     if (a === 'genpick') { G.genChoose(g, b.getAttribute('data-f'), +b.getAttribute('data-i')); $('#modal').hidden = true; beginTurn(); return; }
     if (a === 'genmove') return afterAction(G.P.genAssign(g, +b.getAttribute('data-gi'), ui.sel));
     if (a === 'mp') return mpMenu();
-    if (a === 'srvmenu') { mpReadNick(); return srvMenu(); }
+    if (a === 'srvmenu') { mpReadNick(); try { sbLoad().then(sbAuth).then(function () { awdLoad(true); }); } catch (e) {} return srvMenu(); }
     if (a === 'mpcreate') return mpCreate();
     if (a === 'mpjoin') return mpJoin();
     if (a === 'mpstart') return mpHostStart();
