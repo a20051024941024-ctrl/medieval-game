@@ -434,7 +434,7 @@ button{font:inherit;color:inherit}
     <div class="startmap" id="startmap" aria-hidden="true"></div>
     <div class="sc-in gx">
       <p class="eyebrow">MEDIEVAL: WORLD DOMINATION · 1096 AD</p>
-      <p class="muted small" id="verline">版本 v241 · 2026-11-04 · 快速服、地圖上的同盟、賽季獎牌、叛軍將領</p>
+      <p class="muted small" id="verline">版本 v242 · 2026-11-04 · 第一服閒置收回改成 48 年＋現實 3 天沒上線</p>
       <h1>中世紀：世界霸權</h1>
       <p class="lead">1095 年，教宗在克萊蒙發出號召，整個歐洲動了起來。選一個勢力（共 121 個），再從該文明歷史上的君主裡挑一位登基；在四千多個六角格地塊的世界裡，與基督教世界、伊斯蘭世界與即將到來的蒙古鐵騎周旋。可以結盟借道、派商隊與商船貿易、派密探、遠征遠方、研究科技升級時代、替自己的城市取名。沒有回合上限，直到有人稱霸，或你失去一切。</p>
       <div id="startopts"></div>
@@ -6650,9 +6650,13 @@ function srvTick(g) {
     if (!g.fac[f].alive) return;
     var idle = g.turn - (act[f] != null ? act[f] : (g.srv.t0 || 1));
     var IDL = (g.srv && g.srv.idle) || SRV_IDLE, WRN = Math.min(SRV_WARN, Math.ceil(IDL / 3));
+    var IMS = g.srv.idleMs != null ? g.srv.idleMs : (g.srv.idle ? 0 : 3 * 86400000), AA = g.actAt || (g.actAt = {});
+    if (AA[f] == null) AA[f] = Date.now();
+    var away = Date.now() - AA[f];
+    if (IMS && away < IMS) { if (idle >= IDL - WRN && away > IMS - 12 * 3600000) asPlayer(g, f, function () { logMsg(g, '⚠ 你已經很久沒上線了，再 ' + Math.max(1, Math.ceil((IMS - away) / 3600000)) + ' 小時沒上線，國家就會被收回。', 'bad'); }); return; }
     if (idle >= IDL) {
-      delete g.hs[f]; if (g.offs) delete g.offs[f]; if (g.ended) delete g.ended[f]; if (g.prot) delete g.prot[f]; delete act[f]; delete HQ[f];
-      logMsg(g, nm(f) + '的君主太久沒有下令，國家被收回，其他人可以選它了。', 'war');
+      delete g.hs[f]; if (g.offs) delete g.offs[f]; if (g.ended) delete g.ended[f]; if (g.prot) delete g.prot[f]; delete act[f]; delete AA[f]; delete HQ[f];
+      logMsg(g, nm(f) + '的君主太久沒有上線，國家被收回，其他人可以選它了。', 'war');
     } else if (idle >= IDL - WRN) {
       asPlayer(g, f, function () { logMsg(g, '⚠ 你已經 ' + idle + ' 年沒有下指令，再 ' + (IDL - idle) + ' 年沒動靜，國家就會被收回。', 'bad'); });
     }
@@ -6946,7 +6950,7 @@ P.moveNT = function (g, from, to, ratio) {
     var f0 = P[k];
     P[k] = function (g) {
       if (g.ended && g.ended[g.player]) return fail('你已結束回合，等待其他玩家。');
-      if (g.srv) (g.act || (g.act = {}))[g.player] = g.turn;
+      if (g.srv) { (g.act || (g.act = {}))[g.player] = g.turn; (g.actAt || (g.actAt = {}))[g.player] = Date.now(); }
       var res = f0.apply(null, arguments);
       if (g.srv && res && res.ok && (k === 'recruit' || k === 'tech' || k === 'build')) try { dqHit(g, g.player, k, 1); } catch (e) {}
       return res;
@@ -7311,7 +7315,7 @@ if (typeof module !== 'undefined') module.exports = G;
     var resumed = !!MP.resG;
     if (resumed) { g = MP.resG; MP.resG = null; G.mpReassign(g, hostF, guests); g.evResolved = true; if (MP.tick > 0) g.rt = { tick: MP.tick, next: (g.rt && g.rt.next > Date.now()) ? g.rt.next : Date.now() + MP.tick * 60000 }; }
     else { g = G.newGame(hostF, DIFF); g.noCul = !CULON; if (STARTM) G.applyStartMode(g, STARTM, [hostF].concat(guests)); G.mpInit(g, guests); if (MP.tick > 0) g.rt = { tick: MP.tick, next: Date.now() + MP.tick * 60000 }; }
-    if (pubP && !resumed) { g.srv = { t0: g.turn, endY: pubP.endY || 1453, rid: Date.now(), prot: pubP.prot || 12, idle: pubP.idle || 48 }; g.rt = { tick: pubP.tick, early: pubP.tick > 5 ? 5 : 0, min: pubP.min || 2 }; rtSched(); g.prot = {}; g.tok = {}; g.noCul = true; var hm0 = G.humansOf(g); hm0.forEach(function (f) { g.prot[f] = g.turn + (pubP.prot || 12); g.tok[f] = 3; hm0.forEach(function (x) { if (x !== f) { var r0 = G.rel(g, f, x); if (r0.state === 'war') { r0.state = 'peace'; r0.warT = 0; } } }); }); }
+    if (pubP && !resumed) { g.srv = { t0: g.turn, endY: pubP.endY || 1453, rid: Date.now(), prot: pubP.prot || 12, idle: pubP.idle || 48, idleMs: pubP.idleMs || 0 }; g.rt = { tick: pubP.tick, early: pubP.tick > 5 ? 5 : 0, min: pubP.min || 2 }; rtSched(); g.prot = {}; g.tok = {}; g.noCul = true; var hm0 = G.humansOf(g); hm0.forEach(function (f) { g.prot[f] = g.turn + (pubP.prot || 12); g.tok[f] = 3; hm0.forEach(function (x) { if (x !== f) { var r0 = G.rel(g, f, x); if (r0.state === 'war') { r0.state = 'peace'; r0.warT = 0; } } }); }); }
     if (pubP) { STARTM = smS; MP.tick = tkS; }
     enterGame();
     MP.dirty = true;
@@ -7513,7 +7517,7 @@ if (typeof module !== 'undefined') module.exports = G;
   function mpApply(st) {
     var first = !MP.on, prevTurn = g ? g.turn : 0;
     if (MP.me && st.hs && !st.hs[MP.me] && st.host !== MP.me && !MP.spec && MP.on) {
-      if (!MP.lostNation) { MP.lostNation = true; $('#mbody').innerHTML = '<div class="mtag">伺服器</div><h2 id="mtitle">你的國家被收回了</h2><p class="mtext">你的國家已經被收回了（連續 48 年沒有下指令，或是被管理員收回），其他人可以選它了。你可以重新挑一個還沒有人玩的國家。</p><button class="btn primary" data-act="sbrepick">重新選一個國家</button> <button class="btn" data-act="mpleave">離開</button>'; $('#modal').hidden = false; }
+      if (!MP.lostNation) { MP.lostNation = true; $('#mbody').innerHTML = '<div class="mtag">伺服器</div><h2 id="mtitle">你的國家被收回了</h2><p class="mtext">你的國家已經被收回了（太久沒有上線，或是被管理員收回），其他人可以選它了。你可以重新挑一個還沒有人玩的國家。</p><button class="btn primary" data-act="sbrepick">重新選一個國家</button> <button class="btn" data-act="mpleave">離開</button>'; $('#modal').hidden = false; }
       return;
     }
     var m = G.mpMirror(st, MP.me);
@@ -8094,7 +8098,7 @@ if (typeof module !== 'undefined') module.exports = G;
   }
   /* ===== 公開伺服器：固定的幾個世界，任何人隨時進出，像九萬畝的「服」 ===== */
   var PUBS = [
-    { code: 'SVONE', n: '第一服', d: '白手起家（只有首都、沒有電腦國家）· 一年最多 15 分鐘', sm: 2, tick: 15 },
+    { code: 'SVONE', n: '第一服', d: '白手起家（只有首都、沒有電腦國家）· 一年最多 15 分鐘', sm: 2, tick: 15, idleMs: 3 * 86400000 },
     { code: 'SVFST', n: '⚡ 快速服', d: '白手起家 · 一年最多 1 分鐘 · 打到 1156 年（約 1 小時一局）', sm: 2, tick: 1, endY: 1156, prot: 4, idle: 10, min: 0.5 }
   ];
   function pubOf(code) { var r = null; PUBS.forEach(function (p) { if (p.code === code) r = p; }); return r; }
@@ -8553,7 +8557,7 @@ if (typeof module !== 'undefined') module.exports = G;
     '<li><b>💬 聊天</b>（多人連線才有）：按地圖左下角的 💬 打開聊天。<b>全服</b>頻道大家都看得到；<b>同盟</b>頻道只有你和你的玩家盟友（盟友的盟友也算）看得到。一則最多 120 字，太快連發會被擋，髒話會變成＊。不想看到某個人的訊息，按他名字旁的「⋯」就能封鎖（只有你看不到，可以在下方取消）。中途加入的人會看到最近 30 則全服訊息。</li>' +
     '<li><b>🌍 伺服器的全服事件</b>（只有伺服器才有）：<br>・<b>⚔ 十字軍號召</b>（1147、1189 年）：基督教國家首都 +12 兵、+150 金幣；之後 8 年，在耶路撒冷附近有領地的基督教與伊斯蘭玩家每年都有增援。<br>・<b>🌪 蒙古崛起</b>（1206 年）：蒙古大軍在草原出現（玩家越強，蒙古越強），向所有玩家宣戰，到 1300 年前每年都會補兵。攻下蒙古的地每塊 25 金幣；把蒙古消滅，全服玩家各得 300 金幣、民心 +5，攻下最多蒙古領地的人再加 300 金幣。<br>・<b>🏴‍☠️ 海盜潮</b>（1250、1380 年）：每位玩家的港口外會出現海盜艦隊。<br>・<b>💀 黑死病</b>（1347 年起四年）：各地守軍大減、民心 −8；有糧倉或教堂的地損失減半。</li>' +
     '<li><b>伺服器的新手教學</b>：第一次進公開伺服器前，會先問你要不要做新手教學（在自己的單人遊戲裡，約 5 分鐘）。做完或選「我會玩了」之後會記在帳號上，不會再問。</li>' +
-    '<li><b>公開伺服器</b>：多人連線裡有「公開伺服器（第一服）」，不用約代碼，任何人隨時都能進。挑一個還沒有人選的國家，那個國家就是你的：別人不能再選，你下線了也會留給你。伺服器是白手起家：只有玩家的國家、沒有電腦國家，每人從首都開始。所有規則都用遊戲年份算：<br>・<b>一年多長</b>：最多 15 分鐘；開局前 50 年最多 5 分鐘；在線的人都按完「結束回合」、而且這一年已經過了 2 分鐘，就提早進下一年。<br>・<b>行動點可以存</b>：沒用完的會留到下一年，最多存 3 年份。<br>・<b>新手保護</b>：剛加入的人 12 年內（或領地超過 30 塊就提早結束）不能被玩家打，也不能打玩家；加入時科技會補到其他玩家平均的 7 成，金幣、糧食補到平均的一半。<br>・<b>玩家之間</b>：宣戰要先送宣戰書，明年才開戰；停戰後至少 8 年不能再宣戰。打電腦不受影響。<br>・<b>閒置收回</b>：連續 48 年沒有下指令（只開著遊戲不算），國家會被收回給別人選；前 10 年會先提醒。<br>・<b>🏴 開拓令</b>：每年發 3 張（最多存 9 張），旁邊的中立空地或小村莊，用一張就直接佔領（不用打仗、不花行動點）；中立的大城鎮也會先用開拓令代替行動點，但要打仗；打別人的地還是用行動點。<br>・<b>👑 名城爭奪</b>：地圖上有 ' + '9' + ' 座名城（君士坦丁堡、耶路撒冷、羅馬、巴格達、開封、開羅、巴黎、撒馬爾罕、德里），有皇冠標記。玩家之間可以結盟（外交 → 同盟，對方同意才算），盟友算同一隊。<br>・<b>1453 年結算</b>：打到 1453 年，守住最多名城的同盟獲勝（一樣多就比分數），這一輪結束；之後再進入這一服就開新的一輪。</li>' +
+    '<li><b>公開伺服器</b>：多人連線裡有「公開伺服器（第一服）」，不用約代碼，任何人隨時都能進。挑一個還沒有人選的國家，那個國家就是你的：別人不能再選，你下線了也會留給你。伺服器是白手起家：只有玩家的國家、沒有電腦國家，每人從首都開始。所有規則都用遊戲年份算：<br>・<b>一年多長</b>：最多 15 分鐘；開局前 50 年最多 5 分鐘；在線的人都按完「結束回合」、而且這一年已經過了 2 分鐘，就提早進下一年。<br>・<b>行動點可以存</b>：沒用完的會留到下一年，最多存 3 年份。<br>・<b>新手保護</b>：剛加入的人 12 年內（或領地超過 30 塊就提早結束）不能被玩家打，也不能打玩家；加入時科技會補到其他玩家平均的 7 成，金幣、糧食補到平均的一半。<br>・<b>玩家之間</b>：宣戰要先送宣戰書，明年才開戰；停戰後至少 8 年不能再宣戰。打電腦不受影響。<br>・<b>閒置收回</b>：第一服要「48 個遊戲年沒有動靜」而且「現實超過 3 天沒上線」，國家才會被收回給別人選（有上線就算有動靜，睡覺、上班不會被收回）；快到的時候會先提醒。快速服是 10 個遊戲年沒動靜就收回。<br>・<b>🏴 開拓令</b>：每年發 3 張（最多存 9 張），旁邊的中立空地或小村莊，用一張就直接佔領（不用打仗、不花行動點）；中立的大城鎮也會先用開拓令代替行動點，但要打仗；打別人的地還是用行動點。<br>・<b>👑 名城爭奪</b>：地圖上有 ' + '9' + ' 座名城（君士坦丁堡、耶路撒冷、羅馬、巴格達、開封、開羅、巴黎、撒馬爾罕、德里），有皇冠標記。玩家之間可以結盟（外交 → 同盟，對方同意才算），盟友算同一隊。<br>・<b>1453 年結算</b>：打到 1453 年，守住最多名城的同盟獲勝（一樣多就比分數），這一輪結束；之後再進入這一服就開新的一輪。</li>' +
     '<li><b>點地＝查看</b>：點別人的地或中立地只會顯示它的資料，不會自動出兵；面板上有「⚔ 從旁邊的某地出兵」按鈕，按了才會選好出兵。已經選了自己的地、再點旁邊的地，那塊地會變成出兵目標（箭頭）；同一塊再點一次，就改成只查看它。打不到的遠處只會提示你要先把部隊調到哪裡，不會自己幫你調兵扣行動點。</li>' +
     '<li><b>電腦會守首都</b>：首都或大城被你的大軍逼近時，電腦會從附近調兵回防、優先在那裡補兵；普通和困難難度下，首都告急還會緊急徵召民兵（每 4 回合一次），所以最好先削弱它周圍的部隊再攻城。</li>' +
     '<li><b>白手起家模式（多人連線限定）</b>：房主在多人房間裡的「開局領地」可以選「首都＋一圈」或「只有首都」。地圖上只有玩家選的國家，沒有電腦國家；每國一開始都只有這一點點地，其他地全部變成中立地；原本地圖上的城市變成有守軍的中立城，要自己一塊塊打下來，再蓋村莊、升級城市慢慢擴張。每國會多發 120 金、60 糧當起步資金。單人遊戲一律照歷史上的領土開局。</li>' +
@@ -10888,6 +10892,14 @@ if (typeof module !== 'undefined') module.exports = G;
   }
   setInterval(function () { try { if (MP.on && g && g.srv) { awdLoad(); awdMap(); } } catch (e) {} }, 5000);
   (function () { var st = document.createElement('style'); st.textContent = '#map text.nm.alt{fill:#f1d48c;font-size:15px;font-weight:700;paint-order:stroke;stroke:#1b1406;stroke-width:4px}.awd{margin-left:3px;font-size:.9em}'; document.head.appendChild(st); })();
+  /* 房主：在線上的玩家都算有活動（不會因為只是看著沒下指令就被收回） */
+  setInterval(function () {
+    try {
+      if (!MP.on || MP.role !== 'host' || !g || !g.srv) return;
+      var A = g.act || (g.act = {}), AA = g.actAt || (g.actAt = {}), now = Date.now();
+      Object.keys(MP.players || {}).forEach(function (u) { var q = MP.players[u]; if (q && q.f && (u === 'host' || !q.off)) { A[q.f] = g.turn; AA[q.f] = now; } });
+    } catch (e) {}
+  }, 30000);
   /* 全服大事件：等畫面上沒有其他視窗時才跳出來 */
   function showBigAnn() {
     if (!ui.bigAnn || !ui.bigAnn.length || !g || !$('#modal').hidden) return;
